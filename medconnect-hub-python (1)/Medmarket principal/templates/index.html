@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+{% block title %}MedMarket — Vitrine Médica{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/vitrine.css') }}" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+{% endblock %}
+
+{% block content %}
+<!-- ── CATEGORY BAR ── -->
+<nav class="category-bar">
+  <div class="container category-inner">
+    <a href="/" class="category-item {% if not selected_category %}active{% endif %}">
+      <i data-lucide="layout-grid"></i><span>Todos</span>
+    </a>
+    {% for cat in categories %}
+    <a href="/?category={{ cat.name }}{% if query %}&q={{ query }}{% endif %}"
+       class="category-item {% if selected_category == cat.name %}active{% endif %}">
+      <i data-lucide="{{ cat.icon }}"></i><span>{{ cat.name }}</span>
+    </a>
+    {% endfor %}
+  </div>
+</nav>
+
+<!-- ── HERO CAROUSEL ── -->
+{% if banner_listings and not query and not selected_category %}
+<section class="hero-carousel-section">
+  <div class="container">
+    <div class="swiper hero-swiper">
+      <div class="swiper-wrapper">
+        {% for slide in banner_listings %}
+        {%- set cname = slide.clinic.clinic_profile.razao_social if slide.clinic.clinic_profile else slide.clinic.name -%}
+        <div class="swiper-slide">
+          <a href="/listing/{{ slide.id }}" class="hi-slide">
+            <img class="hi-bg"
+                 src="{% if slide.imagem_url %}{{ url_for('static', filename=slide.imagem_url) }}{% else %}https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=1200&h=500&fit=crop{% endif %}"
+                 alt="{{ slide.title | e }}">
+            <div class="hi-gradient"></div>
+            <div class="hi-content">
+              <span class="hi-tag">
+                <i data-lucide="stethoscope" style="width:.7rem;height:.7rem;"></i>
+                {{ slide.specialty or 'Serviço' }}
+              </span>
+              <h2 class="hi-title">{{ slide.title }}</h2>
+              {% if slide.doctor_name %}
+              <p class="hi-doctor">
+                <i data-lucide="user-round" style="width:.75rem;height:.75rem;flex-shrink:0;"></i>
+                {{ slide.doctor_name }}
+              </p>
+              {% endif %}
+              <p class="hi-price">R$ {{ "{:,.0f}".format(slide.price).replace(",", ".") }}</p>
+              <span class="hi-btn">
+                <i data-lucide="calendar-check" style="width:.88rem;height:.88rem;"></i>
+                Ver Detalhes
+              </span>
+            </div>
+            <div class="hi-clinic-badge">
+              <i data-lucide="building-2" style="width:.65rem;height:.65rem;"></i>
+              {{ cname | truncate(30, true, '…') }}
+            </div>
+          </a>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="swiper-pagination"></div>
+      <div class="swiper-button-prev"></div>
+      <div class="swiper-button-next"></div>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- ── VITRINE ── -->
+<div class="vitrine-wrap">
+
+  <!-- Clínicas Parceiras strip -->
+  {% if partners and not query and not selected_category %}
+  <div class="partners-strip">
+    <div class="partners-label">
+      <i data-lucide="building-2" style="width:.75rem;height:.75rem;color:var(--primary);"></i>
+      Clínicas Parceiras
+    </div>
+    <div class="partners-scroll">
+      {% for pu, sc in partners %}
+      {%- set pname = pu.clinic_profile.razao_social if pu.clinic_profile else pu.name -%}
+      <a href="/?q={{ pname | urlencode }}" class="partner-chip">
+        <div class="partner-av">{{ pname[0] | upper }}</div>
+        <div>
+          <div style="font-size:.7rem;font-weight:700;line-height:1.2;white-space:nowrap;">
+            {{ pname | truncate(18, true, '…') }}
+          </div>
+          <div style="font-size:.62rem;color:var(--muted);">
+            {{ sc }} serviço{{ 's' if sc != 1 else '' }}
+          </div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Results header -->
+  <div class="vitrine-hdr">
+    <div style="display:flex;align-items:center;gap:.55rem;">
+      <span id="resultsCount" class="vitrine-count">{{ listings | length }}</span>
+      <span style="font-size:.83rem;color:var(--muted);">
+        anúncio{{ 's' if listings|length != 1 else '' }}
+        {%- if selected_category %} em <strong style="color:var(--fg);">{{ selected_category }}</strong>
+        {%- elif query %} para <strong style="color:var(--fg);">"{{ query }}"</strong>
+        {%- else %} em destaque{%- endif %}
+      </span>
+    </div>
+    <select id="sortOrder" class="vsb-select" style="width:auto;padding:.32rem .7rem;font-size:.78rem;" onchange="sortCards()">
+      <option value="default">Mais recentes</option>
+      <option value="price-asc">Menor preço</option>
+      <option value="price-desc">Maior preço</option>
+      <option value="name-asc">A–Z</option>
+    </select>
+  </div>
+
+  <!-- Grid de Cards -->
+  {% if listings %}
+  <div class="vm-grid" id="vmGrid">
+    {% for listing in listings %}
+    {%- set cname = listing.clinic.clinic_profile.razao_social if listing.clinic.clinic_profile else listing.clinic.name -%}
+    <a href="/listing/{{ listing.id }}" class="vm-card fade-in"
+       data-price="{{ listing.price | int }}"
+       data-cat="{{ listing.specialty | lower | e }}"
+       data-title="{{ listing.title | lower | e }}"
+       data-delay="{{ loop.index0 }}">
+
+      <!-- Imagem -->
+      <div class="vm-img-wrap">
+        <img class="vm-img"
+             src="{% if listing.imagem_url %}{{ url_for('static', filename=listing.imagem_url) }}{% else %}https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=480&h=320&fit=crop{% endif %}"
+             alt="{{ listing.title | e }}" loading="lazy">
+        <span class="vm-badge-cat">{{ listing.specialty or 'Serviço' }}</span>
+        {% if listing.active %}
+        <span class="vm-badge-status">Ativo</span>
+        {% endif %}
+        <div class="vm-overlay">
+          <div class="vm-overlay-btn">
+            <i data-lucide="calendar-plus" style="width:1rem;height:1rem;"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Corpo -->
+      <div class="vm-body">
+        <div class="vm-clinic-row">
+          <div class="vm-av">{{ (cname or 'M')[0] | upper }}</div>
+          <span class="vm-clinic-nm" title="{{ cname | e }}">{{ cname | truncate(22, true, '…') }}</span>
+        </div>
+        <h3 class="vm-card-title">{{ listing.title }}</h3>
+        {% if listing.doctor_name %}
+        <div class="vm-doctor">
+          <i data-lucide="user-round" style="width:.68rem;height:.68rem;flex-shrink:0;"></i>
+          {{ listing.doctor_name }}
+        </div>
+        {% endif %}
+        <div class="vm-footer">
+          <span class="vm-price">R$&nbsp;{{ "{:,.0f}".format(listing.price).replace(",", ".") }}</span>
+          <span class="vm-cta-hint">
+            <i data-lucide="calendar-check" style="width:.65rem;height:.65rem;"></i>
+            Agendar
+          </span>
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <div class="vm-empty-state">
+    <i data-lucide="search-x" style="width:2.5rem;height:2.5rem;opacity:.3;display:block;margin:0 auto .75rem;"></i>
+    <p style="font-size:.88rem;">Nenhum anúncio encontrado.</p>
+    <a href="/" class="btn btn-outline btn-sm mt-4">Ver todos</a>
+  </div>
+  {% endif %}
+
+</div><!-- /vitrine-wrap -->
+
+<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+<script>
+(function () {
+  /* ── Swiper Hero Carousel ── */
+  if (document.querySelector('.hero-swiper')) {
+    new Swiper('.hero-swiper', {
+      loop: true,
+      autoplay: { delay: 4500, disableOnInteraction: false, pauseOnMouseEnter: true },
+      speed: 700,
+      pagination: { el: '.swiper-pagination', clickable: true },
+      navigation: { nextEl: '.swiper-button-next', prevEl: '.swiper-button-prev' },
+      grabCursor: true,
+    });
+  }
+
+  /* ── Sort cards ── */
+  window.sortCards = function () {
+    var grid  = document.getElementById('vmGrid');
+    if (!grid) return;
+    var sort  = document.getElementById('sortOrder').value;
+    var cards = Array.from(grid.querySelectorAll('.vm-card'));
+    if (sort === 'default') {
+      cards.sort(function (a, b) { return (parseInt(a.dataset.delay) || 0) - (parseInt(b.dataset.delay) || 0); });
+    } else if (sort === 'price-asc') {
+      cards.sort(function (a, b) { return (parseInt(a.dataset.price) || 0) - (parseInt(b.dataset.price) || 0); });
+    } else if (sort === 'price-desc') {
+      cards.sort(function (a, b) { return (parseInt(b.dataset.price) || 0) - (parseInt(a.dataset.price) || 0); });
+    } else if (sort === 'name-asc') {
+      cards.sort(function (a, b) { return (a.dataset.title || '').localeCompare(b.dataset.title || '', 'pt-BR'); });
+    }
+    cards.forEach(function (c) { grid.appendChild(c); });
+  };
+
+  /* ── Staggered card fade-in ── */
+  document.querySelectorAll('.vm-card[data-delay]').forEach(function (c) {
+    c.style.animationDelay = (parseInt(c.dataset.delay, 10) * 0.04) + 's';
+  });
+
+  /* Re-init Lucide icons injected by Swiper slide clones */
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+})();
+</script>
+{% endblock %}

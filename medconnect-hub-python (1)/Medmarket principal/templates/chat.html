@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}Chat — {{ clinic_name }}{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width:760px;padding:2rem 1rem 5rem;">
+
+  <!-- Back -->
+  <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:1.25rem;">
+    <a href="javascript:history.back()" class="btn-icon" title="Voltar">
+      <i data-lucide="arrow-left"></i>
+    </a>
+    <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,rgba(59,130,246,.2),rgba(168,85,247,.18));display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.95rem;color:var(--primary);">
+      {{ clinic_name[0] | upper }}
+    </div>
+    <div>
+      <div style="font-size:.9rem;font-weight:700;line-height:1.2;">{{ clinic_name }}</div>
+      <div style="font-size:.7rem;color:var(--muted);display:flex;align-items:center;gap:.3rem;">
+        <i data-lucide="building-2" style="width:.65rem;height:.65rem;"></i> Conversando com {{ clinic_name }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat window -->
+  <div id="chatWindow"
+       data-user-id="{{ user_id }}"
+       data-clinic-id="{{ clinic.id }}"
+       data-clinic-name="{{ clinic_name | e }}"
+       style="background:var(--card);border:1px solid var(--border);border-radius:1rem;
+       display:flex;flex-direction:column;height:62vh;min-height:320px;overflow:hidden;">
+
+    <!-- Messages area -->
+    <div id="chatMsgs" style="flex:1;overflow-y:auto;padding:1.1rem;display:flex;flex-direction:column;gap:.75rem;
+         scrollbar-width:thin;scrollbar-color:var(--border) transparent;">
+      <div style="text-align:center;font-size:.74rem;color:var(--muted);padding:.5rem 0;">
+        <i data-lucide="shield" style="width:.7rem;height:.7rem;vertical-align:middle;margin-right:.3rem;"></i>
+        Mensagens privadas entre você e {{ clinic_name }}
+      </div>
+    </div>
+
+    <!-- Divider -->
+    <div style="height:1px;background:var(--border);flex-shrink:0;"></div>
+
+    <!-- Input row -->
+    <form id="chatForm" style="display:flex;gap:.6rem;padding:.75rem;flex-shrink:0;" onsubmit="sendMsg(event)">
+      <input id="msgInput" type="text" class="input"
+             placeholder="Digite sua mensagem…"
+             autocomplete="off"
+             maxlength="500"
+             style="height:2.4rem;">
+      <button type="submit" class="btn btn-primary btn-icon-sm" style="flex-shrink:0;width:2.4rem;height:2.4rem;">
+        <i data-lucide="send" style="width:.9rem;height:.9rem;"></i>
+      </button>
+    </form>
+  </div>
+
+  <p style="font-size:.7rem;color:var(--muted);text-align:center;margin-top:.75rem;">
+    <i data-lucide="info" style="width:.65rem;height:.65rem;vertical-align:middle;"></i>
+    O histórico de mensagens fica visível apenas entre você e a clínica.
+  </p>
+</div>
+
+<script>
+(function () {
+  var el       = document.getElementById('chatWindow');
+  var USER_ID   = parseInt(el.dataset.userId,  10);
+  var CLINIC_ID = parseInt(el.dataset.clinicId, 10);
+  var CLINIC_NM = el.dataset.clinicName;
+
+  var msgsEl  = document.getElementById('chatMsgs');
+  var msgInp  = document.getElementById('msgInput');
+
+  /* ── Render a message bubble ── */
+  function renderMsg(text, fromSelf, ts) {
+    var wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;flex-direction:column;align-items:'
+      + (fromSelf ? 'flex-end' : 'flex-start') + ';gap:.18rem;';
+
+    var bubble = document.createElement('div');
+    bubble.style.cssText = 'max-width:72%;padding:.48rem .78rem;border-radius:'
+      + (fromSelf ? '1rem 1rem 0 1rem' : '1rem 1rem 1rem 0')
+      + ';font-size:.83rem;line-height:1.5;word-break:break-word;'
+      + (fromSelf
+          ? 'background:var(--primary);color:#fff;'
+          : 'background:var(--secondary);color:var(--fg);border:1px solid var(--border);');
+    bubble.textContent = text;
+
+    var meta = document.createElement('span');
+    meta.style.cssText = 'font-size:.64rem;color:var(--muted);';
+    meta.textContent   = ts || new Date().toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+
+    wrap.appendChild(bubble);
+    wrap.appendChild(meta);
+    msgsEl.appendChild(wrap);
+    msgsEl.scrollTop = msgsEl.scrollHeight;
+  }
+
+  /* ── Load history from DB API ── */
+  async function loadHistory() {
+    try {
+      var res  = await fetch('/api/mensagens/' + CLINIC_ID);
+      var data = await res.json();
+      if (Array.isArray(data)) {
+        data.forEach(function (m) { renderMsg(m.conteudo, m.from_self, m.timestamp); });
+      }
+    } catch (_) {}
+  }
+  loadHistory();
+
+  /* ── Send message ── */
+  window.sendMsg = async function (e) {
+    e.preventDefault();
+    var txt = (msgInp.value || '').trim();
+    if (!txt) return;
+    msgInp.value = '';
+    var ts = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+    renderMsg(txt, true, ts);
+    try {
+      var res  = await fetch('/api/mensagens/' + CLINIC_ID, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({conteudo: txt}),
+      });
+      var data = await res.json();
+      if (data && data.timestamp) {
+        /* update last bubble timestamp if server differs */
+        var last = msgsEl.lastElementChild;
+        if (last) {
+          var meta = last.querySelector('span');
+          if (meta) meta.textContent = data.timestamp;
+        }
+      }
+    } catch (_) {}
+  };
+})();
+</script>
+{% endblock %}

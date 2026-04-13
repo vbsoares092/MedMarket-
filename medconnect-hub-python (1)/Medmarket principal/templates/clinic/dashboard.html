@@ -1,0 +1,2208 @@
+{% extends "clinic/base.html" %}
+{% block title %}Dashboard — Portal da Clínica{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<style>
+  /* ── Dashboard tab nav ── */
+  .dash-tab-nav {
+    display: flex; gap: .35rem; margin-bottom: 1.75rem;
+    border-bottom: 1px solid var(--border); padding-bottom: .75rem;
+  }
+  .dash-tab-btn {
+    display: inline-flex; align-items: center; gap: .4rem;
+    font-size: .82rem; font-weight: 600; padding: .38rem .9rem; border-radius: .5rem;
+    border: 1px solid transparent; background: transparent; color: var(--muted);
+    cursor: pointer; transition: all .15s;
+  }
+  .dash-tab-btn svg { width: .85rem; height: .85rem; }
+  .dash-tab-btn:hover { background: var(--secondary); color: var(--fg); }
+  .dash-tab-btn.active {
+    background: rgba(59,130,246,0.12); border-color: rgba(59,130,246,0.3);
+    color: var(--primary);
+  }
+
+  /* ── Analytics: period filter ── */
+  .an-period-bar {
+    display: flex; align-items: center; gap: .5rem; margin-bottom: 1.5rem; flex-wrap: wrap;
+  }
+  .an-period-label {
+    font-size: .7rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .06em; color: var(--muted); margin-right: .15rem;
+  }
+  .an-period-btn {
+    font-size: .78rem; font-weight: 600; padding: .3rem .8rem; border-radius: .45rem;
+    border: 1px solid var(--border); background: transparent; color: var(--muted);
+    cursor: pointer; transition: all .15s;
+  }
+  .an-period-btn:hover { border-color: var(--primary); color: var(--primary); }
+  .an-period-btn.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+  /* ── Analytics: KPI highlight cards ── */
+  .an-kpi-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem; margin-bottom: 1.5rem;
+  }
+  .an-kpi-card {
+    background: #111827; border: 1px solid rgba(255,255,255,0.07); border-radius: 1rem;
+    padding: 1.4rem 1.6rem; display: flex; flex-direction: column; gap: .3rem;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.25);
+  }
+  .an-kpi-lbl {
+    font-size: .68rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .07em; color: #6b7280;
+  }
+  .an-kpi-val {
+    font-size: 2rem; font-weight: 900; line-height: 1.1; color: #34d399;
+  }
+  .an-kpi-val.blue  { color: #60a5fa; }
+  .an-kpi-val.amber { color: #fbbf24; }
+  .an-kpi-sub { font-size: .73rem; color: #6b7280; margin-top: .1rem; }
+
+  /* ── Analytics: chart grid ── */
+  .an-chart-grid {
+    display: grid; grid-template-columns: 1fr 380px; gap: 1rem; margin-bottom: 1.5rem;
+  }
+  @media (max-width: 900px) { .an-chart-grid { grid-template-columns: 1fr; } }
+  .an-chart-card {
+    background: #111827; border: 1px solid rgba(255,255,255,0.07); border-radius: 1.25rem;
+    padding: 1.25rem 1.5rem; box-shadow: 0 4px 20px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,.04);
+  }
+  .an-chart-title {
+    font-size: .82rem; font-weight: 700; margin-bottom: 1rem;
+    display: flex; align-items: center; gap: .4rem;
+  }
+  .an-chart-title svg { width: .85rem; height: .85rem; }
+
+  /* ── Analytics: empty state ── */
+  .an-empty {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: .75rem; padding: 4rem 2rem; color: #6b7280;
+    background: #111827; border: 1px dashed rgba(255,255,255,0.1);
+    border-radius: 1rem; text-align: center;
+  }
+  .an-empty svg { width: 3.5rem; height: 3.5rem; opacity: .25; }
+  .an-empty h3 { font-size: .95rem; font-weight: 700; color: #9ca3af; margin: 0; }
+  .an-empty p  { font-size: .82rem; margin: 0; max-width: 320px; line-height: 1.55; }
+
+  /* ── Analytics: shift legend ── */
+  .shift-legend { display: flex; flex-direction: column; gap: .5rem; margin-top: .75rem; }
+  .shift-row {
+    display: flex; align-items: center; gap: .5rem; font-size: .8rem;
+  }
+  .shift-dot { width: .65rem; height: .65rem; border-radius: 50%; flex-shrink: 0; }
+
+  /* ── KPI cards ── */
+  .kpi-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .kpi-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 1.25rem;
+    padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 0.4rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.04);
+    transition: box-shadow .2s, transform .2s;
+  }
+  .kpi-card:hover {
+    box-shadow: 0 8px 28px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.06);
+    transform: translateY(-1px);
+  }
+  .kpi-label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+  .kpi-value { font-size: 1.9rem; font-weight: 800; line-height: 1; }
+  .kpi-sub   { font-size: 0.75rem; color: var(--muted); }
+  .kpi-icon  {
+    width: 2.2rem; height: 2.2rem; border-radius: 0.6rem;
+    display: flex; align-items: center; justify-content: center; margin-bottom: 0.5rem;
+  }
+  .kpi-icon svg { width: 1.1rem; height: 1.1rem; }
+  .kpi-blue  { background: rgba(59,130,246,0.12); color: #3b82f6; }
+  .kpi-green { background: rgba(34,197,94,0.12);  color: #22c55e; }
+  .kpi-amber { background: rgba(245,158,11,0.1);  color: #f59e0b; }
+
+  /* ── Status pills ── */
+  .status-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.35rem; }
+  .pill {
+    font-size: 0.68rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 99px;
+  }
+  .pill-pending   { background: rgba(245,158,11,0.12);  color: #f59e0b; }
+  .pill-confirmed { background: rgba(59,130,246,0.12);  color: #3b82f6; }
+  .pill-completed { background: rgba(34,197,94,0.12);   color: #22c55e; }
+
+  /* ── Section header ── */
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;
+  }
+  .section-title { font-size: 0.95rem; font-weight: 700; }
+
+  /* ── Table ── */
+  .data-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  .data-table th {
+    text-align: left; font-size: 0.68rem; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--muted); font-weight: 700; padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .data-table td { padding: 0.65rem 0.75rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .table-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 1.25rem;
+    overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.04);
+  }
+  .status-badge {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    font-size: 0.7rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 99px;
+  }
+  .badge-active   { background: rgba(34,197,94,0.12);  color: #22c55e; }
+  .badge-inactive { background: rgba(107,114,128,0.12); color: #9ca3af; }
+  .badge-dot { width: .45rem; height: .45rem; border-radius: 50%; background: currentColor; }
+
+  .btn-sm {
+    font-size: 0.75rem; font-weight: 600; padding: 0.35rem 0.75rem; border-radius: 0.45rem;
+    border: 1px solid var(--border); background: var(--secondary); color: var(--fg);
+    cursor: pointer; transition: background .15s, border-color .15s; text-decoration: none;
+    display: inline-flex; align-items: center; gap: .3rem;
+  }
+  .btn-sm:hover { background: rgba(59,130,246,0.1); border-color: rgba(59,130,246,0.4); color: var(--primary); }
+  .btn-primary-sm {
+    font-size: 0.78rem; font-weight: 700; padding: 0.45rem 1rem; border-radius: 0.5rem;
+    background: var(--primary); color: #fff; border: none; cursor: pointer;
+    text-decoration: none; display: inline-flex; align-items: center; gap: .35rem;
+    transition: opacity .15s;
+  }
+  .btn-primary-sm:hover { opacity: .88; }
+
+  .empty-state {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 3rem 1rem; gap: 0.6rem; color: var(--muted);
+  }
+  .empty-state svg { width: 2.5rem; height: 2.5rem; opacity: .35; }
+  .empty-state p { font-size: 0.85rem; margin: 0; }
+
+  /* ── Agenda KPI mini-row ── */
+  .agenda-kpi-row { display: flex; gap: 1rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
+  .agenda-kpi {
+    flex: 1; min-width: 150px; background: var(--card); border: 1px solid var(--border);
+    border-radius: 1.25rem; padding: 1rem 1.25rem;
+    display: flex; align-items: center; gap: .75rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,.15), inset 0 1px 0 rgba(255,255,255,.04);
+    transition: box-shadow .2s, transform .2s;
+  }
+  .agenda-kpi:hover {
+    box-shadow: 0 6px 24px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.06);
+    transform: translateY(-1px);
+  }
+  .agenda-kpi-icon {
+    width: 2.1rem; height: 2.1rem; border-radius: .55rem;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .agenda-kpi-icon svg { width: 1rem; height: 1rem; }
+  .agenda-kpi-val { font-size: 1.6rem; font-weight: 800; line-height: 1; }
+  .agenda-kpi-lbl { font-size: .67rem; color: var(--muted); font-weight: 600;
+    text-transform: uppercase; letter-spacing: .05em; margin-top: .15rem; }
+
+  /* ── Filter toolbar ── */
+  .filter-toolbar {
+    display: flex; gap: .45rem; padding: .85rem 1.1rem;
+    border-bottom: 1px solid var(--border); flex-wrap: wrap; align-items: center;
+  }
+  .filter-toolbar-label {
+    font-size: .68rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .06em; color: var(--muted); margin-right: .25rem;
+  }
+  .filter-btn {
+    font-size: .74rem; font-weight: 600; padding: .28rem .7rem; border-radius: .4rem;
+    border: 1px solid var(--border); background: transparent; color: var(--muted);
+    cursor: pointer; transition: all .15s; white-space: nowrap;
+  }
+  .filter-btn:hover { border-color: var(--primary); color: var(--primary); }
+  .filter-btn.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+  /* ── Doctor avatar & cell ── */
+  .doc-avatar {
+    width: 2.1rem; height: 2.1rem; border-radius: 50%;
+    background: rgba(59,130,246,0.12); color: var(--primary);
+    font-size: .64rem; font-weight: 800;
+    display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .doc-cell { display: flex; align-items: center; gap: .5rem; }
+
+  /* ── Specialty badge palette ── */
+  .spec-badge { font-size: .67rem; font-weight: 700; padding: .17rem .5rem; border-radius: 99px; white-space: nowrap; }
+  .spec-0 { background: rgba(59,130,246,0.1);  color: #3b82f6; }
+  .spec-1 { background: rgba(168,85,247,0.1);  color: #a855f7; }
+  .spec-2 { background: rgba(20,184,166,0.1);  color: #14b8a6; }
+  .spec-3 { background: rgba(245,158,11,0.1);  color: #f59e0b; }
+  .spec-4 { background: rgba(239,68,68,0.1);   color: #ef4444; }
+  .spec-5 { background: rgba(34,197,94,0.1);   color: #22c55e; }
+
+  /* ── Hidden filter rows ── */
+  .slot-row[hidden] { display: none; }
+
+  /* ── Search & specialty filter bar ── */
+  .search-bar {
+    display: flex; gap: .65rem; padding: .85rem 1.1rem;
+    border-bottom: 1px solid var(--border); flex-wrap: wrap; align-items: center;
+  }
+  .search-input-wrap { position: relative; flex: 1; min-width: 180px; }
+  .search-input-wrap .srch-icon {
+    position: absolute; left: .6rem; top: 50%; transform: translateY(-50%);
+    width: .85rem; height: .85rem; color: var(--muted); pointer-events: none;
+  }
+  .search-input {
+    width: 100%; padding: .38rem .75rem .38rem 2rem; font-size: .8rem;
+    background: var(--secondary); border: 1px solid var(--border);
+    border-radius: .5rem; color: var(--fg); outline: none;
+    transition: border-color .2s, box-shadow .2s; box-sizing: border-box;
+  }
+  .search-input:focus {
+    border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+  }
+  .specialty-select {
+    padding: .38rem .75rem; font-size: .8rem;
+    background: var(--secondary); border: 1px solid var(--border);
+    border-radius: .5rem; color: var(--fg); outline: none; cursor: pointer; min-width: 160px;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .specialty-select:focus {
+    border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+  }
+  .no-results-row td {
+    text-align: center; padding: 2.5rem 1rem; color: var(--muted); font-size: .84rem;
+  }
+
+  .toggle-btn {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    font-size: 0.73rem; font-weight: 600; padding: 0.3rem 0.65rem; border-radius: 0.4rem;
+    border: 1px solid var(--border); background: var(--secondary); color: var(--muted);
+    cursor: pointer; transition: background .15s; white-space: nowrap;
+  }
+  .toggle-btn:hover { background: rgba(59,130,246,0.08); }
+  .toggle-btn svg { width: .8rem; height: .8rem; }
+
+  /* ── Institution info card ── */
+  .inst-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 1.25rem;
+    padding: 1.25rem 1.5rem; margin-bottom: 1.75rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,.12), inset 0 1px 0 rgba(255,255,255,.04);
+  }
+  .inst-card-header {
+    display: flex; align-items: center; gap: .55rem;
+    font-size: .78rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .06em; color: var(--muted); margin-bottom: 1rem;
+  }
+  .inst-card-header svg { width: .9rem; height: .9rem; }
+  .inst-fields {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: .75rem 1.5rem;
+  }
+  .inst-field label {
+    display: block; font-size: .68rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .06em; color: var(--muted); margin-bottom: .2rem;
+  }
+  .inst-field span {
+    font-size: .88rem; font-weight: 600; color: var(--fg);
+  }
+
+  /* ── Msg-tab pills ── */
+  .msg-tab {
+    font-size: .76rem; font-weight: 600; padding: .28rem .8rem; border-radius: .4rem;
+    border: 1px solid var(--border); background: var(--secondary); color: var(--muted);
+    cursor: pointer; transition: all .15s;
+  }
+  .msg-tab.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+  /* ── Unread badge ── */
+  .unread-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 1.25rem; height: 1.25rem; padding: 0 .3rem; border-radius: 99px;
+    background: var(--primary); color: #fff; font-size: .6rem; font-weight: 800;
+    vertical-align: middle;
+  }
+
+  /* ── Inline message icon button ── */
+  .btn-msg-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 1.65rem; height: 1.65rem; border-radius: .4rem;
+    border: 1px solid rgba(59,130,246,0.3); background: rgba(59,130,246,0.08);
+    color: var(--primary); cursor: pointer; transition: background .15s; flex-shrink: 0;
+    vertical-align: middle; margin-left: .35rem;
+  }
+  .btn-msg-icon:hover { background: rgba(59,130,246,0.22); }
+  .btn-msg-icon svg  { width: .78rem; height: .78rem; }
+
+  /* ── Chat modal overlay ── */
+  .chat-modal-overlay {
+    display: none; position: fixed; inset: 0; z-index: 700;
+    background: rgba(0,0,0,0.62); backdrop-filter: blur(4px);
+    align-items: center; justify-content: center; padding: 1rem;
+  }
+  .chat-modal-overlay.open { display: flex; }
+
+  .chat-modal {
+    background: var(--card); border: 1px solid var(--border); border-radius: 1.25rem;
+    width: 100%; max-width: 520px; max-height: 86vh;
+    display: flex; flex-direction: column; overflow: hidden;
+    box-shadow: 0 24px 72px rgba(0,0,0,0.45);
+  }
+
+  .chat-modal-header {
+    padding: .9rem 1.15rem; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: .75rem; flex-shrink: 0;
+  }
+  .chat-modal-body {
+    flex: 1; overflow-y: auto; padding: 1rem;
+    display: flex; flex-direction: column; gap: .6rem;
+    scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+  }
+  .chat-modal-footer {
+    padding: .7rem 1rem; border-top: 1px solid var(--border);
+    flex-shrink: 0; display: flex; gap: .5rem; align-items: center;
+  }
+
+  /* ── Message bubbles ── */
+  .bubble-row       { display: flex; flex-direction: column; gap: .16rem; }
+  .bubble-row.self  { align-items: flex-end; }
+  .bubble-row.other { align-items: flex-start; }
+  .bubble {
+    max-width: 76%; padding: .48rem .85rem; font-size: .83rem;
+    line-height: 1.55; word-break: break-word; white-space: pre-wrap;
+  }
+  .bubble-row.self  .bubble {
+    background: var(--primary); color: #fff;
+    border-radius: 1rem 1rem 0 1rem;
+  }
+  .bubble-row.other .bubble {
+    background: var(--secondary); color: var(--fg);
+    border: 1px solid var(--border); border-radius: 1rem 1rem 1rem 0;
+  }
+  .bubble-ts { font-size: .62rem; color: var(--muted); }
+
+  /* ── Closed-chat badge ── */
+  .badge-encerrado {
+    font-size: .68rem; font-weight: 700; padding: .18rem .55rem; border-radius: 99px;
+    background: rgba(107,114,128,.15); color: #9ca3af; white-space: nowrap;
+  }
+
+  /* ── Last-service pill in conversations list ── */
+  .servico-pill {
+    font-size: .68rem; font-weight: 700; padding: .15rem .5rem; border-radius: 99px;
+    background: rgba(20,184,166,0.10); color: #14b8a6; white-space: nowrap;
+  }
+
+  /* ── Price breakdown display in Agenda Real table ── */
+  .preco-padrao-strike {
+    text-decoration: line-through; color: var(--muted); font-size: .79rem;
+    margin-right: .25rem;
+  }
+  .preco-tooltip-wrap {
+    position: relative; display: inline-flex; align-items: center; gap: .25rem;
+    cursor: default;
+  }
+  .preco-tooltip-wrap[data-tooltip]:hover::after {
+    content: attr(data-tooltip);
+    position: absolute; bottom: 110%; left: 50%; transform: translateX(-50%);
+    white-space: nowrap; background: #1e253a; color: #e2e8f0;
+    font-size: .72rem; padding: .3rem .55rem; border-radius: .4rem;
+    border: 1px solid rgba(255,255,255,.08); pointer-events: none; z-index: 99;
+    box-shadow: 0 4px 16px rgba(0,0,0,.35);
+  }
+  .preco-tooltip-wrap[data-tooltip]:hover::before {
+    content: '';
+    position: absolute; bottom: 105%; left: 50%; transform: translateX(-50%);
+    border: 5px solid transparent; border-top-color: #1e253a;
+    pointer-events: none; z-index: 99;
+  }
+
+  /* ── Appointment workflow: state badges ── */
+  .badge-reservado {
+    display: inline-flex; align-items: center; gap: .3rem;
+    font-size: .7rem; font-weight: 700; padding: .22rem .6rem; border-radius: 99px;
+    background: rgba(245,158,11,0.08); color: #f59e0b;
+    border: 1px dashed rgba(245,158,11,0.5); white-space: nowrap;
+    max-width: 175px; overflow: hidden; text-overflow: ellipsis;
+  }
+  .badge-reservado svg { width: .6rem; height: .6rem; flex-shrink: 0; }
+
+  /* ── Contextual action buttons ── */
+  .btn-confirmar-chegada {
+    font-size: .74rem; font-weight: 700; padding: .34rem .8rem; border-radius: .45rem;
+    background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.45); color: #22c55e;
+    cursor: pointer; transition: all .15s;
+    display: inline-flex; align-items: center; gap: .3rem; white-space: nowrap;
+  }
+  .btn-confirmar-chegada:hover { background: rgba(34,197,94,0.22); border-color: #22c55e; }
+
+  .btn-aceitar {
+    font-size: .74rem; font-weight: 700; padding: .34rem .8rem; border-radius: .45rem;
+    background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.45); color: #10b981;
+    cursor: pointer; transition: all .15s;
+    display: inline-flex; align-items: center; gap: .3rem; white-space: nowrap;
+  }
+  .btn-aceitar:hover { background: rgba(16,185,129,0.22); border-color: #10b981; }
+
+  .btn-encerrar {
+    font-size: .74rem; font-weight: 700; padding: .34rem .8rem; border-radius: .45rem;
+    background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.38); color: #f87171;
+    cursor: pointer; transition: all .15s;
+    display: inline-flex; align-items: center; gap: .3rem; white-space: nowrap;
+  }
+  .btn-encerrar:hover { background: rgba(239,68,68,0.2); border-color: #ef4444; }
+
+  .btn-ver-docs {
+    font-size: .74rem; font-weight: 700; padding: .34rem .8rem; border-radius: .45rem;
+    background: rgba(20,184,166,0.1); border: 1px solid rgba(20,184,166,0.38); color: #14b8a6;
+    cursor: pointer; transition: all .15s;
+    display: inline-flex; align-items: center; gap: .3rem; white-space: nowrap;
+  }
+  .btn-ver-docs:hover { background: rgba(20,184,166,0.2); border-color: #14b8a6; }
+
+  /* ── Patient details slide-over drawer ── */
+  .slideover-overlay {
+    display: none; position: fixed; inset: 0; z-index: 620;
+    background: rgba(0,0,0,0.52);
+    backdrop-filter: blur(4px);
+  }
+  .slideover-overlay.open { display: block; }
+  .slideover-panel {
+    position: absolute; top: 0; right: 0; bottom: 0; width: min(400px, 100vw);
+    background: #0d1117;
+    border-left: 1px solid rgba(255,255,255,0.08);
+    box-shadow: -24px 0 64px rgba(0,0,0,0.55);
+    display: flex; flex-direction: column; overflow: hidden;
+    transform: translateX(100%);
+    transition: transform .28s cubic-bezier(.4,0,.2,1);
+  }
+  .slideover-overlay.open .slideover-panel { transform: translateX(0); }
+  .slideover-header {
+    padding: 1.1rem 1.4rem; border-bottom: 1px solid rgba(255,255,255,0.07);
+    display: flex; align-items: center; gap: .75rem; flex-shrink: 0;
+    background: rgba(245,158,11,0.04);
+  }
+  .slideover-body {
+    flex: 1; overflow-y: auto; padding: 1.25rem 1.4rem;
+    scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.08) transparent;
+  }
+  .slideover-footer {
+    padding: .9rem 1.4rem; border-top: 1px solid rgba(255,255,255,0.07);
+    display: flex; gap: .6rem; flex-shrink: 0; background: rgba(0,0,0,0.2);
+  }
+  .so-avatar {
+    width: 3rem; height: 3rem; border-radius: 50%; flex-shrink: 0;
+    background: rgba(245,158,11,0.14); color: #f59e0b;
+    font-size: .9rem; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .so-field-grid {
+    display: grid; grid-template-columns: 95px 1fr;
+    gap: .42rem .75rem; font-size: .84rem;
+  }
+  .so-lbl { color: var(--muted); font-weight: 600; }
+  .so-val { font-weight: 600; color: var(--fg); word-break: break-word; }
+  .so-section-hd {
+    font-size: .67rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .07em; color: var(--muted);
+    margin: 1.1rem 0 .55rem;
+    display: flex; align-items: center; gap: .35rem;
+  }
+  .so-section-hd svg { width: .72rem; height: .72rem; }
+  .so-divider {
+    height: 1px; background: rgba(255,255,255,0.06); margin: .85rem 0;
+  }
+
+  /* ── Details info icon button ── */
+  .btn-info-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 2rem; height: 2rem; border-radius: 9999px;
+    border: 1px solid rgba(56,189,248,0.30); background: rgba(14,165,233,0.07);
+    color: #38bdf8; cursor: pointer;
+    transition: background .18s, border-color .18s, color .18s, box-shadow .18s;
+  }
+  .btn-info-icon:hover {
+    background: rgba(59,130,246,0.20); border-color: rgba(96,165,250,0.55);
+    color: #93c5fd; box-shadow: 0 0 0 3px rgba(56,189,248,0.12);
+  }
+  .btn-info-icon svg { width: .88rem; height: .88rem; }
+
+  /* ── Slide-over patient row ── */
+  .so-patient-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .85rem; }
+  .so-patient-avatar {
+    width: 2.5rem; height: 2.5rem; border-radius: 50%; flex-shrink: 0;
+    background: rgba(59,130,246,0.12); color: var(--primary);
+    font-size: .78rem; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ── Slide-over log timeline ── */
+  .so-log-list { display: flex; flex-direction: column; gap: .55rem; }
+  .so-log-entry { display: flex; align-items: center; gap: .65rem; }
+  .so-log-dot {
+    width: .5rem; height: .5rem; border-radius: 50%; flex-shrink: 0;
+  }
+
+  /* ── Slideover header: neutral tint ── */
+  .slideover-header { background: rgba(255,255,255,0.02) !important; }
+</style>
+
+<!-- ── Dashboard Tab Navigation ── -->
+<div class="dash-tab-nav">
+  <button class="dash-tab-btn active" id="tabBtnOverview" onclick="switchDashTab('overview', this)">
+    <i data-lucide="layout-dashboard"></i> Visão Geral
+  </button>
+  <button class="dash-tab-btn" id="tabBtnAnalytics" onclick="switchDashTab('analytics', this)">
+    <i data-lucide="bar-chart-2"></i> Analytics
+  </button>
+</div>
+
+<!-- ════════════════════════════════════════════════════ -->
+<!--  ANALYTICS TAB                                       -->
+<!-- ════════════════════════════════════════════════════ -->
+<div id="tabAnalytics" hidden>
+
+  <!-- Period filter -->
+  <div class="an-period-bar">
+    <span class="an-period-label">Período:</span>
+    <button class="an-period-btn active" id="period7"  onclick="setAnalyticsPeriod(7,  this)">Últimos 7 dias</button>
+    <button class="an-period-btn"        id="period30" onclick="setAnalyticsPeriod(30, this)">Últimos 30 dias</button>
+  </div>
+
+  <!-- KPI highlight cards -->
+  <div class="an-kpi-grid">
+    <div class="an-kpi-card">
+      <div class="an-kpi-lbl"><i data-lucide="circle-dollar-sign" style="width:.75rem;height:.75rem;vertical-align:middle;margin-right:.2rem;"></i> Faturamento Total</div>
+      <div class="an-kpi-val" id="an-revenue">R$ 0,00</div>
+      <div class="an-kpi-sub" id="an-revenue-sub">consultas realizadas no período</div>
+    </div>
+    <div class="an-kpi-card">
+      <div class="an-kpi-lbl"><i data-lucide="trending-up" style="width:.75rem;height:.75rem;vertical-align:middle;margin-right:.2rem;"></i> Ticket Médio</div>
+      <div class="an-kpi-val blue" id="an-ticket">R$ 0,00</div>
+      <div class="an-kpi-sub">por consulta realizada</div>
+    </div>
+    <div class="an-kpi-card">
+      <div class="an-kpi-lbl"><i data-lucide="calendar-check" style="width:.75rem;height:.75rem;vertical-align:middle;margin-right:.2rem;"></i> Consultas Realizadas</div>
+      <div class="an-kpi-val amber" id="an-consults">0</div>
+      <div class="an-kpi-sub">no período selecionado</div>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="an-chart-grid" id="anChartsSection">
+    <!-- Bar chart -->
+    <div class="an-chart-card">
+      <div class="an-chart-title">
+        <i data-lucide="bar-chart-2"></i> Evolução do Faturamento
+      </div>
+      <canvas id="chartRevenue" style="max-height:260px;"></canvas>
+    </div>
+    <!-- Donut chart -->
+    <div class="an-chart-card">
+      <div class="an-chart-title">
+        <i data-lucide="pie-chart"></i> Distribuição por Turno
+      </div>
+      <canvas id="chartShifts" style="max-height:200px;display:block;margin:0 auto;"></canvas>
+      <div class="shift-legend" id="shiftLegend"></div>
+    </div>
+  </div>
+
+  <!-- Empty state (shown when no completed appointments) -->
+  <div class="an-empty" id="anEmptyState" hidden>
+    <i data-lucide="bar-chart-2"></i>
+    <h3>Sem dados suficientes</h3>
+    <p>Nenhuma consulta foi marcada como <strong>Realizada</strong> no período selecionado. Assim que houver atendimentos concluídos, os gráficos serão gerados automaticamente.</p>
+  </div>
+
+</div>
+<!-- /Analytics tab -->
+
+<!-- ════════════════════════════════════════════════════ -->
+<!--  VISÃO GERAL TAB                                     -->
+<!-- ════════════════════════════════════════════════════ -->
+<div id="tabOverview">
+
+<!-- ── Institution Info ── -->
+{% set profile = clinic.clinic_profile %}
+<div class="inst-card">
+  <div class="inst-card-header">
+    <i data-lucide="building-2"></i> Informações da Instituição
+  </div>
+  <div class="inst-fields">
+    <div class="inst-field">
+      <label>Nome / Razão Social</label>
+      <span>{{ profile.razao_social if profile else clinic.name }}</span>
+    </div>
+    <div class="inst-field">
+      <label>CNPJ</label>
+      <span>{{ profile.cnpj if profile else '—' }}</span>
+    </div>
+    <div class="inst-field">
+      <label>CRM / Registro</label>
+      <span>{{ profile.crm_cro if profile and profile.crm_cro else '—' }}</span>
+    </div>
+    <div class="inst-field">
+      <label>E-mail de Contato</label>
+      <span>{{ clinic.email }}</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── KPI Cards ── -->
+<div class="kpi-grid">
+  <div class="kpi-card">
+    <div class="kpi-icon kpi-blue"><i data-lucide="calendar-check"></i></div>
+    <div class="kpi-label">Agendamentos este mês</div>
+    <div class="kpi-value">{{ total_this_month }}</div>
+    <div class="kpi-sub">consultas registradas</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-icon kpi-green"><i data-lucide="circle-dollar-sign"></i></div>
+    <div class="kpi-label">Receita estimada</div>
+    <div class="kpi-value">R$ {{ "%.0f"|format(estimated_revenue) }}</div>
+    <div class="kpi-sub">soma dos serviços agendados</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-icon kpi-amber"><i data-lucide="activity"></i></div>
+    <div class="kpi-label">Status dos agendamentos</div>
+    <div class="kpi-value">{{ status_counts.pending + status_counts.confirmed + status_counts.completed }}</div>
+    <div class="status-row">
+      <span class="pill pill-pending">
+        {{ status_counts.pending }} pendente{{ 's' if status_counts.pending != 1 else '' }}
+      </span>
+      <span class="pill pill-confirmed">
+        {{ status_counts.confirmed }} confirmado{{ 's' if status_counts.confirmed != 1 else '' }}
+      </span>
+      <span class="pill pill-completed">
+        {{ status_counts.completed }} concluído{{ 's' if status_counts.completed != 1 else '' }}
+      </span>
+    </div>
+  </div>
+</div>
+
+<!-- ── Services Table ── -->
+<div class="section-header">
+  <span class="section-title">
+    <i data-lucide="stethoscope" style="width:.9rem;height:.9rem;vertical-align:middle;margin-right:.4rem;"></i>
+    Anúncios / Serviços
+  </span>
+  <div style="display:flex;gap:.5rem;">
+    <a href="{{ url_for('clinic.agenda') }}" class="btn-sm">
+      <i data-lucide="calendar-plus"></i> Gerenciar Agenda
+    </a>
+    <a href="{{ url_for('clinic.novo_anuncio') }}" class="btn-primary-sm">
+      <i data-lucide="plus"></i> Novo Anúncio
+    </a>
+  </div>
+</div>
+
+<div class="table-card">
+  {% if services %}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th style="width:56px;"></th>
+        <th>Título</th>
+        <th>Médico</th>
+        <th>Especialidade</th>
+        <th>Preço</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for svc in services %}
+      <tr>
+        <td style="padding:.4rem .6rem;">
+          {% if svc.imagem_url %}
+          <img src="{{ url_for('static', filename=svc.imagem_url) }}"
+               alt="" style="width:44px;height:36px;object-fit:cover;border-radius:.4rem;border:1px solid var(--border);display:block;" />
+          {% else %}
+          <div style="width:44px;height:36px;border-radius:.4rem;border:1px solid var(--border);
+                      background:rgba(59,130,246,0.08);display:flex;align-items:center;justify-content:center;">
+            <i data-lucide="stethoscope" style="width:.9rem;height:.9rem;color:var(--primary);"></i>
+          </div>
+          {% endif %}
+        </td>
+        <td style="font-weight:600;">{{ svc.title }}</td>
+        <td>{{ svc.doctor_name }}</td>
+        <td>
+          <span style="font-size:.75rem;background:rgba(59,130,246,0.08);color:var(--primary);
+                        padding:.15rem .5rem;border-radius:99px;font-weight:600;">
+            {{ svc.specialty }}
+          </span>
+        </td>
+        <td style="font-weight:700;">R$ {{ "%.2f"|format(svc.price) }}</td>
+        <td>
+          <span class="status-badge {% if svc.active %}badge-active{% else %}badge-inactive{% endif %}">
+            <span class="badge-dot"></span>
+            {{ 'Ativo' if svc.active else 'Inativo' }}
+          </span>
+        </td>
+        <td style="text-align:right;white-space:nowrap;">
+          <a href="{{ url_for('clinic.editar_anuncio', service_id=svc.id) }}" class="btn-sm">
+            <i data-lucide="pencil"></i> Editar
+          </a>
+          <button class="toggle-btn" data-id="{{ svc.id }}" data-active="{{ svc.active|tojson }}"
+                  onclick="toggleService(this)" style="margin-left:.25rem;">
+            <i data-lucide="{{ 'eye-off' if svc.active else 'eye' }}"></i>
+            {{ 'Pausar' if svc.active else 'Reativar' }}
+          </button>
+          <a href="{{ url_for('clinic.agenda') }}?service_id={{ svc.id }}" class="btn-sm" style="margin-left:.25rem;">
+            <i data-lucide="calendar-clock"></i> Agenda
+          </a>
+          <button class="btn-sm" style="margin-left:.25rem;color:#f87171;border-color:rgba(239,68,68,0.3);"
+                  data-id="{{ svc.id }}" data-title="{{ svc.title | e }}"
+                  onclick="deleteService(this)">
+            <i data-lucide="trash-2"></i>
+          </button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <i data-lucide="stethoscope"></i>
+    <p>Nenhum serviço cadastrado ainda.</p>
+    <a href="{{ url_for('clinic.novo_anuncio') }}" class="btn-primary-sm" style="margin-top:.5rem;">
+      <i data-lucide="plus"></i> Criar primeiro anúncio
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+<!-- ── Gestão de Agenda Real ── -->
+<div class="section-header" style="margin-top:2rem;">
+  <span class="section-title">
+    <i data-lucide="calendar-clock" style="width:.9rem;height:.9rem;vertical-align:middle;margin-right:.4rem;"></i>
+    Gestão de Agenda
+    <span style="font-size:.68rem;font-weight:600;padding:.15rem .45rem;border-radius:99px;
+                  background:rgba(59,130,246,0.1);color:var(--primary);margin-left:.4rem;">
+      a partir de hoje
+    </span>
+  </span>
+  <a href="{{ url_for('clinic.agenda') }}" class="btn-sm">
+    <i data-lucide="plus"></i> Cadastrar Disponibilidade
+  </a>
+</div>
+
+{% set total_slots  = agenda_slots | length %}
+{% set avail_slots  = agenda_slots | selectattr('status') | list | length %}
+{% set booked_slots = total_slots - avail_slots %}
+
+<!-- ── Agenda KPI mini-cards ── -->
+<div class="agenda-kpi-row">
+  <div class="agenda-kpi">
+    <div class="agenda-kpi-icon kpi-blue"><i data-lucide="calendar-days"></i></div>
+    <div>
+      <div class="agenda-kpi-val">{{ total_slots }}</div>
+      <div class="agenda-kpi-lbl">Total de Horários</div>
+    </div>
+  </div>
+  <div class="agenda-kpi">
+    <div class="agenda-kpi-icon kpi-green"><i data-lucide="calendar-check"></i></div>
+    <div>
+      <div class="agenda-kpi-val" style="color:#22c55e;">{{ avail_slots }}</div>
+      <div class="agenda-kpi-lbl">Vagas Disponíveis</div>
+    </div>
+  </div>
+  <div class="agenda-kpi">
+    <div class="agenda-kpi-icon" style="background:rgba(59,130,246,0.12);color:#3b82f6;"><i data-lucide="user-check"></i></div>
+    <div>
+      <div class="agenda-kpi-val" style="color:#3b82f6;">{{ booked_slots }}</div>
+      <div class="agenda-kpi-lbl">Consultas Confirmadas</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Table Card ── -->
+<div class="table-card">
+  {% if agenda_slots %}
+
+  <!-- search + specialty bar -->
+  <div class="search-bar">
+    <div class="search-input-wrap">
+      <i data-lucide="search" class="srch-icon"></i>
+      <input id="agendaSearch" type="text" class="search-input"
+             placeholder="Buscar por médico ou serviço…"
+             oninput="applyFilters()">
+    </div>
+    <div style="display:flex;align-items:center;gap:.4rem;">
+      <i data-lucide="filter" style="width:.82rem;height:.82rem;color:var(--muted);"></i>
+      <select id="specialtyFilter" class="specialty-select" onchange="applyFilters()">
+        <option value="">Todas as especialidades</option>
+        {% for spec in specialties %}
+        <option value="{{ spec | lower }}">{{ spec }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <!-- filter toolbar -->
+  <div class="filter-toolbar">
+    <span class="filter-toolbar-label">Filtrar:</span>
+    <button class="filter-btn active" onclick="setFilter('all', this)">
+      Todos <span style="opacity:.65;">({{ total_slots }})</span>
+    </button>
+    <button class="filter-btn" onclick="setFilter('available', this)">
+      <i data-lucide="circle-check" style="width:.75rem;height:.75rem;"></i>
+      Disponíveis <span style="opacity:.65;">({{ avail_slots }})</span>
+    </button>
+    <button class="filter-btn" onclick="setFilter('booked', this)">
+      <i data-lucide="user" style="width:.75rem;height:.75rem;"></i>
+      Agendados <span style="opacity:.65;">({{ booked_slots }})</span>
+    </button>
+  </div>
+
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Médico / Serviço</th>
+        <th>Especialidade</th>
+        <th>Data</th>
+        <th>Horário</th>
+        <th>Valor</th>
+        <th>Status</th>
+        <th>Pagamento</th>
+        <th style="width:48px;"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for slot in agenda_slots %}
+      {% set svc = service_map[slot.service_id] %}
+      {% set ci  = slot.service_id % 6 %}
+      {% set _appt_key = (slot.service_id, slot.data.isoformat(), slot.horario) %}
+      {% set _appt = appt_map.get(_appt_key) %}
+      {% set pag_status = _appt.status_pagamento if _appt else 'pendente' %}
+      {# ── Determine appointment workflow state ── #}
+      {% set appt_state = namespace(val='disponivel') %}
+      {% if not slot.status %}
+        {% if _appt %}
+          {% if _appt.status == 'in_progress' %}
+            {% set appt_state.val = 'em_atendimento' %}
+          {% elif _appt.status == 'confirmed' %}
+            {% set appt_state.val = 'agendado' %}
+          {% elif _appt.status == 'completed' %}
+            {% set appt_state.val = 'realizada' %}
+          {% elif _appt.status == 'cancelled' %}
+            {% set appt_state.val = 'cancelada' %}
+          {% else %}
+            {% set appt_state.val = 'reservado' %}
+          {% endif %}
+        {% else %}
+          {% set appt_state.val = 'reservado' %}
+        {% endif %}
+      {% endif %}
+      <tr class="slot-row"
+          data-filter="{{ 'available' if slot.status else 'booked' }}"
+          data-doctor="{{ (svc.doctor_name or '') | lower | e }}"
+          data-title="{{ svc.title | lower | e }}"
+          data-specialty="{{ (svc.specialty or '') | lower | e }}">
+        <td>
+          <div class="doc-cell">
+            <div class="doc-avatar">{{ (svc.doctor_name or 'DR')[:2] | upper }}</div>
+            <div>
+              <div style="font-weight:700;font-size:.83rem;line-height:1.25;">{{ svc.title }}</div>
+              <div style="font-size:.72rem;color:var(--muted);">{{ svc.doctor_name or '—' }}</div>
+            </div>
+          </div>
+        </td>
+        <td>
+          <span class="spec-badge spec-{{ ci }}">{{ svc.specialty or '—' }}</span>
+        </td>
+        <td style="font-size:.82rem;white-space:nowrap;">{{ slot.data.strftime('%d/%m/%Y') }}</td>
+        <td>
+          {% set _h = slot.horario[:2] | int %}
+          {% if _h < 6 %}
+            <span style="font-size:.67rem;font-weight:700;padding:.1rem .35rem;border-radius:99px;background:rgba(139,92,246,0.12);color:#a78bfa;display:inline-flex;align-items:center;gap:.2rem;">&#127769; Madrugada</span><br>
+          {% elif _h < 12 %}
+            <span style="font-size:.67rem;font-weight:700;padding:.1rem .35rem;border-radius:99px;background:rgba(245,158,11,0.12);color:#f59e0b;display:inline-flex;align-items:center;gap:.2rem;">&#9728;&#65039; Manhã</span><br>
+          {% elif _h < 18 %}
+            <span style="font-size:.67rem;font-weight:700;padding:.1rem .35rem;border-radius:99px;background:rgba(59,130,246,0.12);color:#3b82f6;display:inline-flex;align-items:center;gap:.2rem;">&#127748;&#65039; Tarde</span><br>
+          {% else %}
+            <span style="font-size:.67rem;font-weight:700;padding:.1rem .35rem;border-radius:99px;background:rgba(99,102,241,0.12);color:#818cf8;display:inline-flex;align-items:center;gap:.2rem;">&#127769; Noite</span><br>
+          {% endif %}
+          <span style="font-weight:700;font-size:.86rem;">{{ slot.horario }}</span>
+        </td>
+        <td style="font-size:.83rem;white-space:nowrap;">
+          {% if slot.valor_ajuste is not none %}
+            {# Slot has an explicit adjustment — show breakdown tooltip #}
+            {% set base = svc.price %}
+            {% set ef   = slot.preco if slot.preco is not none else base %}
+            {% if slot.valor_ajuste > 0 %}
+              {% set tip = "Preço Padrão (R$ " ~ ('%.2f'|format(base)) ~ ") + Taxa (R$ " ~ ('%.2f'|format(slot.valor_ajuste)) ~ ")" %}
+            {% else %}
+              {% set tip = "Preço Padrão (R$ " ~ ('%.2f'|format(base)) ~ ") − Desconto (R$ " ~ ('%.2f'|format(slot.valor_ajuste|abs)) ~ ")" %}
+            {% endif %}
+            <span class="preco-tooltip-wrap" data-tooltip="{{ tip }}">
+              <span class="preco-padrao-strike">R$ {{ '%.2f'|format(base) }}</span>
+              <span style="font-weight:700;color:#4ade80;">R$ {{ '%.2f'|format(ef) }}</span>
+            </span>
+          {% elif slot.preco is not none %}
+            <span style="font-weight:700;color:#4ade80;">R$ {{ '%.2f'|format(slot.preco) }}</span>
+          {% else %}
+            <span style="color:var(--muted);">R$ {{ '%.2f'|format(svc.price) }}</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if appt_state.val == 'disponivel' %}
+          <span class="status-badge badge-active"><span class="badge-dot"></span> Disponível</span>
+          {% elif appt_state.val == 'reservado' %}
+          <span class="status-badge" style="background:rgba(245,158,11,0.1);color:#f59e0b;border:1px dashed rgba(245,158,11,0.4);">
+            <span class="badge-dot"></span> Reservado
+          </span>
+          {% elif appt_state.val == 'agendado' %}
+          <span class="status-badge" style="background:rgba(59,130,246,0.12);color:#60a5fa;">
+            <span class="badge-dot"></span> Agendado
+          </span>
+          {% elif appt_state.val == 'em_atendimento' %}
+          <span class="status-badge" style="background:rgba(20,184,166,0.12);color:#14b8a6;border:1px solid rgba(20,184,166,0.3);">
+            <span class="badge-dot"></span> Em Atendimento
+          </span>
+          {% elif appt_state.val == 'realizada' %}
+          <span class="status-badge" style="background:rgba(34,197,94,0.12);color:#4ade80;">
+            <span class="badge-dot"></span> Realizada
+          </span>
+          {% elif appt_state.val == 'cancelada' %}
+          <span class="status-badge" style="background:rgba(107,114,128,0.12);color:#9ca3af;">
+            <span class="badge-dot"></span> Cancelada
+          </span>
+          {% else %}
+          <span class="status-badge badge-inactive"><span class="badge-dot"></span> —</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if pag_status == 'aprovado' %}
+          <span class="status-badge" style="background:rgba(34,197,94,0.12);color:#4ade80;"><span class="badge-dot"></span> Aprovado</span>
+          {% elif pag_status == 'cancelado' %}
+          <span class="status-badge" style="background:rgba(239,68,68,0.1);color:#f87171;"><span class="badge-dot"></span> Cancelado</span>
+          {% else %}
+          <span class="status-badge" style="background:rgba(245,158,11,0.12);color:#fbbf24;"><span class="badge-dot"></span> Pendente</span>
+          {% endif %}
+        </td>
+        <td style="text-align:right;padding-right:.65rem;">
+          {% if appt_state.val != 'disponivel' and slot.patient %}
+          <button class="btn-info-icon"
+                  onclick="openSlideOver(this)"
+                  title="Ver Detalhes do Paciente e Ações"
+                  data-slot-id="{{ slot.id }}"
+                  data-appt-id="{{ _appt.id if _appt else '' }}"
+                  data-state="{{ appt_state.val }}"
+                  data-patient-id="{{ slot.patient.id }}"
+                  data-nome="{{ slot.patient.name | e }}"
+                  data-email="{{ slot.patient.email | e }}"
+                  data-cpf="{{ slot.patient.cpf or '' }}"
+                  data-telefone="{{ slot.patient.telefone or '' }}"
+                  data-pagamento="{{ pag_status }}"
+                  data-servico="{{ svc.title | e }}"
+                  data-medico="{{ svc.doctor_name | e }}"
+                  data-data="{{ slot.data.strftime('%d/%m/%Y') }}"
+                  data-horario="{{ slot.horario }}">
+            <i data-lucide="info"></i>
+          </button>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+      <tr id="noResultsRow" class="no-results-row" hidden>
+        <td colspan="8">
+          <i data-lucide="search-x" style="width:1.5rem;height:1.5rem;opacity:.3;display:block;margin:0 auto .5rem;"></i>
+          Nenhum médico ou serviço encontrado para esse filtro.
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  {% else %}
+  <div class="empty-state">
+    <i data-lucide="calendar-clock"></i>
+    <p>Nenhum horário cadastrado ainda a partir de hoje.</p>
+    <a href="{{ url_for('clinic.agenda') }}" class="btn-primary-sm" style="margin-top:.5rem;">
+      <i data-lucide="plus"></i> Cadastrar disponibilidade
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+<!-- ── Mensagens ── -->
+{% set ativas    = conversations | selectattr('status_chat', 'equalto', 'ativa')     | list %}
+{% set encerradas = conversations | selectattr('status_chat', 'equalto', 'encerrada') | list %}
+{% set total_unread = ativas | sum(attribute='unread') %}
+
+<div class="section-header" style="margin-top:2rem;">
+  <span class="section-title">
+    <i data-lucide="message-circle" style="width:.9rem;height:.9rem;vertical-align:middle;margin-right:.4rem;"></i>
+    Mensagens
+    {% if total_unread > 0 %}
+    <span class="unread-badge" style="margin-left:.4rem;">{{ total_unread }}</span>
+    {% elif ativas %}
+    <span style="font-size:.68rem;font-weight:600;padding:.15rem .45rem;border-radius:99px;
+                  background:rgba(59,130,246,0.1);color:var(--primary);margin-left:.4rem;">
+      {{ ativas|length }}
+    </span>
+    {% endif %}
+  </span>
+  <div style="display:flex;gap:.4rem;">
+    <button class="msg-tab active" id="tabAtivas"    onclick="switchMsgTab('ativas',this)">
+      Ativas
+      {% if ativas %}<span style="opacity:.7;">({{ ativas|length }})</span>{% endif %}
+    </button>
+    <button class="msg-tab"        id="tabHistorico" onclick="switchMsgTab('historico',this)">
+      Histórico
+      {% if encerradas %}<span style="opacity:.7;">({{ encerradas|length }})</span>{% endif %}
+    </button>
+  </div>
+</div>
+
+<div class="table-card">
+
+  {# ── Ativas panel ── #}
+  <div id="panelAtivas">
+    {% if ativas %}
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Paciente</th>
+          <th>Último Serviço</th>
+          <th>Última Mensagem</th>
+          <th>Quando</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for conv in ativas %}
+        <tr>
+          <td>
+            <div class="doc-cell">
+              <div style="position:relative;flex-shrink:0;">
+                <div class="doc-avatar" style="background:rgba(168,85,247,0.12);color:#a855f7;">
+                  {{ (conv.other.name or '?')[:2] | upper }}
+                </div>
+                {% if conv.unread > 0 %}
+                <span class="unread-badge"
+                      style="position:absolute;top:-4px;right:-5px;font-size:.52rem;
+                             min-width:.95rem;height:.95rem;padding:0 .2rem;">
+                  {{ conv.unread }}
+                </span>
+                {% endif %}
+              </div>
+              <div>
+                <div style="font-weight:700;font-size:.83rem;">{{ conv.other.name }}</div>
+                <div style="font-size:.7rem;color:var(--muted);">{{ conv.other.email }}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            {% if conv.ultimo_servico %}
+            <span class="servico-pill">{{ conv.ultimo_servico[:32] }}{% if conv.ultimo_servico|length > 32 %}…{% endif %}</span>
+            {% else %}
+            <span style="color:var(--muted);font-size:.78rem;">—</span>
+            {% endif %}
+          </td>
+          <td style="font-size:.8rem;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+            {% if conv.last_msg.sender_id != clinic.id %}
+            <span style="color:var(--muted);font-size:.68rem;">[paciente] </span>
+            {% endif %}
+            {{ conv.last_msg.conteudo[:60] }}{% if conv.last_msg.conteudo|length > 60 %}…{% endif %}
+          </td>
+          <td style="font-size:.73rem;color:var(--muted);white-space:nowrap;">
+            {{ conv.last_msg.timestamp.strftime('%d/%m %H:%M') if conv.last_msg.timestamp else '—' }}
+          </td>
+          <td style="text-align:right;white-space:nowrap;">
+            <button class="btn-sm chat-trigger"
+                    data-patient-id="{{ conv.other.id }}"
+                    data-patient-name="{{ conv.other.name | e }}">
+              <i data-lucide="message-square"></i>
+              Abrir Chat
+              {% if conv.unread > 0 %}
+              <span class="unread-badge" style="margin-left:.2rem;">{{ conv.unread }}</span>
+              {% endif %}
+            </button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+      <i data-lucide="message-circle"></i>
+      <p>Nenhuma conversa ativa no momento.</p>
+      <p style="font-size:.78rem;">Use o botão <i data-lucide="message-circle" style="width:.75rem;height:.75rem;vertical-align:middle;"></i> ao lado do nome do paciente na agenda para iniciar.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  {# ── Histórico panel ── #}
+  <div id="panelHistorico" hidden>
+    {% if encerradas %}
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Paciente</th>
+          <th>Último Serviço</th>
+          <th>Última Mensagem</th>
+          <th>Encerrado em</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for conv in encerradas %}
+        <tr style="opacity:.72;">
+          <td>
+            <div class="doc-cell">
+              <div class="doc-avatar" style="background:rgba(107,114,128,0.12);color:#9ca3af;">
+                {{ (conv.other.name or '?')[:2] | upper }}
+              </div>
+              <div>
+                <div style="font-weight:700;font-size:.83rem;">{{ conv.other.name }}</div>
+                <div style="font-size:.7rem;color:var(--muted);">{{ conv.other.email }}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            {% if conv.ultimo_servico %}
+            <span class="servico-pill" style="opacity:.75;">{{ conv.ultimo_servico[:32] }}{% if conv.ultimo_servico|length > 32 %}…{% endif %}</span>
+            {% else %}
+            <span style="color:var(--muted);font-size:.78rem;">—</span>
+            {% endif %}
+          </td>
+          <td style="font-size:.8rem;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+            {{ conv.last_msg.conteudo[:60] }}{% if conv.last_msg.conteudo|length > 60 %}…{% endif %}
+          </td>
+          <td style="font-size:.73rem;color:var(--muted);white-space:nowrap;">
+            {{ conv.last_msg.timestamp.strftime('%d/%m %H:%M') if conv.last_msg.timestamp else '—' }}
+          </td>
+          <td style="text-align:right;white-space:nowrap;">
+            <span class="badge-encerrado">Encerrado</span>
+            <button class="btn-sm chat-trigger" style="margin-left:.4rem;"
+                    data-patient-id="{{ conv.other.id }}"
+                    data-patient-name="{{ conv.other.name | e }}">
+              <i data-lucide="eye"></i> Ver
+            </button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+      <i data-lucide="archive"></i>
+      <p>Nenhum atendimento encerrado ainda.</p>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- ── Chat Modal ── -->
+<div id="chatModalOverlay" class="chat-modal-overlay" onclick="closeChatModalOnBg(event)">
+  <div class="chat-modal" id="chatModalBox">
+
+    <!-- Header -->
+    <div class="chat-modal-header">
+      <div id="cmAvatar" class="doc-avatar"
+           style="width:2.5rem;height:2.5rem;font-size:.72rem;flex-shrink:0;
+                  background:rgba(168,85,247,0.12);color:#a855f7;">?</div>
+      <div style="flex:1;min-width:0;">
+        <div id="cmName"    style="font-weight:700;font-size:.92rem;line-height:1.2;">—</div>
+        <div id="cmServico" style="font-size:.7rem;color:var(--muted);margin-top:.1rem;">—</div>
+      </div>
+      <div style="display:flex;gap:.45rem;align-items:center;flex-shrink:0;">
+        <span id="cmStatusBadge" class="badge-encerrado" hidden>Encerrado</span>
+        <button id="btnEncerrar" class="btn-sm"
+                style="color:#f87171;border-color:rgba(239,68,68,0.3);"
+                onclick="encerrarChat()">
+          <i data-lucide="x-circle"></i> Encerrar Atendimento
+        </button>
+        <button onclick="closeChatModal()"
+                style="background:none;border:none;cursor:pointer;color:var(--muted);
+                       display:flex;align-items:center;">
+          <i data-lucide="x" style="width:1rem;height:1rem;"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Messages body -->
+    <div class="chat-modal-body" id="cmMessages">
+      <div style="text-align:center;color:var(--muted);font-size:.78rem;padding:2rem;">
+        Carregando…
+      </div>
+    </div>
+
+    <!-- Footer input -->
+    <div class="chat-modal-footer">
+      <input id="cmInput" type="text" class="search-input"
+             placeholder="Digite a mensagem…" maxlength="500"
+             style="flex:1;height:2.35rem;"
+             onkeydown="if(event.key==='Enter' && !event.shiftKey){ event.preventDefault(); sendChatMsg(); }">
+      <button id="btnSendMsg" class="btn-primary-sm" onclick="sendChatMsg()"
+              style="height:2.35rem;padding:0 1rem;">
+        <i data-lucide="send" style="width:.85rem;height:.85rem;"></i>
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Document Viewer Modal ── -->
+<div id="docsModalOverlay"
+     style="display:none;position:fixed;inset:0;z-index:650;
+            background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);
+            align-items:center;justify-content:center;padding:1rem;">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:1.25rem;
+              width:100%;max-width:980px;height:88vh;
+              box-shadow:0 24px 72px rgba(0,0,0,0.45);position:relative;
+              display:flex;flex-direction:column;overflow:hidden;">
+
+    <button onclick="closeDocsModal()"
+            style="position:absolute;top:1rem;right:1rem;background:none;border:none;
+                   cursor:pointer;color:var(--muted);z-index:2;">
+      <i data-lucide="x" style="width:1rem;height:1rem;"></i>
+    </button>
+
+    <!-- Header -->
+    <div style="padding:1.25rem 2rem .9rem;flex-shrink:0;border-bottom:1px solid var(--border);">
+      <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem;">
+        <div style="width:2.5rem;height:2.5rem;border-radius:.6rem;flex-shrink:0;
+                    background:rgba(20,184,166,0.12);color:#14b8a6;
+                    display:flex;align-items:center;justify-content:center;">
+          <i data-lucide="folder-open" style="width:1.1rem;height:1.1rem;"></i>
+        </div>
+        <div>
+          <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;
+                      letter-spacing:.07em;color:var(--muted);">Documentos e Exames</div>
+          <div id="dm-paciente" style="font-size:.95rem;font-weight:800;"></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:1rem;font-size:.78rem;color:var(--muted);flex-wrap:wrap;">
+        <span><i data-lucide="stethoscope" style="width:.8rem;height:.8rem;vertical-align:middle;margin-right:.25rem;"></i><span id="dm-servico"></span></span>
+        <span><i data-lucide="calendar" style="width:.8rem;height:.8rem;vertical-align:middle;margin-right:.25rem;"></i><span id="dm-data"></span></span>
+      </div>
+    </div>
+
+    <!-- Body: sidebar + viewer -->
+    <div style="display:flex;flex:1;overflow:hidden;min-height:0;">
+
+      <!-- Sidebar: doc list -->
+      <div style="width:260px;flex-shrink:0;border-right:1px solid var(--border);
+                  overflow-y:auto;padding:.85rem .9rem;display:flex;flex-direction:column;gap:.4rem;">
+        <div style="font-size:.67rem;font-weight:700;text-transform:uppercase;
+                    letter-spacing:.07em;color:var(--muted);margin-bottom:.3rem;display:flex;
+                    align-items:center;gap:.35rem;">
+          <i data-lucide="paperclip" style="width:.72rem;height:.72rem;"></i> Arquivos do Paciente
+        </div>
+        <div id="dm-loading"
+             style="font-size:.78rem;color:var(--muted);display:flex;align-items:center;gap:.4rem;padding:.5rem 0;">
+          <i data-lucide="loader" style="width:.8rem;height:.8rem;"></i> Carregando…
+        </div>
+        <div id="dm-empty"
+             style="display:none;font-size:.8rem;color:var(--muted);font-style:italic;padding:.5rem 0;">
+          Nenhum documento encontrado para este paciente.
+        </div>
+        <div id="dm-list" style="display:flex;flex-direction:column;gap:.4rem;"></div>
+      </div>
+
+      <!-- Main: viewer -->
+      <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+        <!-- Placeholder -->
+        <div id="dm-viewer-empty"
+             style="flex:1;display:flex;flex-direction:column;align-items:center;
+                    justify-content:center;gap:.75rem;color:var(--muted);
+                    background:rgba(0,0,0,0.1);">
+          <i data-lucide="file-search" style="width:3rem;height:3rem;opacity:.25;"></i>
+          <p style="font-size:.85rem;margin:0;">Selecione um arquivo para visualizar</p>
+        </div>
+        <!-- Viewer -->
+        <div id="dm-viewer-wrap" style="display:none;flex:1;flex-direction:column;overflow:hidden;">
+          <div style="padding:.45rem .9rem;font-size:.75rem;font-weight:600;
+                      border-bottom:1px solid var(--border);display:flex;align-items:center;
+                      justify-content:space-between;flex-shrink:0;background:var(--card);">
+            <span id="dm-viewer-title" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+            <a id="dm-viewer-link" href="#" target="_blank" rel="noopener noreferrer"
+               class="btn-sm" style="font-size:.7rem;flex-shrink:0;margin-left:.75rem;">
+              <i data-lucide="external-link" style="width:.72rem;height:.72rem;"></i> Nova aba
+            </a>
+          </div>
+          <!-- PDF iframe -->
+          <iframe id="dm-viewer-iframe" src="about:blank" title="Visualizador de documento"
+                  style="display:none;flex:1;border:none;width:100%;height:100%;"></iframe>
+          <!-- Image viewer -->
+          <div id="dm-viewer-img-wrap"
+               style="display:none;flex:1;overflow:auto;display:none;
+                      align-items:center;justify-content:center;padding:1.5rem;
+                      background:rgba(0,0,0,0.1);">
+            <img id="dm-viewer-img" src="" alt="Exame do paciente"
+                 style="max-width:100%;max-height:100%;object-fit:contain;
+                        border-radius:.5rem;box-shadow:0 4px 24px rgba(0,0,0,0.35);">
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /body -->
+  </div>
+</div>
+
+<!-- ── Patient Detail Modal ── -->
+<div id="patientModal" style="display:none;position:fixed;inset:0;z-index:500;
+  background:rgba(0,0,0,0.55);backdrop-filter:blur(3px);
+  align-items:center;justify-content:center;">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:1.25rem;
+    padding:1.75rem 2rem;width:100%;max-width:420px;box-shadow:0 12px 48px rgba(0,0,0,0.35);
+    position:relative;">
+    <button onclick="closeModal()" style="position:absolute;top:1rem;right:1rem;
+      background:none;border:none;cursor:pointer;color:var(--muted);">
+      <i data-lucide="x" style="width:1rem;height:1rem;"></i>
+    </button>
+    <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;
+      letter-spacing:.07em;color:var(--muted);margin-bottom:.75rem;
+      display:flex;align-items:center;gap:.4rem;">
+      <i data-lucide="user" style="width:.8rem;height:.8rem;"></i>
+      Informações da Consulta
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:.6rem;">
+      <div style="display:grid;grid-template-columns:110px 1fr;gap:.3rem .75rem;font-size:.84rem;">
+        <span style="color:var(--muted);font-weight:600;">Serviço</span>
+        <span id="m-servico" style="font-weight:700;"></span>
+        <span style="color:var(--muted);font-weight:600;">Data</span>
+        <span id="m-data"></span>
+        <span style="color:var(--muted);font-weight:600;">Horário</span>
+        <span id="m-horario" style="font-weight:700;color:var(--primary);"></span>
+      </div>
+
+      <div style="height:1px;background:var(--border);margin:.35rem 0;"></div>
+
+      <div style="display:grid;grid-template-columns:110px 1fr;gap:.3rem .75rem;font-size:.84rem;">
+        <span style="color:var(--muted);font-weight:600;">Paciente</span>
+        <span id="m-nome" style="font-weight:700;"></span>
+        <span style="color:var(--muted);font-weight:600;">Médico</span>
+        <span id="m-medico"></span>
+        <span style="color:var(--muted);font-weight:600;">E-mail</span>
+        <span id="m-email"></span>
+        <span style="color:var(--muted);font-weight:600;">CPF</span>
+        <span id="m-cpf"></span>
+        <span style="color:var(--muted);font-weight:600;">Telefone</span>
+        <span id="m-telefone"></span>
+        <span style="color:var(--muted);font-weight:600;">Pagamento</span>
+        <span id="m-pagamento"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════ -->
+<!--  PATIENT DETAILS SLIDE-OVER DRAWER                  -->
+<!-- ════════════════════════════════════════════════════ -->
+<div id="slideOverlay" class="slideover-overlay" onclick="closeSlideOverOnBg(event)">
+  <div class="slideover-panel" id="slidePanel">
+
+    <!-- Header -->
+    <div class="slideover-header">
+      <div id="so-avatar" class="so-avatar">?</div>
+      <div style="flex:1;min-width:0;">
+        <div id="so-state-label" style="font-size:.65rem;font-weight:700;text-transform:uppercase;
+                    letter-spacing:.07em;color:#f59e0b;margin-bottom:.15rem;">—</div>
+        <div id="so-nome" style="font-size:1rem;font-weight:800;line-height:1.2;color:var(--fg);">—</div>
+      </div>
+      <button onclick="closeSlideOver()"
+              style="background:none;border:none;cursor:pointer;color:var(--muted);padding:.2rem;">
+        <i data-lucide="x" style="width:1.1rem;height:1.1rem;"></i>
+      </button>
+    </div>
+
+    <!-- Body -->
+    <div class="slideover-body">
+
+      <!-- Patient section -->
+      <div class="so-section-hd">
+        <i data-lucide="user"></i> Dados do Paciente
+      </div>
+      <div class="so-patient-row">
+        <div id="so-patient-avatar" class="so-patient-avatar">?</div>
+        <div style="flex:1;min-width:0;">
+          <div id="so-fullnome" style="font-weight:700;font-size:.9rem;color:var(--fg);">—</div>
+          <div id="so-email" style="font-size:.75rem;color:var(--muted);margin-top:.1rem;">—</div>
+        </div>
+        <button id="so-chat-btn" class="btn-msg-icon" title="Enviar mensagem"
+                style="width:2rem;height:2rem;flex-shrink:0;">
+          <i data-lucide="message-circle"></i>
+        </button>
+      </div>
+      <div class="so-field-grid">
+        <span class="so-lbl">CPF</span>
+        <span id="so-cpf" class="so-val">—</span>
+        <span class="so-lbl">Telefone</span>
+        <span id="so-telefone" class="so-val">—</span>
+      </div>
+
+      <div class="so-divider"></div>
+
+      <!-- Appointment details -->
+      <div class="so-section-hd">
+        <i data-lucide="calendar-check"></i> Detalhes da Consulta
+      </div>
+      <div class="so-field-grid">
+        <span class="so-lbl">Serviço</span>
+        <span id="so-servico" class="so-val">—</span>
+        <span class="so-lbl">Médico</span>
+        <span id="so-medico" class="so-val">—</span>
+        <span class="so-lbl">Data</span>
+        <span id="so-data" class="so-val">—</span>
+        <span class="so-lbl">Horário</span>
+        <span id="so-horario" class="so-val" style="color:var(--primary);font-weight:700;">—</span>
+        <span class="so-lbl">Pagamento</span>
+        <span id="so-pagamento" class="so-val">—</span>
+      </div>
+
+      <div class="so-divider"></div>
+
+      <!-- Log / Timeline -->
+      <div class="so-section-hd">
+        <i data-lucide="clock"></i> Histórico
+      </div>
+      <div id="so-log" class="so-log-list"></div>
+
+      <!-- Documents section (only for em_atendimento) -->
+      <div id="so-docs-section" style="display:none;">
+        <div class="so-divider"></div>
+        <div class="so-section-hd">
+          <i data-lucide="folder-open"></i> Documentos &amp; Exames
+        </div>
+        <button id="so-docs-btn" class="btn-ver-docs"
+                style="width:100%;justify-content:center;padding:.6rem;">
+          <i data-lucide="folder-open"></i> Ver Documentos do Paciente
+        </button>
+      </div>
+
+    </div><!-- /slideover-body -->
+
+    <!-- Footer: contextual action buttons -->
+    <div class="slideover-footer">
+      <button id="so-btn-aceitar" class="btn-aceitar"
+              style="display:none;flex:1;justify-content:center;padding:.6rem 1rem;font-size:.82rem;">
+        <i data-lucide="check-circle"></i> Aceitar Agendamento
+      </button>
+      <button id="so-btn-confirmar" class="btn-confirmar-chegada"
+              style="display:none;flex:1;justify-content:center;padding:.6rem 1rem;font-size:.82rem;">
+        <i data-lucide="user-check"></i> Confirmar Chegada
+      </button>
+      <button id="so-btn-encerrar" class="btn-encerrar"
+              style="display:none;flex:1;justify-content:center;padding:.6rem 1rem;font-size:.82rem;">
+        <i data-lucide="x-circle"></i> Encerrar Consulta
+      </button>
+      <button onclick="closeSlideOver()" class="btn-sm">Fechar</button>
+    </div>
+
+  </div><!-- /slideover-panel -->
+</div><!-- /slideOverlay -->
+
+</div><!-- /tabOverview -->
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>
+// ── Analytics data injected by Flask ─────────────────────────────────────────
+const AN = {{ analytics_json | safe }};
+
+// ── Dashboard tab switching ───────────────────────────────────────────────────
+function switchDashTab(tab, btn) {
+  document.querySelectorAll('.dash-tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const isAnalytics = (tab === 'analytics');
+  document.getElementById('tabOverview').hidden  =  isAnalytics;
+  document.getElementById('tabAnalytics').hidden = !isAnalytics;
+  if (isAnalytics && !_chartsInitialized) { initAnalytics(); }
+  lucide.createIcons({ attrs: { 'stroke-width': 2 } });
+}
+
+// ── Analytics period state ────────────────────────────────────────────────────
+let _analyticsPeriod = 7;
+let _chartsInitialized = false;
+let _barChart = null;
+let _donutChart = null;
+
+function setAnalyticsPeriod(days, btn) {
+  _analyticsPeriod = days;
+  document.querySelectorAll('.an-period-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  updateAnalyticsView();
+}
+
+function fmtBRL(v) {
+  return 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function updateAnalyticsView() {
+  const p = _analyticsPeriod;
+  const revenue  = p === 7 ? AN.total_rev_7d  : AN.total_rev_30d;
+  const ticket   = p === 7 ? AN.ticket_7d     : AN.ticket_30d;
+  const consults = p === 7 ? AN.consults_7d   : AN.consults_30d;
+  const labels   = p === 7 ? AN.labels_7d     : AN.labels_30d;
+  const revData  = p === 7 ? AN.revenue_7d    : AN.revenue_30d;
+
+  document.getElementById('an-revenue').textContent  = fmtBRL(revenue);
+  document.getElementById('an-ticket').textContent   = fmtBRL(ticket);
+  document.getElementById('an-consults').textContent = consults;
+  document.getElementById('an-revenue-sub').textContent =
+    consults + ' consulta' + (consults !== 1 ? 's' : '') + ' realizada' + (consults !== 1 ? 's' : '') + ' no período';
+
+  const hasData = consults > 0;
+  document.getElementById('anChartsSection').hidden = !hasData;
+  document.getElementById('anEmptyState').hidden    =  hasData;
+
+  if (!hasData) return;
+
+  // Update bar chart data
+  if (_barChart) {
+    _barChart.data.labels   = labels;
+    _barChart.data.datasets[0].data = revData;
+    _barChart.update();
+  }
+  // Donut doesn't change by period — it uses all 30-day shift counts
+}
+
+function initAnalytics() {
+  _chartsInitialized = true;
+  updateAnalyticsView();
+
+  const hasData = (AN.consults_30d > 0);
+  if (!hasData) return;
+
+  // ── Bar chart: revenue evolution ──────────────────────────────────────────
+  const ctxBar = document.getElementById('chartRevenue').getContext('2d');
+  _barChart = new Chart(ctxBar, {
+    type: 'bar',
+    data: {
+      labels:   AN.labels_7d,
+      datasets: [{
+        label:           'Faturamento (R$)',
+        data:            AN.revenue_7d,
+        backgroundColor: 'rgba(59,130,246,0.75)',
+        borderColor:     'rgba(59,130,246,1)',
+        borderWidth:     1,
+        borderRadius:    5,
+        borderSkipped:   false,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1f2937',
+          borderColor: 'rgba(255,255,255,0.1)',
+          borderWidth: 1,
+          callbacks: {
+            label: ctx => ' ' + fmtBRL(ctx.parsed.y)
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid:  { color: 'rgba(255,255,255,0.05)' },
+          ticks: { color: '#6b7280', font: { size: 11 } }
+        },
+        y: {
+          grid:  { color: 'rgba(255,255,255,0.05)' },
+          ticks: {
+            color: '#6b7280', font: { size: 11 },
+            callback: v => 'R$ ' + v.toLocaleString('pt-BR')
+          },
+          beginAtZero: true
+        }
+      }
+    }
+  });
+
+  // ── Donut chart: shift distribution ──────────────────────────────────────
+  const shiftColors = ['#a78bfa', '#f59e0b', '#60a5fa', '#818cf8'];
+  const shiftKeys   = ['Madrugada', 'Manhã', 'Tarde', 'Noite'];
+  const shiftData   = shiftKeys.map(k => AN.shift_counts[k] || 0);
+  const totalShifts = shiftData.reduce((a, b) => a + b, 0);
+
+  const ctxDonut = document.getElementById('chartShifts').getContext('2d');
+  _donutChart = new Chart(ctxDonut, {
+    type: 'doughnut',
+    data: {
+      labels:   shiftKeys,
+      datasets: [{
+        data:            shiftData,
+        backgroundColor: shiftColors,
+        borderColor:     '#111827',
+        borderWidth:     3,
+        hoverOffset:     6,
+      }]
+    },
+    options: {
+      responsive: true,
+      cutout: '68%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1f2937',
+          borderColor: 'rgba(255,255,255,0.1)',
+          borderWidth: 1,
+          callbacks: {
+            label: ctx => {
+              const pct = totalShifts ? Math.round(ctx.parsed / totalShifts * 100) : 0;
+              return ` ${ctx.parsed} consulta${ctx.parsed !== 1 ? 's' : ''} (${pct}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+
+  // Build shift legend
+  const legendEl = document.getElementById('shiftLegend');
+  legendEl.innerHTML = '';
+  shiftKeys.forEach((key, i) => {
+    const pct = totalShifts ? Math.round(shiftData[i] / totalShifts * 100) : 0;
+    legendEl.innerHTML += `
+      <div class="shift-row">
+        <span class="shift-dot" style="background:${shiftColors[i]};"></span>
+        <span style="flex:1;font-weight:600;">${key}</span>
+        <span style="color:#9ca3af;">${shiftData[i]} consulta${shiftData[i] !== 1 ? 's' : ''} · ${pct}%</span>
+      </div>`;
+  });
+}
+</script>
+<script>
+async function toggleService(btn) {
+  const id = btn.dataset.id;
+  const res  = await fetch(`/clinica/anuncio/${id}/toggle`, { method: 'POST' });
+  const data = await res.json();
+  if (data.ok) location.reload();
+}
+
+async function deleteService(btn) {
+  const id    = btn.dataset.id;
+  const title = btn.dataset.title;
+  const ok = confirm(`Tem certeza que deseja excluir o anúncio "${title}"?\nEsta ação também remove todos os horários vinculados e não pode ser desfeita.`);
+  if (!ok) return;
+  const res  = await fetch(`/clinica/anuncio/${id}/deletar`, { method: 'POST' });
+  const data = await res.json();
+  if (data.ok) location.reload();
+}
+
+let _statusFilter = 'all';
+
+function setFilter(type, btn) {
+  _statusFilter = type;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  applyFilters();
+}
+
+function applyFilters() {
+  const q    = (document.getElementById('agendaSearch')?.value  || '').trim().toLowerCase();
+  const spec = (document.getElementById('specialtyFilter')?.value || '').toLowerCase();
+  let visible = 0;
+  document.querySelectorAll('.slot-row').forEach(row => {
+    const matchStatus = (_statusFilter === 'all' || row.dataset.filter === _statusFilter);
+    const matchSearch = !q  || row.dataset.doctor.includes(q) || row.dataset.title.includes(q);
+    const matchSpec   = !spec || row.dataset.specialty === spec;
+    const show = matchStatus && matchSearch && matchSpec;
+    row.hidden = !show;
+    if (show) visible++;
+  });
+  const noRes = document.getElementById('noResultsRow');
+  if (noRes) noRes.hidden = (visible > 0);
+}
+
+function openModal(btn) {
+  const d = btn.dataset;
+  document.getElementById('m-nome').textContent    = d.nome;
+  document.getElementById('m-medico').textContent  = d.medico || '—';
+  document.getElementById('m-email').textContent   = d.email;
+  document.getElementById('m-cpf').textContent     = d.cpf || '—';
+  document.getElementById('m-telefone').textContent = d.telefone || '—';
+  const pagEl = document.getElementById('m-pagamento');
+  const pagLabels = { aprovado: 'Aprovado', cancelado: 'Cancelado', pendente: 'Pendente' };
+  const pagColors = { aprovado: '#4ade80', cancelado: '#f87171', pendente: '#fbbf24' };
+  pagEl.textContent = pagLabels[d.pagamento] || 'Pendente';
+  pagEl.style.color = pagColors[d.pagamento] || '#fbbf24';
+  pagEl.style.fontWeight = '700';
+  document.getElementById('m-servico').textContent = d.servico;
+  document.getElementById('m-data').textContent    = d.data;
+  document.getElementById('m-horario').textContent = d.horario;
+  const modal = document.getElementById('patientModal');
+  modal.style.display = 'flex';
+  lucide.createIcons();
+  modal.addEventListener('click', function handler(e) {
+    if (e.target === modal) { closeModal(); modal.removeEventListener('click', handler); }
+  });
+}
+
+function closeModal() {
+  document.getElementById('patientModal').style.display = 'none';
+}
+
+// ─── Chat-trigger buttons (data-patient-id / data-patient-name) ──────────────
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('.chat-trigger');
+  if (!btn) return;
+  const pid  = parseInt(btn.dataset.patientId, 10);
+  const name = btn.dataset.patientName || '';
+  if (pid) openChatModal(pid, name);
+});
+
+// ─── Mensagens tab switcher ───────────────────────────────────────────────────
+function switchMsgTab(tab, btn) {
+  document.querySelectorAll('.msg-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('panelAtivas').hidden    = (tab !== 'ativas');
+  document.getElementById('panelHistorico').hidden = (tab !== 'historico');
+}
+
+// ─── Chat Modal ───────────────────────────────────────────────────────────────
+let _chatPatientId = null;
+let _chatId        = null;
+let _chatClosed    = false;
+
+async function openChatModal(patientId, patientName) {
+  _chatPatientId = patientId;
+  _chatId        = null;
+  _chatClosed    = false;
+
+  // Set initial header
+  const initials = (patientName || '?').substring(0, 2).toUpperCase();
+  document.getElementById('cmAvatar').textContent  = initials;
+  document.getElementById('cmName').textContent    = patientName || '—';
+  document.getElementById('cmServico').textContent = 'Carregando…';
+  document.getElementById('cmMessages').innerHTML  =
+    '<div style="text-align:center;color:var(--muted);font-size:.8rem;padding:3rem 1rem;">Carregando mensagens…</div>';
+  setChatClosedUI(false);
+
+  document.getElementById('chatModalOverlay').classList.add('open');
+
+  try {
+    const res  = await fetch('/api/chat/with/' + patientId);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+
+    _chatId     = data.chat_id;
+    _chatClosed = (data.status === 'encerrada');
+
+    document.getElementById('cmServico').textContent =
+      data.ultimo_servico ? 'Último serviço: ' + data.ultimo_servico : 'Nenhum agendamento anterior';
+
+    renderChatMessages(data.messages, patientId);
+    setChatClosedUI(_chatClosed);
+    lucide.createIcons({ attrs: { 'stroke-width': 2 } });
+  } catch (err) {
+    document.getElementById('cmMessages').innerHTML =
+      '<div style="text-align:center;color:#f87171;font-size:.8rem;padding:3rem 1rem;">Erro ao carregar mensagens.</div>';
+  }
+}
+
+function renderChatMessages(msgs, patientId) {
+  const container = document.getElementById('cmMessages');
+  container.innerHTML = '';
+
+  const sep = document.createElement('div');
+  sep.style.cssText = 'text-align:center;font-size:.7rem;color:var(--muted);padding:.4rem 0 .6rem;';
+  sep.textContent   = '🔒 Mensagens privadas entre você e o paciente';
+  container.appendChild(sep);
+
+  if (!msgs || msgs.length === 0) {
+    const empty = document.createElement('div');
+    empty.style.cssText = 'text-align:center;color:var(--muted);font-size:.82rem;padding:2.5rem 1rem;';
+    empty.textContent   = 'Nenhuma mensagem ainda. Envie a primeira!';
+    container.appendChild(empty);
+    return;
+  }
+
+  msgs.forEach(m => _appendBubble(m.conteudo, m.from_self, m.timestamp, false));
+  container.scrollTop = container.scrollHeight;
+}
+
+function _appendBubble(text, fromSelf, ts, scroll) {
+  const container = document.getElementById('cmMessages');
+
+  const row    = document.createElement('div');
+  row.className = 'bubble-row ' + (fromSelf ? 'self' : 'other');
+
+  const bubble      = document.createElement('div');
+  bubble.className  = 'bubble';
+  bubble.textContent = text;
+
+  const meta      = document.createElement('span');
+  meta.className  = 'bubble-ts';
+  meta.textContent = ts || new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+  row.appendChild(bubble);
+  row.appendChild(meta);
+  container.appendChild(row);
+
+  if (scroll !== false) container.scrollTop = container.scrollHeight;
+}
+
+async function sendChatMsg() {
+  if (_chatClosed) return;
+  const inp = document.getElementById('cmInput');
+  const txt = (inp.value || '').trim();
+  if (!txt || !_chatPatientId) return;
+  inp.value = '';
+
+  const ts = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  _appendBubble(txt, true, ts);
+
+  try {
+    const res  = await fetch('/api/mensagens/' + _chatPatientId, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ conteudo: txt }),
+    });
+    if (res.status === 403) {
+      // Chat was closed server-side
+      _chatClosed = true;
+      setChatClosedUI(true);
+    }
+  } catch (_) {}
+}
+
+async function encerrarChat() {
+  if (!_chatId || _chatClosed) return;
+  const ok = confirm('Deseja encerrar este atendimento?\nO paciente não poderá mais enviar mensagens nesta conversa.');
+  if (!ok) return;
+
+  try {
+    const res  = await fetch('/chat/encerrar/' + _chatId, { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      _chatClosed = true;
+      setChatClosedUI(true);
+      // Refresh the conversations list after a moment
+      setTimeout(() => location.reload(), 800);
+    }
+  } catch (_) {}
+}
+
+function setChatClosedUI(closed) {
+  const badge   = document.getElementById('cmStatusBadge');
+  const btnEnc  = document.getElementById('btnEncerrar');
+  const input   = document.getElementById('cmInput');
+  const btnSend = document.getElementById('btnSendMsg');
+
+  badge.hidden  = !closed;
+  btnEnc.hidden = closed;
+  input.disabled    = closed;
+  input.placeholder = closed ? 'Conversa encerrada' : 'Digite a mensagem…';
+  btnSend.disabled  = closed;
+  btnSend.style.opacity = closed ? '.38' : '';
+}
+
+function closeChatModal() {
+  document.getElementById('chatModalOverlay').classList.remove('open');
+  _chatPatientId = null;
+  _chatId        = null;
+  _chatClosed    = false;
+}
+
+function closeChatModalOnBg(event) {
+  if (event.target === document.getElementById('chatModalOverlay')) closeChatModal();
+}
+
+// ─── Document Viewer Modal ────────────────────────────────────────────────────
+let _docsApptId = null;
+
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('.pront-trigger');
+  if (!btn) return;
+  openDocsModal(
+    btn.dataset.apptId,
+    btn.dataset.paciente,
+    btn.dataset.servico,
+    btn.dataset.data,
+    btn.dataset.horario,
+  );
+});
+
+async function openDocsModal(apptId, paciente, servico, data, horario) {
+  _docsApptId = apptId;
+
+  // Populate header
+  document.getElementById('dm-paciente').textContent = paciente || '—';
+  document.getElementById('dm-servico').textContent  = servico  || '—';
+  document.getElementById('dm-data').textContent     = (data || '') + (horario ? ' às ' + horario : '');
+
+  // Reset sidebar
+  const dmList    = document.getElementById('dm-list');
+  const dmLoading = document.getElementById('dm-loading');
+  const dmEmpty   = document.getElementById('dm-empty');
+  dmList.innerHTML        = '';
+  dmLoading.style.display = 'flex';
+  dmEmpty.style.display   = 'none';
+
+  // Reset viewer
+  _resetViewer();
+
+  const overlay = document.getElementById('docsModalOverlay');
+  overlay.style.display = 'flex';
+  lucide.createIcons({ attrs: { 'stroke-width': 2 } });
+
+  // Fetch documents for this appointment's patient
+  try {
+    const res = await fetch('/prontuario/appointment/' + apptId + '/documentos-paciente');
+    dmLoading.style.display = 'none';
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const dd = await res.json();
+    if (dd.documentos && dd.documentos.length > 0) {
+      dd.documentos.forEach(function(doc) {
+        const ext   = doc.arquivo_url.split('.').pop().toLowerCase();
+        const isImg = ['png', 'jpg', 'jpeg'].includes(ext);
+        const icon  = isImg ? 'image' : 'file-text';
+        const url   = '/static/' + doc.arquivo_url;
+
+        const item = document.createElement('button');
+        item.className = 'doc-list-item';
+        item.style.cssText =
+          'width:100%;text-align:left;background:var(--secondary);border:1px solid var(--border);' +
+          'border-radius:.5rem;padding:.5rem .65rem;display:flex;align-items:flex-start;gap:.45rem;' +
+          'cursor:pointer;transition:border-color .15s,background .15s;color:var(--fg);';
+        item.innerHTML =
+          '<i data-lucide="' + icon + '" style="width:.85rem;height:.85rem;flex-shrink:0;' +
+            'color:var(--muted);margin-top:.18rem;"></i>' +
+          '<div style="flex:1;min-width:0;">' +
+            '<div style="font-size:.76rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;' +
+              'white-space:nowrap;" title="' + doc.titulo.replace(/"/g, '&quot;') + '">' +
+              doc.titulo +
+            '</div>' +
+            '<div style="font-size:.65rem;color:var(--muted);margin-top:.1rem;">' + doc.data_upload + '</div>' +
+          '</div>';
+        item.addEventListener('click', function() {
+          document.querySelectorAll('.doc-list-item').forEach(function(b) {
+            b.style.borderColor = '';
+            b.style.background  = '';
+          });
+          item.style.borderColor = 'rgba(20,184,166,0.6)';
+          item.style.background  = 'rgba(20,184,166,0.06)';
+          _openDocViewer(url, doc.titulo, isImg);
+        });
+        dmList.appendChild(item);
+      });
+      lucide.createIcons({ attrs: { 'stroke-width': 2 } });
+    } else {
+      dmEmpty.style.display = 'block';
+    }
+  } catch (_) {
+    dmLoading.style.display = 'none';
+    dmEmpty.textContent     = 'Erro ao carregar documentos.';
+    dmEmpty.style.display   = 'block';
+  }
+}
+
+function _resetViewer() {
+  document.getElementById('dm-viewer-empty').style.display = 'flex';
+  document.getElementById('dm-viewer-wrap').style.display  = 'none';
+  const iframe = document.getElementById('dm-viewer-iframe');
+  iframe.src            = 'about:blank';
+  iframe.style.display  = 'none';
+  const imgWrap = document.getElementById('dm-viewer-img-wrap');
+  imgWrap.style.display = 'none';
+  document.getElementById('dm-viewer-img').src = '';
+}
+
+function _openDocViewer(url, titulo, isImg) {
+  document.getElementById('dm-viewer-empty').style.display = 'none';
+  const wrap = document.getElementById('dm-viewer-wrap');
+  wrap.style.display = 'flex';
+
+  document.getElementById('dm-viewer-title').textContent = titulo;
+  document.getElementById('dm-viewer-link').href = url;
+
+  const iframe  = document.getElementById('dm-viewer-iframe');
+  const imgWrap = document.getElementById('dm-viewer-img-wrap');
+  const img     = document.getElementById('dm-viewer-img');
+
+  if (isImg) {
+    iframe.style.display  = 'none';
+    iframe.src            = 'about:blank';
+    img.src               = url;
+    imgWrap.style.display = 'flex';
+  } else {
+    imgWrap.style.display = 'none';
+    img.src               = '';
+    iframe.src            = url;
+    iframe.style.display  = 'block';
+  }
+  lucide.createIcons({ attrs: { 'stroke-width': 2 } });
+}
+
+function closeDocsModal() {
+  document.getElementById('docsModalOverlay').style.display = 'none';
+  document.getElementById('dm-list').innerHTML = '';
+  _resetViewer();
+  _docsApptId = null;
+}
+
+// Close document viewer modal when clicking the backdrop
+document.getElementById('docsModalOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeDocsModal();
+});
+</script>
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  APPOINTMENT WORKFLOW — contextual actions
+// ═══════════════════════════════════════════════════════════════
+
+// ── Patient slide-over drawer ─────────────────────────────────
+let _soSlotId = null;
+let _soApptId = null;
+
+function openSlideOver(btn) {
+  const d = btn.dataset;
+  _soSlotId = d.slotId || null;
+  _soApptId = d.apptId || null;
+  const state     = d.state || '';
+  const patientId = d.patientId || null;
+
+  // Header: state label + accent color
+  const stateMap = {
+    reservado:      { label: 'Reserva Pendente',   color: '#f59e0b' },
+    agendado:       { label: 'Consulta Agendada',  color: '#60a5fa' },
+    em_atendimento: { label: 'Em Atendimento',     color: '#14b8a6' },
+    realizada:      { label: 'Consulta Realizada', color: '#4ade80' },
+    cancelada:      { label: 'Cancelada',          color: '#9ca3af' },
+  };
+  const si = stateMap[state] || { label: '—', color: '#9ca3af' };
+  const stateEl = document.getElementById('so-state-label');
+  stateEl.textContent = si.label;
+  stateEl.style.color = si.color;
+  // Tint header subtly with state color
+  document.querySelector('.slideover-header').style.background = si.color + '10';
+
+  // Avatar initials
+  const initials = (d.nome || '?').substring(0, 2).toUpperCase();
+  document.getElementById('so-avatar').textContent         = initials;
+  document.getElementById('so-patient-avatar').textContent = initials;
+
+  // Patient fields
+  document.getElementById('so-nome').textContent      = d.nome     || '—';
+  document.getElementById('so-fullnome').textContent  = d.nome     || '—';
+  document.getElementById('so-email').textContent     = d.email    || '—';
+  document.getElementById('so-cpf').textContent       = d.cpf      || '—';
+  document.getElementById('so-telefone').textContent  = d.telefone || '—';
+
+  // Appointment fields
+  document.getElementById('so-servico').textContent   = d.servico  || '—';
+  document.getElementById('so-medico').textContent    = d.medico   || '—';
+  document.getElementById('so-data').textContent      = d.data     || '—';
+  document.getElementById('so-horario').textContent   = d.horario  || '—';
+
+  const pagLabels = { aprovado: 'Aprovado ✓', cancelado: 'Cancelado ✗', pendente: 'Pendente' };
+  const pagColors = { aprovado: '#4ade80',    cancelado: '#f87171',      pendente: '#fbbf24' };
+  const pagEl = document.getElementById('so-pagamento');
+  pagEl.textContent = pagLabels[d.pagamento] || 'Pendente';
+  pagEl.style.color = pagColors[d.pagamento] || '#fbbf24';
+
+  // Chat button
+  const chatBtn = document.getElementById('so-chat-btn');
+  if (patientId) {
+    chatBtn.style.display = 'inline-flex';
+    chatBtn.onclick = function() { closeSlideOver(); openChatModal(patientId, d.nome); };
+  } else {
+    chatBtn.style.display = 'none';
+  }
+
+  // Log / Timeline
+  document.getElementById('so-log').innerHTML = _buildLogHtml(state);
+
+  // Documents — only for em_atendimento state
+  const docsSection = document.getElementById('so-docs-section');
+  const docsBtn     = document.getElementById('so-docs-btn');
+  if (_soApptId && state === 'em_atendimento') {
+    docsSection.style.display = 'block';
+    docsBtn.onclick = function() {
+      closeSlideOver();
+      openDocsModal(_soApptId, d.nome, d.servico, d.data, d.horario);
+    };
+  } else {
+    docsSection.style.display = 'none';
+    docsBtn.onclick = null;
+  }
+
+  // Footer: show only the relevant action button
+  const btnAceitar   = document.getElementById('so-btn-aceitar');
+  const btnConfirmar = document.getElementById('so-btn-confirmar');
+  const btnEncerrar  = document.getElementById('so-btn-encerrar');
+  btnAceitar.style.display   = state === 'reservado'      ? 'inline-flex' : 'none';
+  btnConfirmar.style.display = state === 'agendado'       ? 'inline-flex' : 'none';
+  btnEncerrar.style.display  = state === 'em_atendimento' ? 'inline-flex' : 'none';
+  btnAceitar.onclick   = () => aceitarAgendamento(_soSlotId);
+  btnConfirmar.onclick = () => confirmarChegada(_soApptId);
+  btnEncerrar.onclick  = () => encerrarConsulta(_soApptId);
+
+  document.getElementById('slideOverlay').classList.add('open');
+  lucide.createIcons({ attrs: { 'stroke-width': 2 } });
+}
+
+function _buildLogHtml(state) {
+  const steps = [];
+  if (state && state !== 'disponivel') {
+    steps.push({ color: '#f59e0b', label: 'Reserva registrada pelo paciente' });
+  }
+  if (state === 'agendado' || state === 'em_atendimento' || state === 'realizada') {
+    steps.push({ color: '#60a5fa', label: 'Reserva aceita pela clínica' });
+  }
+  if (state === 'em_atendimento' || state === 'realizada') {
+    steps.push({ color: '#14b8a6', label: 'Chegada confirmada — em atendimento' });
+  }
+  if (state === 'realizada') {
+    steps.push({ color: '#4ade80', label: 'Consulta encerrada e concluída' });
+  }
+  if (state === 'cancelada') {
+    steps.push({ color: '#f87171', label: 'Consulta cancelada' });
+  }
+  if (!steps.length) {
+    return '<p style="font-size:.8rem;color:var(--muted);margin:0;">Nenhum histórico.</p>';
+  }
+  return steps.map(s =>
+    `<div class="so-log-entry">
+      <div class="so-log-dot" style="background:${s.color};box-shadow:0 0 4px ${s.color}88;"></div>
+      <span style="font-size:.82rem;font-weight:600;color:var(--fg);">${s.label}</span>
+    </div>`
+  ).join('');
+}
+
+function closeSlideOver() {
+  document.getElementById('slideOverlay').classList.remove('open');
+  _soSlotId = null;
+  _soApptId = null;
+}
+
+function closeSlideOverOnBg(event) {
+  if (event.target === document.getElementById('slideOverlay')) closeSlideOver();
+}
+
+// ── Workflow action helpers ───────────────────────────────────
+async function aceitarAgendamento(slotId) {
+  try {
+    const res  = await fetch('/clinica/agenda/slot/' + slotId + '/aceitar', { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) { location.reload(); }
+    else { alert(data.msg || 'Erro ao aceitar agendamento.'); }
+  } catch (_) { alert('Erro de conexão.'); }
+}
+
+async function confirmarChegada(apptId) {
+  try {
+    const res  = await fetch('/clinica/agenda/appointment/' + apptId + '/confirmar-chegada', { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) { location.reload(); }
+    else { alert(data.msg || 'Erro ao confirmar chegada.'); }
+  } catch (_) { alert('Erro de conexão.'); }
+}
+
+async function encerrarConsulta(apptId) {
+  const ok = confirm('Deseja encerrar esta consulta?\nO status será alterado para Realizada.');
+  if (!ok) return;
+  try {
+    const res  = await fetch('/clinica/agenda/appointment/' + apptId + '/encerrar', { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) { location.reload(); }
+    else { alert(data.msg || 'Erro ao encerrar consulta.'); }
+  } catch (_) { alert('Erro de conexão.'); }
+}
+</script>
+{% endblock %}

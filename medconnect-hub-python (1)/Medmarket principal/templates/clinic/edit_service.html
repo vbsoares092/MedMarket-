@@ -1,0 +1,185 @@
+{% extends "clinic/base.html" %}
+{% block title %}Editar Anúncio — Portal da Clínica{% endblock %}
+{% block page_title %}Editar Anúncio{% endblock %}
+
+{% block content %}
+<style>
+  .form-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 1rem;
+    padding: 2rem; max-width: 660px; box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+  }
+  .form-group { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 1rem; }
+  .form-label { font-size: 0.78rem; font-weight: 600; }
+  .form-input, .form-textarea {
+    padding: 0.6rem 0.85rem; border-radius: 0.5rem;
+    border: 1px solid var(--border); background: var(--secondary);
+    color: var(--fg); font-size: 0.85rem; transition: border-color .15s;
+  }
+  .form-input:focus, .form-textarea:focus { outline: none; border-color: var(--primary); }
+  .form-textarea { resize: vertical; min-height: 90px; font-family: inherit; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .form-hint { font-size: 0.72rem; color: var(--muted); }
+  .error-box {
+    background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);
+    border-radius: 0.5rem; padding: 0.65rem 0.85rem;
+    font-size: 0.8rem; color: #f87171; margin-bottom: 1.25rem;
+    display: flex; align-items: center; gap: 0.4rem;
+  }
+  .btn-row { display: flex; gap: 0.75rem; margin-top: 0.5rem; }
+  .btn-submit {
+    padding: 0.6rem 1.5rem; border-radius: 0.55rem;
+    background: var(--primary); color: #fff; border: none;
+    font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: opacity .15s;
+    display: inline-flex; align-items: center; gap: .4rem;
+  }
+  .btn-submit:hover { opacity: .88; }
+  .btn-cancel {
+    padding: 0.6rem 1.25rem; border-radius: 0.55rem;
+    background: var(--secondary); color: var(--muted); border: 1px solid var(--border);
+    font-size: 0.85rem; font-weight: 600; cursor: pointer; text-decoration: none;
+    display: inline-flex; align-items: center; gap: .4rem; transition: background .15s;
+  }
+  .btn-cancel:hover { background: rgba(239,68,68,0.08); color: #f87171; border-color: rgba(239,68,68,0.3); }
+  .page-sub { font-size: 0.82rem; color: var(--muted); margin-bottom: 1.5rem; }
+  .img-preview {
+    width: 120px; height: 80px; object-fit: cover; border-radius: .5rem;
+    border: 1px solid var(--border); display: block; margin-bottom: .5rem;
+  }
+</style>
+
+<p class="page-sub">Atualize as informações do anúncio. Campos deixados em branco mantêm o valor atual.</p>
+
+<div class="form-card">
+  {% if erro %}
+  <div class="error-box">
+    <i data-lucide="alert-circle" style="width:.9rem;height:.9rem;flex-shrink:0;"></i>
+    {{ erro }}
+  </div>
+  {% endif %}
+
+  <form method="POST"
+        action="{{ url_for('clinic.editar_anuncio', service_id=service.id) }}"
+        enctype="multipart/form-data">
+
+    <div class="form-group">
+      <label class="form-label">Título do Serviço <span style="color:var(--primary)">*</span></label>
+      <input type="text" name="title" class="form-input"
+             value="{{ service.title }}" required maxlength="150" />
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Médico Responsável <span style="color:var(--primary)">*</span></label>
+        <input type="text" name="doctor_name" class="form-input"
+               value="{{ service.doctor_name }}" required maxlength="100" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Especialidade <span style="color:var(--primary)">*</span></label>
+        <input type="text" name="specialty" class="form-input"
+               value="{{ service.specialty }}" required maxlength="80"
+               list="specialties-list" />
+        <datalist id="specialties-list">
+          <option value="Cardiologia">
+          <option value="Clínica Geral">
+          <option value="Dermatologia">
+          <option value="Endocrinologia">
+          <option value="Ginecologia">
+          <option value="Neurologia">
+          <option value="Oftalmologia">
+          <option value="Ortopedia">
+          <option value="Pediatria">
+          <option value="Psiquiatria">
+          <option value="Urologia">
+        </datalist>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Preço (R$) <span style="color:var(--primary)">*</span></label>
+      <input type="number" name="price" class="form-input"
+             value="{{ service.price }}" min="1" step="0.01" required />
+      <span class="form-hint">Valor em reais. Use ponto como separador decimal.</span>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Descrição</label>
+      <textarea name="description" class="form-textarea">{{ service.description or '' }}</textarea>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Foto do Anúncio</label>
+      {% if service.imagem_url %}
+      <img src="{{ url_for('static', filename=service.imagem_url) }}"
+           alt="Imagem atual" class="img-preview" />
+      <span class="form-hint" style="margin-bottom:.4rem;">Imagem atual. Envie uma nova para substituir.</span>
+      {% endif %}
+      <input type="file" name="imagem" class="form-input"
+             accept="image/png,image/jpeg,image/jpg,image/webp,image/gif" />
+      <span class="form-hint">PNG, JPG ou WEBP. Deixe em branco para manter a imagem atual.</span>
+    </div>
+
+    <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
+                color:var(--muted);display:flex;align-items:center;gap:.4rem;margin:.25rem 0 .75rem;">
+      <i data-lucide="map-pin" style="width:.8rem;height:.8rem;"></i> Localização do Serviço
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Logradouro (Rua / Av.)</label>
+        <input type="text" name="logradouro" class="form-input"
+               value="{{ service.logradouro or '' }}" placeholder="Rua das Flores" maxlength="200" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Número</label>
+        <input type="text" name="numero" class="form-input"
+               value="{{ service.numero or '' }}" placeholder="42" maxlength="20" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Complemento</label>
+      <input type="text" name="complemento" class="form-input"
+             value="{{ service.complemento or '' }}" placeholder="Sala 12, Bloco B" maxlength="100" />
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Bairro</label>
+        <input type="text" name="bairro" class="form-input"
+               value="{{ service.bairro or '' }}" placeholder="Centro" maxlength="100" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Cidade</label>
+        <input type="text" name="cidade" class="form-input"
+               value="{{ service.cidade or '' }}" placeholder="São Paulo" maxlength="100" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Estado (UF)</label>
+        <input type="text" name="estado" class="form-input"
+               value="{{ service.estado or '' }}" placeholder="SP" maxlength="2"
+               style="text-transform:uppercase;" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">CEP</label>
+        <input type="text" name="cep" class="form-input"
+               value="{{ service.cep or '' }}" placeholder="01310-100" maxlength="9" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Link do Google Maps ou Plus Code <span style="color:var(--muted);font-weight:400;">(opcional)</span></label>
+      <input type="url" name="google_maps_link" class="form-input"
+             value="{{ service.google_maps_link or '' }}"
+             placeholder="https://maps.app.goo.gl/... ou https://plus.codes/..." maxlength="500" />
+      <span class="form-hint">Cole o link direto do Google Maps para garantir precisão na localização.</span>
+    </div>
+
+    <div class="btn-row">
+      <button type="submit" class="btn-submit">
+        <i data-lucide="save"></i> Salvar Alterações
+      </button>
+      <a href="{{ url_for('clinic.dashboard') }}" class="btn-cancel">
+        <i data-lucide="x"></i> Cancelar
+      </a>
+    </div>
+  </form>
+</div>
+{% endblock %}

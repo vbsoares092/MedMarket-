@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}MedMarket{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+  <!-- HEADER -->
+  <header class="header">
+    <div class="container header-inner">
+      <!-- Logo -->
+      <a href="/" class="logo">
+        <div class="logo-icon">M+</div>
+        <span class="logo-text">Med<span class="logo-accent">Market</span></span>
+      </a>
+
+      <!-- Search -->
+      <form class="search-form" action="/" method="get" id="searchForm">
+        {% if selected_category %}<input type="hidden" name="category" value="{{ selected_category }}" />{% endif %}
+        <i data-lucide="search" class="search-icon"></i>
+        <input
+          type="text"
+          name="q"
+          class="search-input"
+          placeholder="Buscar equipamentos, serviços..."
+          value="{{ query }}"
+          oninput="debounceSearch(this)"
+        />
+      </form>
+
+      <!-- Actions -->
+      <div class="header-actions">
+        <button class="btn-icon" title="Notificações"><i data-lucide="bell"></i></button>
+        <button class="btn-icon" id="chatToggle" title="Chat"><i data-lucide="message-circle"></i></button>
+        {% if is_logged_in %}
+          {% if session.get('user') and session['user'].get('user_type') == 'CLINICA' %}
+            <a href="/clinica/dashboard" class="btn btn-ghost btn-sm gap-2"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+          {% else %}
+            <a href="/perfil" class="btn btn-ghost btn-sm gap-2"><i data-lucide="user"></i> Perfil</a>
+          {% endif %}
+          <a href="/logout" class="btn btn-ghost btn-sm gap-2"><i data-lucide="log-out"></i> Sair</a>
+        {% else %}
+          <a href="/auth" class="btn btn-primary btn-sm gap-2"><i data-lucide="log-in"></i> Entrar</a>
+          <a href="/clinica/login" class="btn btn-ghost btn-sm gap-2" style="font-size:.78rem;"><i data-lucide="building-2"></i> Clínica</a>
+        {% endif %}
+      </div>
+
+      <!-- Mobile menu btn -->
+      <button class="btn-icon mobile-menu-btn" id="mobileMenuBtn"><i data-lucide="menu" id="menuIcon"></i></button>
+    </div>
+
+    <!-- Mobile drawer -->
+    <div class="mobile-menu" id="mobileMenu" style="display:none">
+      <div class="container mobile-menu-inner">
+        <form action="/" method="get">
+          {% if selected_category %}<input type="hidden" name="category" value="{{ selected_category }}" />{% endif %}
+          <div class="search-wrapper-mobile">
+            <i data-lucide="search" class="search-icon"></i>
+            <input type="text" name="q" class="search-input" placeholder="Buscar..." value="{{ query }}" />
+          </div>
+        </form>
+        <div class="mobile-actions">
+          <button class="btn-icon"><i data-lucide="bell"></i></button>
+          <button class="btn-icon" id="chatToggleMobile"><i data-lucide="message-circle"></i></button>
+          {% if is_logged_in %}
+            {% if session.get('user') and session['user'].get('user_type') == 'CLINICA' %}
+              <a href="/clinica/dashboard" class="btn btn-ghost btn-sm gap-2 ml-auto"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+            {% else %}
+              <a href="/perfil" class="btn btn-ghost btn-sm gap-2 ml-auto"><i data-lucide="user"></i> Perfil</a>
+            {% endif %}
+            <a href="/logout" class="btn btn-ghost btn-sm gap-2"><i data-lucide="log-out"></i> Sair</a>
+          {% else %}
+            <a href="/auth" class="btn btn-primary btn-sm gap-2 ml-auto"><i data-lucide="log-in"></i> Entrar</a>
+            <a href="/clinica/login" class="btn btn-ghost btn-sm gap-2" style="font-size:.78rem;"><i data-lucide="building-2"></i> Clínica</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- PAGE CONTENT -->
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- CHAT PANEL -->
+  <aside class="chat-panel" id="chatPanel">
+    <div class="chat-header">
+      <span class="chat-title">Chat Global</span>
+      <button class="btn-icon" id="chatClose"><i data-lucide="x"></i></button>
+    </div>
+    <div class="chat-messages" id="chatMessages">
+      {% for m in chat_messages %}
+      <div class="chat-msg">
+        <div class="chat-avatar">{{ m.avatar }}</div>
+        <div class="chat-content">
+          <div class="chat-meta">
+            <span class="chat-user">{{ m.user }}</span>
+            <span class="chat-time">{{ m.time }}</span>
+          </div>
+          <p class="chat-text">{{ m.message }}</p>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="chat-input-row">
+      <input type="text" id="chatInput" class="input" placeholder="Mensagem..." />
+      <button class="btn btn-primary btn-icon-sm" id="chatSend"><i data-lucide="send"></i></button>
+    </div>
+  </aside>
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

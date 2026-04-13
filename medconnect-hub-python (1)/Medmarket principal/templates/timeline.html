@@ -1,0 +1,380 @@
+{% extends "base.html" %}
+{% block title %}Meu Histórico de Consultas — MedMarket{% endblock %}
+
+{% block content %}
+<style>
+  /* ── Timeline page ── */
+  .tl-page {
+    max-width: 800px;
+    margin: 2.5rem auto 4rem;
+    padding: 0 1rem;
+  }
+  .tl-page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .tl-page-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+  }
+  .tl-page-title svg { width: 1.1rem; height: 1.1rem; color: var(--primary); }
+
+  /* ── Timeline track ── */
+  .timeline {
+    position: relative;
+    padding-left: 2.25rem;
+  }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: .85rem;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(to bottom, var(--primary) 0%, var(--border) 100%);
+    opacity: .35;
+  }
+
+  /* ── Timeline item ── */
+  .tl-item {
+    position: relative;
+    margin-bottom: 1.75rem;
+  }
+  .tl-dot {
+    position: absolute;
+    left: -2.25rem;
+    top: .75rem;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 50%;
+    background: var(--primary);
+    border: 3px solid var(--bg, #0d1117);
+    box-shadow: 0 0 0 2px var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+  }
+  .tl-dot svg { width: .5rem; height: .5rem; color: #fff; }
+
+  .tl-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    padding: 1.25rem 1.5rem;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.09);
+    transition: box-shadow .2s;
+  }
+  .tl-card:hover { box-shadow: 0 6px 24px rgba(0,0,0,0.15); }
+
+  .tl-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: .75rem;
+  }
+  .tl-date-badge {
+    font-size: .7rem;
+    font-weight: 700;
+    padding: .2rem .6rem;
+    border-radius: 99px;
+    background: rgba(59,130,246,0.12);
+    color: var(--primary);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .tl-doc-name {
+    font-size: .95rem;
+    font-weight: 800;
+    line-height: 1.3;
+    flex: 1;
+  }
+  .tl-sub {
+    font-size: .75rem;
+    color: var(--muted);
+    margin-bottom: .75rem;
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+    flex-wrap: wrap;
+  }
+  .tl-sub svg { width: .75rem; height: .75rem; }
+
+  .tl-section-label {
+    font-size: .67rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: var(--muted);
+    margin-bottom: .3rem;
+    display: flex;
+    align-items: center;
+    gap: .3rem;
+  }
+  .tl-section-label svg { width: .7rem; height: .7rem; }
+
+  .tl-text {
+    font-size: .85rem;
+    line-height: 1.65;
+    color: var(--fg);
+    background: var(--secondary);
+    border: 1px solid var(--border);
+    border-radius: .5rem;
+    padding: .6rem .85rem;
+    margin-bottom: .7rem;
+    white-space: pre-wrap;
+  }
+
+  .tl-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: .5rem;
+    margin-top: .5rem;
+  }
+  .tl-btn {
+    font-size: .74rem;
+    font-weight: 700;
+    padding: .28rem .7rem;
+    border-radius: .4rem;
+    border: 1px solid var(--border);
+    background: var(--secondary);
+    color: var(--fg);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .tl-btn:hover { background: rgba(59,130,246,0.08); border-color: rgba(59,130,246,.4); color: var(--primary); }
+  .tl-btn svg { width: .75rem; height: .75rem; }
+
+  /* ── Documents section ── */
+  .docs-section {
+    margin-top: 3rem;
+  }
+  .docs-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .docs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: .85rem;
+  }
+  .doc-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: .9rem;
+    padding: 1rem 1.15rem;
+    display: flex;
+    flex-direction: column;
+    gap: .4rem;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.07);
+    transition: box-shadow .2s;
+  }
+  .doc-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.14); }
+  .doc-card-icon {
+    width: 2.2rem;
+    height: 2.2rem;
+    border-radius: .55rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: .15rem;
+  }
+  .doc-card-icon svg { width: 1.1rem; height: 1.1rem; }
+  .doc-card-title {
+    font-size: .87rem;
+    font-weight: 700;
+    line-height: 1.3;
+    word-break: break-word;
+  }
+  .doc-card-date {
+    font-size: .7rem;
+    color: var(--muted);
+  }
+
+  /* ── Print / PDF styles ── */
+  @media print {
+    .tl-page-header a, .tl-footer, .docs-section { display: none !important; }
+    .tl-card { break-inside: avoid; box-shadow: none; border: 1px solid #ccc; }
+    .timeline::before { display: none; }
+  }
+
+  /* ── Empty state ── */
+  .tl-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 4rem 1rem;
+    gap: .65rem;
+    color: var(--muted);
+    text-align: center;
+  }
+  .tl-empty svg { width: 3rem; height: 3rem; opacity: .25; }
+  .tl-empty p { font-size: .88rem; margin: 0; }
+</style>
+
+<div class="tl-page">
+
+  <!-- ── Header ── -->
+  <div class="tl-page-header">
+    <div>
+      <a href="/perfil" style="display:inline-flex;align-items:center;gap:.35rem;
+         font-size:.78rem;color:var(--muted);text-decoration:none;margin-bottom:.5rem;
+         transition:color .2s;" onmouseover="this.style.color='var(--fg)'" onmouseout="this.style.color='var(--muted)'">
+        <i data-lucide="arrow-left" style="width:.85rem;height:.85rem;"></i> Voltar ao Perfil
+      </a>
+      <h1 class="tl-page-title">
+        <i data-lucide="clock"></i>
+        Linha do Tempo Clínica
+      </h1>
+      <p style="font-size:.82rem;color:var(--muted);margin:.25rem 0 0;">
+        {{ prontuarios | length }} consulta{{ 's' if prontuarios | length != 1 else '' }} registrada{{ 's' if prontuarios | length != 1 else '' }}
+      </p>
+    </div>
+    <button onclick="window.print()"
+            style="font-size:.8rem;font-weight:700;padding:.45rem 1rem;border-radius:.5rem;
+                   border:1px solid var(--border);background:var(--secondary);color:var(--fg);
+                   cursor:pointer;display:inline-flex;align-items:center;gap:.35rem;
+                   transition:background .15s;" title="Imprimir histórico completo">
+      <i data-lucide="printer" style="width:.85rem;height:.85rem;"></i> Imprimir / PDF
+    </button>
+  </div>
+
+  <!-- ── Timeline ── -->
+  {% if prontuarios %}
+  <div class="timeline">
+    {% for pront in prontuarios %}
+    {% set svc_title = pront.appointment.service.title if pront.appointment and pront.appointment.service else '—' %}
+    {% set clinic_name = pront.medico.clinic_profile.razao_social if pront.medico and pront.medico.clinic_profile else (pront.medico.name if pront.medico else '—') %}
+
+    <div class="tl-item">
+      <div class="tl-dot"><i data-lucide="stethoscope"></i></div>
+      <div class="tl-card">
+
+        <!-- Card header -->
+        <div class="tl-card-header">
+          <div class="tl-doc-name">{{ svc_title }}</div>
+          <span class="tl-date-badge">
+            {% set d = pront.data_consulta %}
+            {{ d[8:10] }}/{{ d[5:7] }}/{{ d[:4] }}
+          </span>
+        </div>
+
+        <!-- Sub-info -->
+        <div class="tl-sub">
+          <i data-lucide="building-2"></i>
+          {{ clinic_name }}
+          {% if pront.appointment %}
+          &nbsp;·&nbsp;
+          <i data-lucide="clock"></i>
+          {{ pront.appointment.time_slot }}
+          {% endif %}
+        </div>
+
+        <!-- Diagnóstico -->
+        {% if pront.diagnostico %}
+        <div class="tl-section-label">
+          <i data-lucide="activity"></i> Diagnóstico
+        </div>
+        <div class="tl-text">{{ pront.diagnostico }}</div>
+        {% endif %}
+
+        <!-- Prescrição -->
+        {% if pront.prescricao %}
+        <div class="tl-section-label">
+          <i data-lucide="pill"></i> Prescrição
+        </div>
+        <div class="tl-text">{{ pront.prescricao }}</div>
+        {% endif %}
+
+        <!-- Observações -->
+        {% if pront.observacoes %}
+        <div class="tl-section-label">
+          <i data-lucide="notebook-pen"></i> Observações
+        </div>
+        <div class="tl-text">{{ pront.observacoes }}</div>
+        {% endif %}
+
+        <!-- Footer -->
+        <div class="tl-footer">
+          <a href="/prontuario/{{ pront.id }}/ver" class="tl-btn">
+            <i data-lucide="eye"></i> Ver Prontuário
+          </a>
+        </div>
+
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <div class="tl-empty">
+    <i data-lucide="clock"></i>
+    <p>Nenhuma consulta registrada ainda.</p>
+    <p style="font-size:.78rem;">Após suas consultas, os médicos registrarão os diagnósticos aqui.</p>
+  </div>
+  {% endif %}
+
+  <!-- ── Meus Documentos ── -->
+  <div class="docs-section">
+    <div class="docs-section-header">
+      <h2 style="font-size:1rem;font-weight:800;display:flex;align-items:center;gap:.45rem;margin:0;">
+        <i data-lucide="folder-open" style="width:.95rem;height:.95rem;color:var(--primary);"></i>
+        Documentos Enviados
+      </h2>
+      <a href="/perfil" style="font-size:.78rem;font-weight:700;padding:.3rem .75rem;
+         border-radius:.45rem;background:rgba(59,130,246,0.1);color:var(--primary);
+         text-decoration:none;display:inline-flex;align-items:center;gap:.35rem;">
+        <i data-lucide="upload" style="width:.78rem;height:.78rem;"></i> Enviar Documento
+      </a>
+    </div>
+
+    {% if documentos %}
+    <div class="docs-grid">
+      {% for doc in documentos %}
+      <a href="{{ url_for('static', filename=doc.arquivo_url) }}" target="_blank"
+         style="text-decoration:none;color:inherit;">
+        <div class="doc-card">
+          <div class="doc-card-icon {% if doc.arquivo_url.endswith('.pdf') %}
+               " style="background:rgba(239,68,68,0.1);">
+            <i data-lucide="file-text" style="color:#f87171;"></i>
+          {% else %}
+               " style="background:rgba(96,165,250,0.1);">
+            <i data-lucide="image" style="color:#60a5fa;"></i>
+          {% endif %}
+          </div>
+          <div class="doc-card-title">{{ doc.titulo }}</div>
+          <div class="doc-card-date">
+            <i data-lucide="calendar" style="width:.65rem;height:.65rem;vertical-align:middle;margin-right:.2rem;"></i>
+            {{ doc.data_upload.strftime('%d/%m/%Y') if doc.data_upload else '—' }}
+          </div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="tl-empty" style="padding:2rem 1rem;">
+      <i data-lucide="folder"></i>
+      <p>Nenhum documento enviado.</p>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

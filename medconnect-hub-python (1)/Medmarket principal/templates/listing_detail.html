@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+{% block title %}{{ listing.title }} — MedMarket{% endblock %}
+
+{% block content %}
+<!-- BREADCRUMB BAR -->
+<div class="breadcrumb-bar">
+  <div class="container breadcrumb-inner">
+    <a href="/" class="btn-icon"><i data-lucide="arrow-left"></i></a>
+    <span class="text-muted">{{ listing.specialty }}</span>
+    <i data-lucide="chevron-right" class="icon-xs text-muted"></i>
+    <span class="breadcrumb-title">{{ listing.title }}</span>
+  </div>
+</div>
+
+<div class="container detail-grid">
+  <!-- LEFT COLUMN -->
+  <div class="detail-left fade-in">
+    <!-- Image -->
+    <div class="detail-image-wrap">
+      <img src="{% if listing.imagem_url %}{{ url_for('static', filename=listing.imagem_url) }}{% else %}https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=600&h=400&fit=crop{% endif %}" alt="{{ listing.title | e }}" class="detail-image" />
+      <div class="detail-image-actions">
+        <button class="btn-icon glass-btn"><i data-lucide="heart"></i></button>
+        <button class="btn-icon glass-btn"><i data-lucide="share-2"></i></button>
+      </div>
+      <div class="detail-image-badges">
+        <span class="badge badge-accent">Serviço</span>
+        <span class="badge badge-outline">{{ listing.specialty }}</span>
+      </div>
+    </div>
+
+    <!-- Title & description -->
+    <div class="detail-info">
+      <h1 class="detail-title">{{ listing.title }}</h1>
+      <div class="detail-meta">
+        <span><i data-lucide="user" class="icon-xs"></i> {{ listing.doctor_name }}</span>
+        <span><i data-lucide="stethoscope" class="icon-xs"></i> {{ listing.specialty }}</span>
+      </div>
+      <p class="detail-desc">{{ listing.description }}</p>
+    </div>
+
+    <!-- Reviews -->
+    <div class="detail-reviews card">
+      <h3 class="card-section-title">Avaliações</h3>
+      <div class="stars-row">
+        {% for i in range(5) %}
+        <i data-lucide="star" class="star filled"></i>
+        {% endfor %}
+        <span class="text-muted ml-2">5.0 / 5</span>
+      </div>
+      <p class="text-muted text-sm">Nenhuma avaliação detalhada ainda.</p>
+    </div>
+  </div>
+
+  <!-- RIGHT COLUMN (sticky) -->
+  <div class="detail-right fade-in delay-1">
+    <!-- Price & CTA -->
+    <div class="card price-card">
+      <h2 style="font-size:1.25rem;font-weight:800;line-height:1.25;margin-bottom:.55rem;">{{ listing.title }}</h2>
+      <div class="detail-price" style="color:#4ade80;font-size:1.75rem;">
+        {% set _base = (listing.price or 0.0) %}
+        {% set _min  = (min_price if min_price is defined else _base) or 0.0 %}
+        {% if has_discount is defined and has_discount and _min < _base %}
+          <span style="text-decoration:line-through;color:var(--muted);font-size:1.2rem;font-weight:400;">
+            R$ {{ "{:,.2f}".format(_base).replace(",", ".") }}
+          </span>
+          <span> R$ {{ "{:,.2f}".format(_min).replace(",", ".") }}</span>
+        {% else %}
+          A partir de R$ {{ "{:,.2f}".format(_min).replace(",", ".") }}
+        {% endif %}
+      </div>
+      <div style="font-size:.72rem;color:var(--muted);display:flex;align-items:center;gap:.3rem;margin-top:-.25rem;margin-bottom:.5rem;">
+        <i data-lucide="info" style="width:.75rem;height:.75rem;flex-shrink:0;"></i>
+        Preços podem variar por turno. Veja os valores ao selecionar o horário.
+      </div>
+      <div style="display:flex;gap:.3rem;flex-wrap:wrap;margin-bottom:.75rem;">
+        <span style="font-size:.67rem;font-weight:700;padding:.15rem .45rem;border-radius:99px;background:rgba(245,158,11,0.12);color:#f59e0b;">☀️ Manhã / Tarde</span>
+        <span style="font-size:.67rem;font-weight:700;padding:.15rem .45rem;border-radius:99px;background:rgba(99,102,241,0.12);color:#818cf8;">🌙 Noite / Madrugada</span>
+      </div>
+
+      <!-- Serviço: Agendar -->
+      {% if current_user_type == 'CLINICA' %}
+      {# ── Clinic viewing their own storefront: disable booking ── #}
+      <div style="margin-bottom:.6rem;padding:.75rem 1rem;border-radius:.75rem;
+                  border:1px solid rgba(245,158,11,0.35);
+                  background:rgba(245,158,11,0.06);
+                  display:flex;align-items:flex-start;gap:.55rem;">
+        <i data-lucide="lock" style="width:1rem;height:1rem;color:#f59e0b;flex-shrink:0;margin-top:.1rem;"></i>
+        <p style="margin:0;font-size:.78rem;color:#f59e0b;line-height:1.55;">
+          Você está visualizando sua vitrine como <strong>Clínica</strong>.<br>
+          Para testar o agendamento, use um perfil de Paciente.
+        </p>
+      </div>
+      <button class="btn w-full btn-lg gap-2" disabled
+              style="background:rgba(107,114,128,0.15);color:#6b7280;
+                     border:1px solid rgba(107,114,128,0.25);
+                     cursor:not-allowed;opacity:.7;">
+        <i data-lucide="lock"></i> Agendamento indisponível
+      </button>
+      {% else %}
+      {# ── Normal patient flow ── #}
+      {% if request.args.get('aviso') == 'clinic_blocked' %}
+      <div style="margin-bottom:.6rem;padding:.75rem 1rem;border-radius:.75rem;
+                  border:1px solid rgba(239,68,68,0.35);
+                  background:rgba(239,68,68,0.06);
+                  display:flex;align-items:flex-start;gap:.55rem;">
+        <i data-lucide="alert-triangle" style="width:1rem;height:1rem;color:#f87171;flex-shrink:0;margin-top:.1rem;"></i>
+        <p style="margin:0;font-size:.78rem;color:#f87171;line-height:1.55;">
+          Contas de Clínica não podem realizar agendamentos.<br>
+          Por favor, use uma conta de Paciente.
+        </p>
+      </div>
+      {% endif %}
+      <a href="{{ url_for('anuncios.checkout_step', listing_id=listing.id) }}" class="btn w-full btn-lg gap-2 btn-accent">
+        <i data-lucide="calendar-check"></i> Agendar
+      </a>
+      {% endif %}
+
+      {% if is_logged_in %}
+      <a href="/chat/{{ listing.clinic_id }}" class="btn btn-outline w-full gap-2 mt-2">
+        <i data-lucide="message-circle"></i> Chat com a Clínica
+      </a>
+      {% else %}
+      <a href="/auth?redirect=/listing/{{ listing.id }}" class="btn btn-outline w-full gap-2 mt-2">
+        <i data-lucide="message-circle"></i> Chat com a Clínica
+      </a>
+      {% endif %}
+    </div>
+
+    <!-- Trust badges -->
+    <div class="card trust-card">
+      {% for badge in [
+        ('shield', 'Compra protegida', 'Garantia de reembolso'),
+        ('badge-check', 'Profissional verificado', 'CRM/CRO validado'),
+        ('clock', 'Agendamento flexível', 'Escolha data e hora'),
+      ] %}
+      <div class="trust-item">
+        <div class="trust-icon"><i data-lucide="{{ badge[0] }}"></i></div>
+        <div>
+          <p class="trust-label">{{ badge[1] }}</p>
+          <p class="trust-desc text-muted">{{ badge[2] }}</p>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Seller card -->
+    <div class="card seller-card">
+      <div class="seller-row">
+        <div class="seller-avatar-wrap">
+          <div class="seller-avatar lg">{{ listing.clinic.name[0]|upper }}</div>
+        </div>
+        <div class="seller-info">
+          <p class="seller-name-lg">{{ listing.clinic.clinic_profile.razao_social if listing.clinic.clinic_profile else listing.clinic.name }}</p>
+          <div class="seller-meta">
+            <span><i data-lucide="stethoscope" class="icon-xs"></i> {{ listing.specialty }}</span>
+          </div>
+        </div>
+      </div>
+      <a href="/perfil/clinica/{{ listing.clinic_id }}" class="btn btn-outline btn-sm w-full mt-3">Ver perfil</a>
+    </div>
+
+    <!-- Unidade de Atendimento card -->
+    <div class="card" style="display:flex;flex-direction:column;gap:1rem;">
+      <!-- Section header -->
+      <div style="display:flex;align-items:center;gap:.6rem;">
+        <div style="width:2.1rem;height:2.1rem;border-radius:.55rem;flex-shrink:0;
+                    background:rgba(59,130,246,0.1);display:flex;align-items:center;justify-content:center;">
+          <i data-lucide="map-pin" style="width:1rem;height:1rem;color:#3b82f6;"></i>
+        </div>
+        <div>
+          <p style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:0;line-height:1.2;">Unidade de Atendimento</p>
+          <p style="font-size:.72rem;color:var(--muted);margin:0;">Local de realização do serviço</p>
+        </div>
+      </div>
+
+      {% set formatted = listing.endereco_formatado %}
+      {% if not formatted %}
+        {% set formatted = listing.clinic.clinic_profile.endereco if listing.clinic.clinic_profile else '' %}
+      {% endif %}
+
+      {% if formatted %}
+      <!-- Address text -->
+      <div style="display:flex;align-items:flex-start;gap:.5rem;">
+        <i data-lucide="navigation" style="width:.9rem;height:.9rem;color:var(--muted);margin-top:.15rem;flex-shrink:0;"></i>
+        <p style="font-size:.88rem;line-height:1.65;color:var(--fg);margin:0;">{{ formatted }}</p>
+      </div>
+
+      <!-- Action buttons -->
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+        {% if listing.google_maps_link %}
+        <a href="{{ listing.google_maps_link }}"
+           target="_blank" rel="noopener noreferrer"
+           style="display:inline-flex;align-items:center;gap:.4rem;padding:.45rem .9rem;
+                  border-radius:.6rem;border:1px solid rgba(66,133,244,0.35);
+                  background:rgba(66,133,244,0.08);color:#4285f4;
+                  font-size:.78rem;font-weight:700;text-decoration:none;transition:background .15s;">
+          <i data-lucide="map" style="width:.85rem;height:.85rem;"></i> Google Maps
+        </a>
+        {% else %}
+        <a href="https://www.google.com/maps/search/?api=1&query={{ formatted | urlencode }}"
+           target="_blank" rel="noopener noreferrer"
+           style="display:inline-flex;align-items:center;gap:.4rem;padding:.45rem .9rem;
+                  border-radius:.6rem;border:1px solid rgba(66,133,244,0.35);
+                  background:rgba(66,133,244,0.08);color:#4285f4;
+                  font-size:.78rem;font-weight:700;text-decoration:none;transition:background .15s;">
+          <i data-lucide="map" style="width:.85rem;height:.85rem;"></i> Google Maps
+        </a>
+        {% endif %}
+        <a href="https://waze.com/ul?q={{ formatted | urlencode }}"
+           target="_blank" rel="noopener noreferrer"
+           style="display:inline-flex;align-items:center;gap:.4rem;padding:.45rem .9rem;
+                  border-radius:.6rem;border:1px solid rgba(0,168,93,0.35);
+                  background:rgba(0,168,93,0.08);color:#00a85d;
+                  font-size:.78rem;font-weight:700;text-decoration:none;transition:background .15s;">
+          <i data-lucide="navigation-2" style="width:.85rem;height:.85rem;"></i> Waze
+        </a>
+      </div>
+
+      <!-- Map iframe -->
+      <iframe
+        loading="lazy"
+        style="width:100%;height:220px;border:0;border-radius:1.1rem;display:block;"
+        referrerpolicy="no-referrer-when-downgrade"
+        src="https://www.google.com/maps?q={{ formatted | urlencode }}&output=embed">
+      </iframe>
+
+      {% else %}
+      <p style="font-size:.82rem;color:var(--muted);display:flex;align-items:center;gap:.4rem;">
+        <i data-lucide="info" style="width:.8rem;height:.8rem;flex-shrink:0;"></i>
+        Localização disponível sob consulta.
+      </p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+
+{% endblock %}

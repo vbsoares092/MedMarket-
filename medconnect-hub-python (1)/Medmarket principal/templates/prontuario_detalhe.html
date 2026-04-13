@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% block title %}Prontuário #{{ pront.id }} — MedMarket{% endblock %}
+
+{% block content %}
+<style>
+  .pront-page {
+    max-width: 700px;
+    margin: 2.5rem auto 4rem;
+    padding: 0 1rem;
+  }
+  .pront-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 1.25rem;
+    padding: 2rem 2.25rem;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+  }
+  .pront-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+  .pront-title {
+    font-size: 1.15rem;
+    font-weight: 800;
+    line-height: 1.3;
+  }
+  .pront-meta {
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+    font-size: .8rem;
+    color: var(--muted);
+  }
+  .pront-meta span {
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+  }
+  .pront-meta svg { width: .8rem; height: .8rem; }
+  .pront-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 1.25rem 0;
+  }
+  .pront-section-label {
+    font-size: .68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+    margin-bottom: .45rem;
+  }
+  .pront-section-label svg { width: .7rem; height: .7rem; }
+  .pront-section-body {
+    font-size: .88rem;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    background: var(--secondary);
+    border: 1px solid var(--border);
+    border-radius: .6rem;
+    padding: .75rem 1rem;
+    margin-bottom: 1.25rem;
+  }
+  .pront-empty-field {
+    font-size: .82rem;
+    color: var(--muted);
+    font-style: italic;
+    margin-bottom: 1.25rem;
+  }
+  @media print {
+    .pront-page a, .back-link-wrap { display: none !important; }
+    .pront-card { box-shadow: none; border: 1px solid #ccc; }
+  }
+</style>
+
+<div class="pront-page">
+
+  <div class="back-link-wrap" style="margin-bottom:1rem;">
+    <a href="javascript:history.back()"
+       style="display:inline-flex;align-items:center;gap:.35rem;
+              font-size:.78rem;color:var(--muted);text-decoration:none;transition:color .2s;"
+       onmouseover="this.style.color='var(--fg)'" onmouseout="this.style.color='var(--muted)'">
+      <i data-lucide="arrow-left" style="width:.85rem;height:.85rem;"></i> Voltar
+    </a>
+  </div>
+
+  <div class="pront-card">
+
+    <!-- Header -->
+    <div class="pront-header">
+      <div>
+        <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;
+                    letter-spacing:.07em;color:var(--muted);margin-bottom:.35rem;
+                    display:flex;align-items:center;gap:.35rem;">
+          <i data-lucide="clipboard-list" style="width:.75rem;height:.75rem;"></i>
+          Prontuário Eletrônico
+        </div>
+        <div class="pront-title">
+          {% if pront.appointment and pront.appointment.service %}
+            {{ pront.appointment.service.title }}
+          {% else %}
+            Consulta
+          {% endif %}
+        </div>
+      </div>
+      <div style="display:flex;gap:.5rem;flex-shrink:0;flex-wrap:wrap;">
+        <button onclick="window.print()"
+                style="font-size:.75rem;font-weight:700;padding:.32rem .75rem;border-radius:.4rem;
+                       border:1px solid var(--border);background:var(--secondary);color:var(--fg);
+                       cursor:pointer;display:inline-flex;align-items:center;gap:.3rem;">
+          <i data-lucide="printer" style="width:.78rem;height:.78rem;"></i> Imprimir
+        </button>
+      </div>
+    </div>
+
+    <!-- Meta grid -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+                gap:.6rem 1.5rem;font-size:.82rem;margin-bottom:1.25rem;">
+      <div>
+        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
+                    color:var(--muted);margin-bottom:.2rem;">Paciente</div>
+        <div style="font-weight:700;">{{ pront.paciente.name if pront.paciente else '—' }}</div>
+      </div>
+      <div>
+        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
+                    color:var(--muted);margin-bottom:.2rem;">Médico / Clínica</div>
+        <div style="font-weight:700;">
+          {% if pront.medico and pront.medico.clinic_profile %}
+            {{ pront.medico.clinic_profile.razao_social }}
+          {% elif pront.medico %}
+            {{ pront.medico.name }}
+          {% else %}
+            —
+          {% endif %}
+        </div>
+      </div>
+      <div>
+        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
+                    color:var(--muted);margin-bottom:.2rem;">Data da Consulta</div>
+        {% set d = pront.data_consulta %}
+        <div style="font-weight:700;">{{ d[8:10] }}/{{ d[5:7] }}/{{ d[:4] }}</div>
+      </div>
+      {% if pront.appointment %}
+      <div>
+        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
+                    color:var(--muted);margin-bottom:.2rem;">Horário</div>
+        <div style="font-weight:700;">{{ pront.appointment.time_slot }}</div>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="pront-divider"></div>
+
+    <!-- Diagnóstico -->
+    <div class="pront-section-label">
+      <i data-lucide="activity"></i> Diagnóstico
+    </div>
+    {% if pront.diagnostico %}
+    <div class="pront-section-body">{{ pront.diagnostico }}</div>
+    {% else %}
+    <div class="pront-empty-field">Não informado.</div>
+    {% endif %}
+
+    <!-- Prescrição -->
+    <div class="pront-section-label">
+      <i data-lucide="pill"></i> Prescrição
+    </div>
+    {% if pront.prescricao %}
+    <div class="pront-section-body">{{ pront.prescricao }}</div>
+    {% else %}
+    <div class="pront-empty-field">Não informado.</div>
+    {% endif %}
+
+    <!-- Observações -->
+    <div class="pront-section-label">
+      <i data-lucide="notebook-pen"></i> Observações
+    </div>
+    {% if pront.observacoes %}
+    <div class="pront-section-body">{{ pront.observacoes }}</div>
+    {% else %}
+    <div class="pront-empty-field">Nenhuma observação adicional.</div>
+    {% endif %}
+
+    <div class="pront-divider"></div>
+
+    <div style="font-size:.72rem;color:var(--muted);display:flex;align-items:center;gap:.35rem;">
+      <i data-lucide="lock" style="width:.72rem;height:.72rem;"></i>
+      Documento confidencial — visualização restrita ao paciente e à clínica atendente.
+    </div>
+
+  </div>
+</div>
+{% endblock %}

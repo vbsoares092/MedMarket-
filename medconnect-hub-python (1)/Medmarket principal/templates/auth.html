@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}Entrar — MedMarket{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+  <div class="auth-card fade-in">
+    <a href="{{ redirect_to }}" class="back-link">
+      <i data-lucide="arrow-left"></i> Voltar
+    </a>
+
+    <div class="auth-icon">
+      <i data-lucide="stethoscope"></i>
+    </div>
+
+    <div class="auth-heading">
+      <h1 id="authTitle">Entrar no MedMarket</h1>
+      <p class="text-muted" id="authSubtitle">Acesse sua conta para continuar</p>
+    </div>
+
+    <!-- Toggle -->
+    <div class="auth-toggle">
+      <button class="toggle-btn active" id="btnLogin"    onclick="setMode('login')">Login</button>
+      <button class="toggle-btn"        id="btnRegister" onclick="setMode('register')">Cadastro</button>
+    </div>
+
+    {% if erro %}
+    <div class="alert alert-error">
+      <i data-lucide="x-circle"></i> {{ erro }}
+    </div>
+    {% endif %}
+
+    <form method="post" action="/auth?redirect={{ redirect_to }}" class="auth-form">
+
+      <!-- === Register-only fields === -->
+      <div id="nameField" style="display:none" class="form-group">
+        <label class="form-label">Nome completo</label>
+        <input type="text" name="name" class="input" placeholder="Dr. João Silva"
+               autocomplete="name" />
+      </div>
+
+      <div id="cpfField" style="display:none" class="form-group">
+        <label class="form-label">CPF</label>
+        <input type="text" name="cpf" id="cpfInput" class="input"
+               placeholder="000.000.000-00" maxlength="14"
+               autocomplete="off" inputmode="numeric"
+               oninput="formatCPF(this)" />
+        <span style="font-size:.72rem;color:var(--muted);margin-top:.2rem;display:block">
+          Apenas números — 11 dígitos
+        </span>
+      </div>
+
+      <div id="phoneField" style="display:none" class="form-group">
+        <label class="form-label">Telefone / WhatsApp</label>
+        <input type="tel" name="telefone" id="telefoneInput" class="input"
+               placeholder="(11) 99999-9999" maxlength="15"
+               autocomplete="tel" inputmode="numeric"
+               oninput="formatPhone(this)" />
+      </div>
+
+      <!-- === Shared fields === -->
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" name="email" class="input"
+               placeholder="seu@email.com" required autocomplete="email" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Senha</label>
+        <input type="password" name="password" class="input"
+               placeholder="••••••••" required autocomplete="current-password"
+               minlength="6" />
+      </div>
+
+      <input type="hidden" name="action" id="formAction" value="login" />
+      <button type="submit" class="btn btn-primary w-full" id="submitBtn">Entrar</button>
+    </form>
+  </div>
+</div>
+
+<script>
+function setMode(mode) {
+  var isLogin = mode === 'login';
+  document.getElementById('nameField').style.display    = isLogin ? 'none' : 'block';
+  document.getElementById('cpfField').style.display     = isLogin ? 'none' : 'block';
+  document.getElementById('phoneField').style.display   = isLogin ? 'none' : 'block';
+  document.getElementById('formAction').value           = mode;
+  document.getElementById('authTitle').textContent      = isLogin ? 'Entrar no MedMarket' : 'Criar conta';
+  document.getElementById('authSubtitle').textContent   = isLogin ? 'Acesse sua conta para continuar' : 'Cadastre-se gratuitamente';
+  document.getElementById('submitBtn').textContent      = isLogin ? 'Entrar' : 'Criar conta';
+  document.getElementById('btnLogin').classList.toggle('active',     isLogin);
+  document.getElementById('btnRegister').classList.toggle('active', !isLogin);
+}
+
+function formatCPF(input) {
+  var v = input.value.replace(/\D/g, '').slice(0, 11);
+  if (v.length > 9)      v = v.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2})/, '$1.$2.$3-$4');
+  else if (v.length > 6) v = v.replace(/(\d{3})(\d{3})(\d{0,3})/, '$1.$2.$3');
+  else if (v.length > 3) v = v.replace(/(\d{3})(\d{0,3})/, '$1.$2');
+  input.value = v;
+}
+
+function formatPhone(input) {
+  var v = input.value.replace(/\D/g, '').slice(0, 11);
+  if (v.length > 10)     v = v.replace(/(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3');
+  else if (v.length > 6) v = v.replace(/(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3');
+  else if (v.length > 2) v = v.replace(/(\d{2})(\d{0,5})/, '($1) $2');
+  else if (v.length > 0) v = v.replace(/(\d{0,2})/, '($1');
+  input.value = v;
+}
+
+// If the server returned an error on register, stay in register mode
+{% if erro %}
+setMode('register');
+{% endif %}
+</script>
+{% endblock %}

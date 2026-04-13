@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Portal da Clínica — MedMarket{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <style>
+    /* ── Clinic portal layout ── */
+    .clinic-layout {
+      display: flex; min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .clinic-sidebar {
+      width: 240px; flex-shrink: 0;
+      background: var(--card);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      padding: 1.5rem 0;
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    }
+    .clinic-logo {
+      display: flex; align-items: center; gap: 0.6rem;
+      padding: 0 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 1rem;
+    }
+    .clinic-logo-icon {
+      width: 2rem; height: 2rem; border-radius: 0.5rem;
+      background: var(--primary); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 0.85rem; flex-shrink: 0;
+    }
+    .clinic-logo-text { font-size: 0.85rem; font-weight: 700; line-height: 1.2; }
+    .clinic-logo-sub  { font-size: 0.7rem; color: var(--muted); }
+
+    .sidebar-nav { flex: 1; display: flex; flex-direction: column; gap: 0.15rem; padding: 0 0.75rem; }
+    .sidebar-link {
+      display: flex; align-items: center; gap: 0.65rem;
+      padding: 0.55rem 0.75rem; border-radius: 0.5rem;
+      font-size: 0.82rem; font-weight: 500; color: var(--muted);
+      transition: background .15s, color .15s; text-decoration: none;
+    }
+    .sidebar-link svg { width: 1rem; height: 1rem; flex-shrink: 0; }
+    .sidebar-link:hover { background: var(--secondary); color: var(--fg); }
+    .sidebar-link.active {
+      background: rgba(17,24,39,.5);
+      color: var(--primary);
+      font-weight: 600;
+      border-left: 3px solid var(--primary);
+      margin-left: -0.75rem;
+      padding-left: calc(0.75rem + 0.75rem - 3px);
+    }
+    .sidebar-section-label {
+      font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.07em;
+      color: var(--muted); padding: 0.75rem 0.75rem 0.25rem; font-weight: 600;
+    }
+    .sidebar-footer {
+      padding: 1rem 1.25rem 0;
+      border-top: 1px solid var(--border);
+      margin-top: auto;
+    }
+    .sidebar-footer a {
+      display: flex; align-items: center; gap: 0.5rem;
+      font-size: 0.78rem; color: var(--muted); text-decoration: none;
+      padding: 0.4rem 0; transition: color .15s;
+    }
+    .sidebar-footer a:hover { color: var(--fg); }
+    .sidebar-footer a svg { width: 0.9rem; height: 0.9rem; }
+
+    /* Main content area */
+    .clinic-main {
+      flex: 1; min-width: 0;
+      display: flex; flex-direction: column;
+    }
+    .clinic-topbar {
+      height: 3.5rem; padding: 0 1.75rem;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--card); flex-shrink: 0;
+      position: sticky; top: 0; z-index: 10;
+    }
+    .clinic-topbar-title { font-size: 0.95rem; font-weight: 700; }
+    .clinic-topbar-right { display: flex; align-items: center; gap: 0.75rem; }
+    .clinic-badge {
+      font-size: 0.7rem; background: rgba(59,130,246,0.12);
+      color: var(--primary); padding: 0.25rem 0.6rem; border-radius: 99px;
+      font-weight: 600; white-space: nowrap; max-width: 180px;
+      overflow: hidden; text-overflow: ellipsis;
+    }
+    .clinic-content { flex: 1; padding: 2rem 1.75rem; }
+
+    /* ── Responsive sidebar toggle ── */
+    .sidebar-toggle {
+      display: none; background: none; border: none; cursor: pointer; color: var(--fg);
+    }
+    @media (max-width: 768px) {
+      .clinic-sidebar { display: none; }
+      .clinic-sidebar.open { display: flex; position: fixed; z-index: 200; }
+      .sidebar-toggle { display: flex; align-items: center; }
+    }
+  </style>
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+<div class="clinic-layout">
+
+  <!-- ── Sidebar ── -->
+  <aside class="clinic-sidebar" id="clinicSidebar">
+    <div class="clinic-logo">
+      <div class="clinic-logo-icon">M+</div>
+      <div>
+        <div class="clinic-logo-text">MedMarket</div>
+        <div class="clinic-logo-sub">Portal da Clínica</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <span class="sidebar-section-label">Principal</span>
+      <a href="{{ url_for('clinic.dashboard') }}"
+         class="sidebar-link {% if request.endpoint == 'clinic.dashboard' %}active{% endif %}">
+        <i data-lucide="layout-dashboard"></i> Dashboard
+      </a>
+      <a href="{{ url_for('clinic.novo_anuncio') }}"
+         class="sidebar-link {% if request.endpoint == 'clinic.novo_anuncio' %}active{% endif %}">
+        <i data-lucide="plus-circle"></i> Novo Anúncio
+      </a>
+      <a href="{{ url_for('clinic.agenda') }}"
+         class="sidebar-link {% if request.endpoint in ['clinic.agenda', 'clinic.salvar_disponibilidade', 'clinic.listar_disponibilidade', 'clinic.excluir_disponibilidade'] %}active{% endif %}">
+        <i data-lucide="calendar-clock"></i> Gestão de Agenda
+      </a>
+
+      <a href="{{ url_for('clinic.editar_vitrine') }}"
+         class="sidebar-link {% if request.endpoint == 'clinic.editar_vitrine' %}active{% endif %}">
+        <i data-lucide="sparkles"></i> Personalizar Vitrine
+      </a>
+
+      <span class="sidebar-section-label" style="margin-top:.5rem;">Plataforma</span>
+      <a href="/" class="sidebar-link" target="_blank">
+        <i data-lucide="store"></i> Ver Vitrine
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <a href="{{ url_for('clinic.logout') }}">
+        <i data-lucide="log-out"></i> Sair da conta
+      </a>
+    </div>
+  </aside>
+
+  <!-- ── Main ── -->
+  <div class="clinic-main">
+    <div class="clinic-topbar">
+      <div style="display:flex;align-items:center;gap:.75rem;">
+        <button class="sidebar-toggle" id="sidebarToggle" title="Menu">
+          <i data-lucide="menu" style="width:1.1rem;height:1.1rem;"></i>
+        </button>
+        <span class="clinic-topbar-title">{% block page_title %}{% endblock %}</span>
+      </div>
+      <div class="clinic-topbar-right">
+        <span class="clinic-badge" title="{{ session['user']['name'] }}">
+          <i data-lucide="building-2" style="width:.7rem;height:.7rem;vertical-align:middle;margin-right:.25rem;"></i>
+          {{ session['user']['name'] }}
+        </span>
+      </div>
+    </div>
+
+    <div class="clinic-content">
+      {% block content %}{% endblock %}
+    </div>
+  </div>
+</div>
+
+<script>
+  lucide.createIcons();
+  document.getElementById('sidebarToggle')?.addEventListener('click', () => {
+    document.getElementById('clinicSidebar').classList.toggle('open');
+  });
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

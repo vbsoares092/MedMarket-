@@ -1,0 +1,678 @@
+{% extends "base.html" %}
+{% block title %}Agendar — {{ anuncio.title }}{% endblock %}
+
+{% block content %}
+<style>
+/* ── Light mode overrides (when .dark is removed from <html>) ── */
+html:not(.dark) {
+  --bg: #f1f5f9;
+  --bg2: #ffffff;
+  --card: #ffffff;
+  --border: rgba(0,0,0,0.09);
+  --fg: #1e293b;
+  --muted: #64748b;
+  --secondary: #f1f5f9;
+  --shadow-glow: 0 0 24px rgba(59,130,246,0.14);
+}
+html:not(.dark) body { background: var(--bg); }
+html:not(.dark) .header { background: rgba(241,245,249,0.9); }
+
+/* ── Page layout ── */
+.cal-page {
+  min-height: calc(100vh - 4rem);
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 2rem 1rem 4rem;
+  background: radial-gradient(ellipse at 50% -10%, rgba(59,130,246,0.07) 0%, transparent 65%);
+}
+.cal-wrapper {
+  width: 100%; max-width: 420px;
+  display: flex; flex-direction: column; gap: 1rem;
+}
+.cal-back {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  font-size: 0.8rem; color: var(--muted); transition: color .2s;
+  align-self: flex-start;
+}
+.cal-back:hover { color: var(--fg); }
+.cal-back svg  { width: 0.9rem; height: 0.9rem; }
+
+/* ── Card ── */
+.cal-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 1.25rem;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  overflow: hidden;
+}
+
+/* Card header */
+.cal-card-header {
+  padding: 1.1rem 1.4rem;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
+}
+.cal-anuncio-info { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
+.cal-anuncio-label {
+  font-size: 0.65rem; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600;
+}
+.cal-anuncio-title {
+  font-size: 0.95rem; font-weight: 700;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.theme-toggle {
+  width: 2.1rem; height: 2.1rem; flex-shrink: 0;
+  background: var(--secondary); border: 1px solid var(--border);
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: background .2s, border-color .2s;
+}
+.theme-toggle:hover { border-color: var(--primary); background: rgba(59,130,246,0.08); }
+.theme-toggle svg  { width: 0.95rem; height: 0.95rem; color: var(--muted); }
+html.dark      .icon-sun  { display: block;  }
+html.dark      .icon-moon { display: none;   }
+html:not(.dark).icon-sun  { display: none;   }
+html:not(.dark) .icon-moon { display: block; }
+
+/* ── Calendar section ── */
+.cal-body { padding: 1.25rem 1.4rem; display: flex; flex-direction: column; gap: 1.1rem; }
+
+/* Month nav */
+.cal-nav {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.cal-month-label { font-size: 0.975rem; font-weight: 700; }
+.cal-nav-btn {
+  width: 2rem; height: 2rem;
+  background: var(--secondary); border: 1px solid var(--border);
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: background .15s, border-color .15s;
+}
+.cal-nav-btn:hover { background: rgba(59,130,246,0.1); border-color: rgba(59,130,246,0.4); }
+.cal-nav-btn svg { width: 0.9rem; height: 0.9rem; color: var(--fg); }
+
+/* Weekday row */
+.cal-weekdays {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+}
+.cal-weekday {
+  font-size: 0.65rem; font-weight: 700;
+  color: var(--muted); padding: 0.2rem 0;
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+
+/* Days grid */
+.cal-days {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+}
+.cal-day {
+  aspect-ratio: 1;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.8rem; font-weight: 500; border-radius: 50%;
+  cursor: pointer; border: none; background: transparent; color: var(--fg);
+  transition: background .12s, color .12s, box-shadow .12s;
+  position: relative; line-height: 1;
+}
+.cal-day:hover:not(.cal-day--disabled):not(.cal-day--other):not(.cal-day--selected) {
+  background: var(--secondary);
+}
+.cal-day--other    { color: var(--muted); opacity: 0.3; pointer-events: none; }
+.cal-day--disabled { color: var(--muted); opacity: 0.3; cursor: not-allowed; }
+.cal-day--today:not(.cal-day--selected) {
+  color: var(--primary); font-weight: 800;
+}
+.cal-day--today:not(.cal-day--selected)::after {
+  content: ''; position: absolute;
+  bottom: 3px; left: 50%; transform: translateX(-50%);
+  width: 3px; height: 3px; border-radius: 50%; background: var(--primary);
+}
+.cal-day--selected {
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) !important;
+  color: #fff !important; font-weight: 800;
+  box-shadow: 0 2px 14px rgba(59,130,246,0.45);
+}
+
+/* Divider */
+.cal-divider { height: 1px; background: var(--border); }
+
+/* ── Time slots ── */
+.cal-slots-section { display: flex; flex-direction: column; gap: 0.6rem; }
+.cal-slots-label {
+  font-size: 0.82rem; font-weight: 600;
+  display: flex; align-items: center; gap: 0.4rem;
+}
+.cal-slots-label .cal-date-badge {
+  font-size: 0.72rem; color: var(--muted); font-weight: 400;
+}
+.cal-slots-hint {
+  font-size: 0.75rem; color: var(--muted); font-style: italic;
+}
+.cal-slots {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;
+}
+/* ── Shift section header ── */
+.cal-shift-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.5rem 0.1rem 0.2rem;
+  border-top: 1px solid var(--border); margin-top: 0.2rem;
+}
+.cal-shift-header--first { border-top: none; margin-top: 0; padding-top: 0.1rem; }
+.cal-shift-label {
+  font-size: 0.74rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.cal-shift-count {
+  font-size: 0.65rem; color: var(--muted); font-weight: 500;
+}
+/* ── Slot button — new card style ── */
+.slot-btn {
+  padding: 0.65rem 0.4rem 0.6rem;
+  border: 1.5px solid var(--border); border-radius: 0.75rem;
+  background: var(--secondary); color: var(--fg);
+  cursor: pointer; transition: all .15s; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 0.15rem;
+  min-height: 4.75rem;
+}
+.slot-time {
+  font-size: 0.9rem; font-weight: 700; line-height: 1.1;
+}
+.slot-price-final {
+  font-size: 1.05rem; font-weight: 800; color: #22c55e; line-height: 1.25;
+}
+.slot-price-base {
+  font-size: 0.68rem; color: var(--muted); text-decoration: line-through; line-height: 1;
+}
+.slot-btn:hover:not([disabled]) {
+  border-color: rgba(59,130,246,0.6);
+  background: rgba(59,130,246,0.07);
+  box-shadow: 0 4px 14px rgba(59,130,246,0.14);
+  transform: translateY(-1px);
+}
+.slot-btn--selected {
+  background: linear-gradient(135deg, #1d4ed8 0%, #7c3aed 100%) !important;
+  color: #fff !important; border-color: transparent !important;
+  box-shadow: 0 4px 18px rgba(59,130,246,0.45) !important;
+  transform: translateY(-1px);
+}
+.slot-btn--selected .slot-time        { color: #fff; }
+.slot-btn--selected .slot-price-final { color: #bbf7d0; }
+.slot-btn--selected .slot-price-base  { color: rgba(255,255,255,0.5); }
+.slot-btn[disabled] {
+  opacity: 0.3; cursor: not-allowed; text-decoration: none;
+}
+
+/* ── Footer ── */
+.cal-footer {
+  padding: 1rem 1.4rem;
+  border-top: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 0.65rem;
+}
+.cal-price-display {
+  display: none; align-items: center; justify-content: space-between;
+  font-size: 0.78rem; gap: 0.5rem;
+  background: rgba(34,197,94,0.07); border: 1px solid rgba(34,197,94,0.2);
+  border-radius: 0.5rem; padding: 0.4rem 0.7rem;
+}
+.cal-price-display .price-val {
+  font-size: 1rem; font-weight: 800; color: #4ade80;
+}
+.cal-turno-badge {
+  font-size: .67rem; font-weight: 700; padding: .1rem .35rem;
+  border-radius: 99px; display: inline-flex; align-items: center; gap: .2rem;
+}
+.cal-summary {
+  display: flex; align-items: center; gap: 0.45rem;
+  font-size: 0.78rem; color: var(--muted);
+  background: rgba(59,130,246,0.06); border: 1px solid rgba(59,130,246,0.18);
+  border-radius: 0.5rem; padding: 0.45rem 0.7rem;
+}
+.cal-summary svg { width: 0.85rem; height: 0.85rem; flex-shrink: 0; color: var(--primary); }
+.cal-summary strong { color: var(--fg); }
+.feedback-msg { font-size: 0.8rem; color: var(--muted); }
+#btn-agendar:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+</style>
+
+<div class="cal-page">
+  <div class="cal-wrapper fade-in">
+
+    <a href="/listing/{{ anuncio.id }}" class="cal-back">
+      <i data-lucide="arrow-left"></i> Voltar ao anúncio
+    </a>
+
+    <div class="cal-card">
+
+      <!-- ── Header ── -->
+      <div class="cal-card-header">
+        <div class="cal-anuncio-info">
+          <span class="cal-anuncio-label"><i data-lucide="calendar" style="width:.7rem;height:.7rem;vertical-align:middle;margin-right:.25rem;"></i>Agendamento</span>
+          <span class="cal-anuncio-title">{{ anuncio.title }}</span>
+        </div>
+        <button class="theme-toggle" id="themeToggle" title="Alternar tema (claro / escuro)">
+          <i data-lucide="sun"  class="icon-sun"></i>
+          <i data-lucide="moon" class="icon-moon"></i>
+        </button>
+      </div>
+
+      <!-- ── Calendar body ── -->
+      <div class="cal-body">
+
+        <!-- Month navigation -->
+        <div class="cal-nav">
+          <button class="cal-nav-btn" id="prevMonth" type="button" aria-label="Mês anterior">
+            <i data-lucide="chevron-left"></i>
+          </button>
+          <span class="cal-month-label" id="monthLabel"></span>
+          <button class="cal-nav-btn" id="nextMonth" type="button" aria-label="Próximo mês">
+            <i data-lucide="chevron-right"></i>
+          </button>
+        </div>
+
+        <!-- Weekday headers -->
+        <div class="cal-weekdays">
+          <div class="cal-weekday">Dom</div>
+          <div class="cal-weekday">Seg</div>
+          <div class="cal-weekday">Ter</div>
+          <div class="cal-weekday">Qua</div>
+          <div class="cal-weekday">Qui</div>
+          <div class="cal-weekday">Sex</div>
+          <div class="cal-weekday">Sáb</div>
+        </div>
+
+        <!-- Day cells (rendered by JS) -->
+        <div class="cal-days" id="calDays"></div>
+
+        <div class="cal-divider"></div>
+
+        <!-- Time slots -->
+        <div class="cal-slots-section">
+          <div class="cal-slots-label">
+            <i data-lucide="clock" style="width:.85rem;height:.85rem;"></i>
+            Horários disponíveis
+            <span class="cal-date-badge" id="slotsDateBadge"></span>
+          </div>
+          <div id="slotsEmpty" class="cal-slots-hint">Selecione uma data para ver os horários.</div>
+          <div id="timeSlots" style="display:none"></div>
+        </div>
+
+      </div><!-- /cal-body -->
+
+      <!-- ── Footer / Submit ── -->
+      <div class="cal-footer">
+        <div class="cal-summary" id="calSummary" style="display:none">
+          <i data-lucide="calendar-check"></i>
+          <span id="summaryText"></span>
+        </div>
+        <!-- Dynamic price display -->
+        <div class="cal-price-display" id="calPriceDisplay">
+          <span id="calTurnoBadge" class="cal-turno-badge"></span>
+          <span>Valor do slot:</span>
+          <span class="price-val" id="calPriceVal">R$ 0,00</span>
+        </div>
+
+        <script id="_cal_data" type="application/json">
+          {"listing_id": {{ anuncio.id }}, "available_dates": {{ available_dates | tojson }}}
+        </script>
+
+        <form id="agendamento-form">
+          <input type="hidden" id="listing_id" value="{{ anuncio.id }}">
+          <input type="hidden" id="campo-data"    name="data">
+          <input type="hidden" id="campo-horario" name="horario">
+
+          <div id="feedback-msg" class="feedback-msg" style="display:none"></div>
+
+          <button type="submit" id="btn-agendar" class="btn btn-primary w-full" disabled>
+            <i data-lucide="credit-card"></i>
+            Avançar para Pagamento
+          </button>
+        </form>
+      </div>
+
+    </div><!-- /cal-card -->
+  </div><!-- /cal-wrapper -->
+</div><!-- /cal-page -->
+
+<script>
+(function () {
+  'use strict';
+
+  /* ─── Constants ──────────────────────────────────────────── */
+  var MONTHS = [
+    'Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+    'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'
+  ];
+
+  /* Dates with at least one available slot (injected by Flask via JSON tag) */
+  var _calData      = JSON.parse(document.getElementById('_cal_data').textContent);
+  var AVAILABLE_DATES = new Set(_calData.available_dates);
+
+  var LISTING_ID = parseInt(document.getElementById('listing_id').value, 10);
+
+  /* ─── State ──────────────────────────────────────────────── */
+  var today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  var viewYear     = today.getFullYear();
+  var viewMonth    = today.getMonth();
+  var selectedDate = null;
+  var selectedSlot = null;
+  var loadedSlots  = [];   // slots fetched from API for the selected date
+
+  /* ─── Elements ───────────────────────────────────────────── */
+  var elMonthLabel  = document.getElementById('monthLabel');
+  var elCalDays     = document.getElementById('calDays');
+  var elTimeSlots   = document.getElementById('timeSlots');
+  var elSlotsEmpty  = document.getElementById('slotsEmpty');
+  var elDateBadge   = document.getElementById('slotsDateBadge');
+  var elCampoData   = document.getElementById('campo-data');
+  var elCampoHora   = document.getElementById('campo-horario');
+  var elBtn         = document.getElementById('btn-agendar');
+  var elFeedback    = document.getElementById('feedback-msg');
+  var elSummary     = document.getElementById('calSummary');
+  var elSummaryText = document.getElementById('summaryText');
+  var elPriceDisplay = document.getElementById('calPriceDisplay');
+  var elPriceVal     = document.getElementById('calPriceVal');
+  var elTurnoBadge   = document.getElementById('calTurnoBadge');
+
+  /* ─── Helpers ────────────────────────────────────────────── */
+  function isoDate(d) {
+    var y = d.getFullYear();
+    var m = String(d.getMonth() + 1).padStart(2, '0');
+    var dd = String(d.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + dd;
+  }
+
+  /* ─── Render calendar ────────────────────────────────────── */
+  function renderCalendar() {
+    elMonthLabel.textContent = MONTHS[viewMonth] + ' ' + viewYear;
+    elCalDays.innerHTML = '';
+
+    var firstWeekday = new Date(viewYear, viewMonth, 1).getDay();
+    var daysInMonth  = new Date(viewYear, viewMonth + 1, 0).getDate();
+    var daysInPrev   = new Date(viewYear, viewMonth, 0).getDate();
+
+    /* Trailing days from previous month */
+    for (var i = firstWeekday - 1; i >= 0; i--) {
+      addCell(daysInPrev - i, true, false, false, false, false, null);
+    }
+
+    /* Current month */
+    for (var d = 1; d <= daysInMonth; d++) {
+      var date      = new Date(viewYear, viewMonth, d);
+      var isToday   = date.getTime() === today.getTime();
+      var isPast    = date < today;
+      var isSel     = selectedDate && date.getTime() === selectedDate.getTime();
+      var hasSlots  = !isPast && AVAILABLE_DATES.has(isoDate(date));
+      addCell(d, false, isPast, isToday, isSel, hasSlots, date);
+    }
+
+    /* Leading days of next month */
+    var filled   = firstWeekday + daysInMonth;
+    var trailing = (7 - (filled % 7)) % 7;
+    for (var j = 1; j <= trailing; j++) {
+      addCell(j, true, false, false, false, false, null);
+    }
+  }
+
+  function addCell(day, isOther, isPast, isToday, isSelected, hasSlots, date) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = day;
+    btn.className = 'cal-day';
+
+    if (isOther)    { btn.classList.add('cal-day--other');    elCalDays.appendChild(btn); return; }
+    /* Past OR no availability → disabled */
+    if (isPast || !hasSlots) { btn.classList.add('cal-day--disabled'); elCalDays.appendChild(btn); return; }
+    if (isToday)    btn.classList.add('cal-day--today');
+    if (isSelected) btn.classList.add('cal-day--selected');
+
+    /* Availability dot */
+    var dot = document.createElement('span');
+    dot.style.cssText = 'position:absolute;bottom:2px;left:50%;transform:translateX(-50%);' +
+      'width:4px;height:4px;border-radius:50%;background:#22c55e;';
+    btn.appendChild(dot);
+
+    btn.addEventListener('click', function () { selectDate(date); });
+    elCalDays.appendChild(btn);
+  }
+
+  function selectDate(date) {
+    selectedDate = date;
+    selectedSlot = null;
+    elCampoHora.value = '';
+    loadedSlots = [];
+    renderCalendar();
+    elSlotsEmpty.textContent = 'Carregando horários…';
+    elSlotsEmpty.style.display = '';
+    elTimeSlots.style.display  = 'none';
+    elDateBadge.textContent    = '— ' + date.getDate() + ' de ' + MONTHS[date.getMonth()];
+    updateSummary();
+
+    /* Fetch slots from the server — returns [{horario, preco_efetivo, turno}] */
+    fetch('/api/disponibilidade/' + LISTING_ID + '?date=' + isoDate(date))
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        loadedSlots = data.slots || [];
+        renderSlots();
+      })
+      .catch(function () {
+        elSlotsEmpty.textContent = 'Erro ao carregar horários.';
+        elSlotsEmpty.style.display = '';
+        elTimeSlots.style.display  = 'none';
+      });
+  }
+
+  var TURNO_META = {
+    manha:     { label: '☀️ Manhã',     bg: 'rgba(245,158,11,0.12)',  color: '#f59e0b' },
+    tarde:     { label: '🌤️ Tarde',    bg: 'rgba(59,130,246,0.12)',  color: '#3b82f6' },
+    noite:     { label: '🌙 Noite',     bg: 'rgba(99,102,241,0.12)',  color: '#818cf8' },
+    madrugada: { label: '🌙 Madrugada', bg: 'rgba(139,92,246,0.12)', color: '#a78bfa' },
+  };
+
+  /* ─── Render time slots — grouped by shift ──────────────── */
+  function renderSlots() {
+    elTimeSlots.innerHTML = '';
+
+    if (!selectedDate) {
+      elSlotsEmpty.textContent = 'Selecione uma data para ver os horários.';
+      elSlotsEmpty.style.display = '';
+      elTimeSlots.style.display  = 'none';
+      elDateBadge.textContent    = '';
+      return;
+    }
+
+    /* Hide slots that have already passed when viewing today */
+    var nowHHMM  = '';
+    var selIso   = isoDate(selectedDate);
+    var todayIso = isoDate(today);
+    if (selIso === todayIso) {
+      var now = new Date();
+      nowHHMM = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+    }
+    var visibleSlots = nowHHMM
+      ? loadedSlots.filter(function (s) { return s.horario > nowHHMM; })
+      : loadedSlots;
+
+    if (visibleSlots.length === 0) {
+      elSlotsEmpty.textContent = (loadedSlots.length > 0)
+        ? 'Todos os horários de hoje já passaram.'
+        : 'Nenhum horário disponível para esta data.';
+      elSlotsEmpty.style.display = '';
+      elTimeSlots.style.display  = 'none';
+      return;
+    }
+
+    elSlotsEmpty.style.display = 'none';
+    elTimeSlots.style.display  = 'block';
+
+    /* Group slots by turno */
+    var groups    = {};
+    var turnOrder = ['manha', 'tarde', 'noite', 'madrugada'];
+    visibleSlots.forEach(function (s) {
+      var t = s.turno || 'manha';
+      if (!groups[t]) groups[t] = [];
+      groups[t].push(s);
+    });
+
+    var TURNO_HEADER = {
+      manha:     '☀️ Manhã',
+      tarde:     '🌤️ Tarde',
+      noite:     '🌙 Noite',
+      madrugada: '🌚 Madrugada',
+    };
+
+    var isFirst = true;
+    turnOrder.forEach(function (turno) {
+      var group = groups[turno];
+      if (!group || group.length === 0) return;
+
+      var meta = TURNO_META[turno] || TURNO_META.manha;
+
+      /* ── Shift header ── */
+      var header = document.createElement('div');
+      header.className = 'cal-shift-header' + (isFirst ? ' cal-shift-header--first' : '');
+      header.innerHTML =
+        '<span class="cal-shift-label" style="color:' + meta.color + ';">' + TURNO_HEADER[turno] + '</span>' +
+        '<span class="cal-shift-count">' + group.length + ' horário' + (group.length !== 1 ? 's' : '') + '</span>';
+      elTimeSlots.appendChild(header);
+      isFirst = false;
+
+      /* ── Slot grid for this shift ── */
+      var grid = document.createElement('div');
+      grid.className = 'cal-slots';
+
+      group.forEach(function (slot) {
+        var horario     = slot.horario;
+        var hasDiscount = slot.valor_ajuste != null && slot.valor_ajuste < 0;
+        var precoFinal  = 'R$ ' + parseFloat(slot.preco_efetivo).toFixed(2).replace('.', ',');
+
+        var btn = document.createElement('button');
+        btn.type      = 'button';
+        btn.className = 'slot-btn';
+        if (selectedSlot && selectedSlot.horario === horario) btn.classList.add('slot-btn--selected');
+
+        var innerHtml = '<span class="slot-time">' + horario + '</span>';
+        if (hasDiscount) {
+          var precoBase = 'R$ ' + parseFloat(slot.preco_padrao).toFixed(2).replace('.', ',');
+          innerHtml += '<span class="slot-price-base">' + precoBase + '</span>';
+        }
+        innerHtml += '<span class="slot-price-final">' + precoFinal + '</span>';
+        btn.innerHTML = innerHtml;
+
+        btn.addEventListener('click', function () {
+          selectedSlot      = slot;
+          elCampoHora.value = horario;
+          renderSlots();
+          updateSummary();
+        });
+        grid.appendChild(btn);
+      });
+
+      elTimeSlots.appendChild(grid);
+    });
+  }
+
+  /* ─── Update summary + price display ────────────────────── */
+  function updateSummary() {
+    if (selectedDate && selectedSlot) {
+      var d = selectedDate.getDate();
+      var m = MONTHS[selectedDate.getMonth()];
+      var y = selectedDate.getFullYear();
+      elSummaryText.innerHTML =
+        '<strong>' + d + ' de ' + m + ' de ' + y + '</strong>' +
+        ' às <strong>' + selectedSlot.horario + '</strong>';
+      elSummary.style.display = 'flex';
+      elBtn.disabled = false;
+
+      /* Dynamic price badge */
+      var turno = selectedSlot.turno || 'manha';
+      var meta  = TURNO_META[turno] || TURNO_META.manha;
+      elTurnoBadge.textContent = meta.label;
+      elTurnoBadge.style.background = meta.bg;
+      elTurnoBadge.style.color      = meta.color;
+      elPriceVal.textContent = 'R$ ' + parseFloat(selectedSlot.preco_efetivo).toFixed(2).replace('.', ',');
+      elPriceDisplay.style.display = 'flex';
+    } else {
+      elSummary.style.display = 'none';
+      elPriceDisplay.style.display = 'none';
+      elBtn.disabled = true;
+    }
+  }
+
+  /* ─── Month navigation ───────────────────────────────────── */
+  document.getElementById('prevMonth').addEventListener('click', function () {
+    viewMonth--;
+    if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+    renderCalendar();
+  });
+
+  document.getElementById('nextMonth').addEventListener('click', function () {
+    viewMonth++;
+    if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+    renderCalendar();
+  });
+
+  /* ─── Theme toggle ───────────────────────────────────────── */
+  document.getElementById('themeToggle').addEventListener('click', function () {
+    document.documentElement.classList.toggle('dark');
+    lucide.createIcons();
+  });
+
+  /* ─── Form submit ────────────────────────────────────── */
+  document.getElementById('agendamento-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (!selectedDate || !selectedSlot) return;
+
+    var horario = selectedSlot.horario;
+    elCampoData.value = isoDate(selectedDate);
+    elCampoHora.value = horario;
+
+    var listingId = document.getElementById('listing_id').value;
+    elBtn.disabled = true;
+    elFeedback.style.display = 'block';
+    elFeedback.textContent   = 'Processando…';
+
+    fetch('/pagamento', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        listing_id: listingId,
+        data:    elCampoData.value,
+        horario: horario
+      })
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (resp) {
+        if (resp.ok) {
+          elFeedback.textContent = resp.msg || 'Agendamento confirmado!';
+          if (resp.redirect) window.location.href = resp.redirect;
+        } else {
+          elFeedback.textContent = resp.msg || 'Erro ao processar. Tente novamente.';
+          elBtn.disabled = false;
+          /* Remove this slot from loadedSlots so it can't be selected again */
+          loadedSlots = loadedSlots.filter(function (s) { return s !== selectedSlot; });
+          selectedSlot = null;
+          elCampoHora.value = '';
+          /* Also remove the date from AVAILABLE_DATES if no slots left */
+          if (loadedSlots.length === 0) {
+            AVAILABLE_DATES.delete(isoDate(selectedDate));
+            selectedDate = null;
+          }
+          renderCalendar();
+          renderSlots();
+          updateSummary();
+        }
+      })
+      .catch(function () {
+        elFeedback.textContent = 'Erro de conexão. Tente novamente.';
+        elBtn.disabled = false;
+      });
+  });
+
+  /* ─── Init ───────────────────────────────────────────────── */
+  renderCalendar();
+  renderSlots();
+
+}());
+</script>
+{% endblock %}

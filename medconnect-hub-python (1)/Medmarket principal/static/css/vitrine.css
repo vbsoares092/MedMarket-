@@ -1,0 +1,434 @@
+/* ================================================================
+   VITRINE — MedMarket Commercial Showcase
+   Clean Modern Dark, CS-Marketplace inspired
+   ================================================================ */
+
+/* ── OUTER LAYOUT ──────────────────────────────────────────────── */
+.vitrine-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: .9rem;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 1rem 1rem 5rem;
+}
+
+/* ── HERO CAROUSEL ─────────────────────────────────────────────── */
+.hero-carousel-section {
+  padding: .8rem 0 0;
+}
+
+.hero-swiper {
+  border-radius: 1.1rem;
+  overflow: hidden;
+  background: var(--bg2);
+}
+
+/* Slide shell */
+.hi-slide {
+  display: block;
+  position: relative;
+  width: 100%;
+  height: 340px;
+  text-decoration: none;
+  color: var(--fg);
+  overflow: hidden;
+}
+@media (max-width: 640px) { .hi-slide { height: 210px; } }
+@media (min-width: 1024px) { .hi-slide { height: 400px; } }
+
+/* Background image */
+.hi-bg {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  transition: transform .7s ease;
+  will-change: transform;
+}
+.hi-slide:hover .hi-bg { transform: scale(1.04); }
+
+/* Gradient overlay: strong left, fade right */
+.hi-gradient {
+  position: absolute; inset: 0;
+  background: linear-gradient(
+    to right,
+    rgba(10, 14, 24, 0.88) 0%,
+    rgba(10, 14, 24, 0.55) 55%,
+    rgba(10, 14, 24, 0.10) 100%
+  );
+}
+
+/* Content area */
+.hi-content {
+  position: absolute;
+  bottom: 0; left: 0;
+  padding: 1.75rem 2rem 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: .6rem;
+  max-width: 520px;
+}
+@media (max-width: 640px) {
+  .hi-content { padding: 1rem 1.1rem; gap: .4rem; max-width: 85%; }
+}
+
+.hi-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: .32rem;
+  background: rgba(59, 130, 246, 0.18);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  color: #93c5fd;
+  font-size: .68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  padding: .22rem .6rem;
+  border-radius: .35rem;
+  width: fit-content;
+}
+
+.hi-title {
+  font-size: clamp(1.05rem, 2.4vw, 1.6rem);
+  font-weight: 800;
+  line-height: 1.25;
+  text-shadow: 0 2px 8px rgba(0,0,0,.5);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.hi-doctor {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  font-size: .78rem;
+  color: #94a3b8;
+}
+@media (max-width: 480px) { .hi-doctor { display: none; } }
+
+.hi-price {
+  font-size: clamp(.95rem, 2vw, 1.3rem);
+  font-weight: 800;
+  color: #4ade80;
+  letter-spacing: -.02em;
+}
+
+.hi-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .42rem;
+  background: var(--gradient-cta);
+  color: #fff;
+  font-size: .82rem;
+  font-weight: 700;
+  padding: .55rem 1.2rem;
+  border-radius: .55rem;
+  width: fit-content;
+  box-shadow: 0 4px 18px rgba(59,130,246,.35);
+  transition: opacity .2s, transform .2s;
+}
+.hi-slide:hover .hi-btn { opacity: .9; transform: translateY(-1px); }
+@media (max-width: 480px) { .hi-btn { font-size: .72rem; padding: .42rem .9rem; } }
+
+/* Clinic name badge (bottom-right) */
+.hi-clinic-badge {
+  position: absolute;
+  bottom: 1rem; right: 1rem;
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  background: rgba(0,0,0,.55);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,.1);
+  color: rgba(255,255,255,.75);
+  font-size: .67rem; font-weight: 600;
+  padding: .28rem .65rem;
+  border-radius: .4rem;
+  max-width: 200px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+@media (max-width: 480px) { .hi-clinic-badge { display: none; } }
+
+/* Swiper UI overrides */
+.hero-swiper .swiper-button-prev,
+.hero-swiper .swiper-button-next {
+  width: 2.4rem; height: 2.4rem;
+  background: rgba(255,255,255,.12);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 50%;
+  transition: background .2s;
+}
+.hero-swiper .swiper-button-prev:hover,
+.hero-swiper .swiper-button-next:hover {
+  background: rgba(255,255,255,.22);
+}
+.hero-swiper .swiper-button-prev::after,
+.hero-swiper .swiper-button-next::after {
+  font-size: .75rem; font-weight: 900;
+  color: #fff;
+}
+.hero-swiper .swiper-pagination-bullet {
+  background: rgba(255,255,255,.45);
+  transition: background .2s, transform .2s;
+}
+.hero-swiper .swiper-pagination-bullet-active {
+  background: var(--primary);
+  transform: scale(1.3);
+}
+
+/* ── SORT DROPDOWN ─ */
+/* (sidebar CSS removed — no longer in template) */
+
+/* ── MAIN CONTENT AREA (vitrine-wrap is now the main container) ─── */
+/* .vitrine-main no longer used — vitrine-wrap handles the column layout */
+
+/* Partners compact strip */
+.partners-strip {
+  display: flex;
+  align-items: center;
+  gap: .9rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: .85rem;
+  padding: .6rem .9rem;
+  overflow: hidden;
+}
+.partners-label {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  font-size: .67rem; font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.partners-scroll {
+  display: flex;
+  gap: .55rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex: 1;
+}
+.partners-scroll::-webkit-scrollbar { display: none; }
+.partner-chip {
+  display: flex;
+  align-items: center;
+  gap: .42rem;
+  background: var(--secondary);
+  border: 1px solid var(--border);
+  border-radius: .55rem;
+  padding: .3rem .6rem;
+  text-decoration: none;
+  color: var(--fg);
+  flex-shrink: 0;
+  transition: border-color .2s, background .2s;
+}
+.partner-chip:hover {
+  border-color: rgba(59,130,246,.4);
+  background: rgba(59,130,246,.06);
+}
+.partner-av {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(59,130,246,.22), rgba(168,85,247,.18));
+  display: flex; align-items: center; justify-content: center;
+  font-size: .74rem; font-weight: 800;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+/* Results header */
+.vitrine-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.vitrine-count {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+/* ── VM CARD GRID ──────────────────────────────────────────────── */
+.vm-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: .75rem;
+}
+@media (min-width: 640px)  { .vm-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 1024px) { .vm-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (min-width: 1280px) { .vm-grid { grid-template-columns: repeat(5, 1fr); } }
+
+/* ── VM CARD ───────────────────────────────────────────────────── */
+.vm-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: .9rem;
+  overflow: hidden;
+  text-decoration: none;
+  color: var(--fg);
+  transition: border-color .22s, box-shadow .22s, transform .18s;
+  position: relative;
+}
+.vm-card:hover {
+  border-color: rgba(59,130,246,.55);
+  box-shadow: 0 6px 32px rgba(59,130,246,.14), 0 1px 8px rgba(0,0,0,.4);
+  transform: translateY(-3px);
+}
+
+/* Card image */
+.vm-img-wrap {
+  position: relative;
+  aspect-ratio: 3/2;
+  overflow: hidden;
+  background: var(--bg2);
+}
+.vm-img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  transition: transform .42s ease;
+}
+.vm-card:hover .vm-img { transform: scale(1.08); }
+
+/* Floating badges */
+.vm-badge-cat {
+  position: absolute;
+  top: .5rem; left: .5rem;
+  background: rgba(10,12,20,.84);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(59,130,246,.35);
+  color: var(--primary);
+  font-size: .58rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .06em;
+  padding: .18rem .48rem;
+  border-radius: .3rem;
+  max-width: 112px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.vm-badge-status {
+  position: absolute;
+  top: .5rem; right: .5rem;
+  background: rgba(16,185,129,.16);
+  border: 1px solid rgba(16,185,129,.4);
+  color: #4ade80;
+  font-size: .56rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .05em;
+  padding: .18rem .44rem;
+  border-radius: .3rem;
+}
+
+/* Hover overlay with action button */
+.vm-overlay {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,.46);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0;
+  transition: opacity .2s;
+}
+.vm-card:hover .vm-overlay { opacity: 1; }
+.vm-overlay-btn {
+  width: 44px; height: 44px;
+  background: var(--primary);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff;
+  transform: scale(.72);
+  transition: transform .22s;
+  box-shadow: 0 4px 16px rgba(59,130,246,.5);
+}
+.vm-card:hover .vm-overlay-btn { transform: scale(1); }
+
+/* Card body */
+.vm-body {
+  padding: .65rem .75rem .72rem;
+  display: flex;
+  flex-direction: column;
+  gap: .32rem;
+  flex: 1;
+}
+.vm-clinic-row {
+  display: flex;
+  align-items: center;
+  gap: .38rem;
+}
+.vm-av {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(59,130,246,.2), rgba(168,85,247,.2));
+  display: flex; align-items: center; justify-content: center;
+  font-size: .58rem; font-weight: 800;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+.vm-clinic-nm {
+  font-size: .67rem;
+  color: var(--muted);
+  font-weight: 500;
+  overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+}
+.vm-card-title {
+  font-size: .8rem;
+  font-weight: 700;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  transition: color .2s;
+}
+.vm-card:hover .vm-card-title { color: var(--primary); }
+.vm-doctor {
+  display: flex;
+  align-items: center;
+  gap: .28rem;
+  font-size: .68rem;
+  color: var(--muted);
+}
+
+/* Card footer */
+.vm-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: .42rem;
+  border-top: 1px solid var(--border);
+}
+.vm-price {
+  font-size: .94rem;
+  font-weight: 800;
+  color: #4ade80;
+  letter-spacing: -.02em;
+}
+.vm-cta-hint {
+  display: flex;
+  align-items: center;
+  gap: .26rem;
+  font-size: .65rem; font-weight: 700;
+  color: var(--primary);
+  background: rgba(59,130,246,.1);
+  border: 1px solid rgba(59,130,246,.2);
+  border-radius: .32rem;
+  padding: .22rem .48rem;
+  transition: background .15s, border-color .15s;
+}
+.vm-card:hover .vm-cta-hint {
+  background: rgba(59,130,246,.2);
+  border-color: rgba(59,130,246,.45);
+}
+
+/* Empty state */
+.vm-empty-state {
+  text-align: center;
+  padding: 4rem 1rem;
+  color: var(--muted);
+}

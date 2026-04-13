@@ -1,0 +1,632 @@
+﻿{% extends "base.html" %}
+{% block title %}{{ clinic.clinic_profile.razao_social if clinic.clinic_profile else clinic.name }} — MedMarket{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ══════════════════════════════════════════════════════════════
+   CLINIC PROFILE VIEW  —  Premium Showcase
+══════════════════════════════════════════════════════════════ */
+
+/* ── 1. HERO ──────────────────────────────────────────────── */
+.cpv-hero {
+  position: relative; min-height: 420px;
+  display: flex; align-items: flex-end; overflow: hidden;
+}
+.cpv-hero-bg {
+  position: absolute; inset: 0;
+  background-size: cover; background-position: center;
+  transform: scale(1.06);
+  filter: blur(4px) brightness(.5);
+  transition: transform 9s ease;
+}
+.cpv-hero:hover .cpv-hero-bg { transform: scale(1.10); }
+.cpv-hero-bg-grad {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 30% 40%, rgba(30,58,138,.55) 0%, rgba(10,14,26,1) 65%);
+}
+.cpv-hero-bg-grad::before {
+  content: ''; position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(59,130,246,.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59,130,246,.06) 1px, transparent 1px);
+  background-size: 52px 52px;
+}
+.cpv-hero-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(8,12,20,.15) 0%,
+    rgba(8,12,20,.55) 45%,
+    rgba(10,14,26,.95) 80%,
+    var(--bg, #080c14) 100%
+  );
+}
+.cpv-hero-inner {
+  position: relative; z-index: 2;
+  width: 100%; max-width: 1200px; margin: 0 auto;
+  padding: 3.5rem 1.5rem 2.75rem;
+  display: flex; align-items: flex-end;
+  justify-content: space-between; flex-wrap: wrap; gap: 1.5rem;
+}
+.cpv-hero-profile { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
+.cpv-avatar-ring {
+  flex-shrink: 0; width: 100px; height: 100px; border-radius: 50%;
+  padding: 3px;
+  background: linear-gradient(145deg, #3b82f6, #8b5cf6, #06b6d4);
+  box-shadow:
+    0 0 0 5px rgba(59,130,246,.15),
+    0 0 32px rgba(59,130,246,.50),
+    0 0 72px rgba(59,130,246,.18);
+  position: relative;
+}
+.cpv-avatar {
+  width: 100%; height: 100%; border-radius: 50%;
+  background: linear-gradient(145deg, #1e3a5f, #2d1b69);
+  border: 2px solid rgba(10,14,26,.9);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2.2rem; font-weight: 900; color: #fff; overflow: hidden;
+}
+.cpv-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.cpv-avatar-ring::after {
+  content: '';
+  position: absolute; bottom: 6px; right: 6px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: #22c55e;
+  border: 2.5px solid rgba(10,14,26,.95);
+  box-shadow: 0 0 10px rgba(34,197,94,.7);
+  animation: cpv-pulse 2.2s ease infinite;
+}
+@keyframes cpv-pulse {
+  0%,100% { opacity:1; transform:scale(1); }
+  50% { opacity:.65; transform:scale(.82); }
+}
+.cpv-hero-name {
+  font-size: clamp(1.75rem, 4.5vw, 2.75rem);
+  font-weight: 900; color: #fff;
+  letter-spacing: -.03em; line-height: 1.12; margin: 0 0 .55rem;
+  text-shadow: 0 2px 16px rgba(0,0,0,.6);
+}
+.cpv-hero-badges { display: flex; align-items: center; flex-wrap: wrap; gap: .45rem; }
+.cpv-badge {
+  display: inline-flex; align-items: center; gap: .3rem;
+  font-size: .7rem; font-weight: 700; padding: .24rem .7rem;
+  border-radius: 99px; white-space: nowrap;
+}
+.cpv-badge svg { width: .7rem; height: .7rem; }
+.cpv-badge-verified { background: rgba(59,130,246,.14); color: #93c5fd; border: 1px solid rgba(59,130,246,.32); }
+.cpv-badge-open { background: rgba(34,197,94,.1); color: #4ade80; border: 1px solid rgba(34,197,94,.28); }
+.cpv-badge-open::before {
+  content: ''; display: inline-block; width: .42rem; height: .42rem; border-radius: 50%;
+  background: #22c55e; box-shadow: 0 0 7px rgba(34,197,94,.9);
+  animation: cpv-pulse 2.2s ease infinite;
+}
+.cpv-badge-spec { background: rgba(139,92,246,.12); color: #c084fc; border: 1px solid rgba(139,92,246,.28); }
+.cpv-hero-stats { display: flex; gap: .65rem; align-items: flex-end; flex-wrap: wrap; }
+.cpv-hstat {
+  display: flex; flex-direction: column; align-items: center;
+  background: rgba(255,255,255,.06);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,.11);
+  border-radius: .8rem; padding: .6rem 1rem; text-align: center; min-width: 78px;
+}
+.cpv-hstat-val { font-size: 1.2rem; font-weight: 900; color: #fff; line-height: 1; }
+.cpv-hstat-lbl {
+  font-size: .6rem; font-weight: 700; color: rgba(255,255,255,.5);
+  text-transform: uppercase; letter-spacing: .07em; margin-top: .2rem; white-space: nowrap;
+}
+
+/* ── 2. STATS BAR ─────────────────────────────────────────── */
+.cpv-statsbar-wrap {
+  position: relative; z-index: 8;
+  margin-top: -1.5rem; padding: 0 1.5rem; margin-bottom: 2.25rem;
+}
+.cpv-statsbar {
+  max-width: 1200px; margin: 0 auto;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: .75rem;
+}
+@media (max-width: 640px) { .cpv-statsbar { grid-template-columns: repeat(2,1fr); } }
+.cpv-sstat {
+  background: rgba(14,21,38,.72);
+  backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 1.1rem; padding: 1.05rem 1.1rem;
+  display: flex; align-items: center; gap: .7rem;
+  box-shadow: 0 4px 24px rgba(0,0,0,.28);
+}
+.cpv-sstat-icon {
+  width: 2.5rem; height: 2.5rem; border-radius: .65rem; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.cpv-sstat-icon svg { width: 1.15rem; height: 1.15rem; }
+.cpv-sstat-val { font-size: 1.25rem; font-weight: 900; line-height: 1; }
+.cpv-sstat-lbl { font-size: .62rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-top: .12rem; }
+
+/* ── 3. MAIN LAYOUT ──────────────────────────────────────── */
+.cpv-main-wrap { max-width: 1200px; margin: 0 auto; padding: 0 1.5rem 5rem; }
+.cpv-layout { display: grid; grid-template-columns: 284px 1fr; gap: 1.75rem; align-items: start; }
+@media (max-width: 860px) {
+  .cpv-layout { grid-template-columns: 1fr; }
+  .cpv-aside  { position: static !important; }
+}
+
+/* ── 4. STICKY CONTACT CARD ──────────────────────────────── */
+.cpv-aside { position: sticky; top: calc(4.5rem + 1rem); }
+.cpv-contact-card {
+  background: rgba(14,21,38,.68);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 1.4rem; overflow: hidden;
+  box-shadow: 0 8px 36px rgba(0,0,0,.32);
+}
+.cpv-cc-head { padding: 1.4rem 1.4rem .9rem; border-bottom: 1px solid rgba(255,255,255,.06); }
+.cpv-cc-label { font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); margin-bottom: .8rem; }
+.cpv-meta-row { display: flex; align-items: flex-start; gap: .55rem; font-size: .79rem; padding: .38rem 0; }
+.cpv-meta-row + .cpv-meta-row { border-top: 1px solid rgba(255,255,255,.04); }
+.cpv-meta-ico { width: .8rem; height: .8rem; color: var(--muted); flex-shrink: 0; margin-top: .1rem; }
+.cpv-meta-lbl { color: var(--muted); font-size: .7rem; flex-shrink: 0; min-width: 52px; }
+.cpv-meta-val { font-weight: 600; color: var(--fg); word-break: break-word; line-height: 1.45; }
+.cpv-cc-cta { padding: 1rem 1.4rem; display: flex; flex-direction: column; gap: .55rem; }
+.cpv-btn-cta {
+  display: flex; align-items: center; justify-content: center; gap: .48rem;
+  padding: .68rem 1rem; border-radius: .8rem; border: none; cursor: pointer;
+  font-size: .84rem; font-weight: 700; text-decoration: none; width: 100%;
+  transition: transform .15s, opacity .18s;
+}
+.cpv-btn-cta:hover { transform: translateY(-2px); opacity: .9; }
+.cpv-btn-cta svg { width: .9rem; height: .9rem; flex-shrink: 0; }
+.cpv-btn-primary { background: linear-gradient(135deg, #2563eb, #4f46e5); color: #fff; box-shadow: 0 4px 16px rgba(59,130,246,.38); }
+.cpv-btn-wa { background: rgba(21,128,61,.12); color: #4ade80; border: 1px solid rgba(34,197,94,.28); }
+.cpv-btn-outline { background: rgba(255,255,255,.04); color: var(--fg); border: 1px solid rgba(255,255,255,.1); }
+
+/* ── 5. CONTENT SECTION CARDS ────────────────────────────── */
+.cpv-section {
+  background: rgba(14,21,38,.58);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 1.4rem; padding: 1.55rem 1.8rem; margin-bottom: 1.25rem;
+  box-shadow: 0 4px 24px rgba(0,0,0,.16);
+}
+.cpv-sec-hd {
+  font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em;
+  color: var(--muted); display: flex; align-items: center; gap: .42rem; margin-bottom: 1.2rem;
+}
+.cpv-sec-hd svg { width: .78rem; height: .78rem; }
+.cpv-sec-hd-line { flex: 1; height: 1px; background: rgba(255,255,255,.06); }
+.cpv-sec-hd-count { font-size: .62rem; font-weight: 700; padding: .1rem .4rem; border-radius: 99px; background: rgba(255,255,255,.06); color: var(--muted); }
+.cpv-divider { height: 1px; background: rgba(255,255,255,.06); margin: 1.1rem 0; }
+.cpv-bio { font-size: .93rem; line-height: 1.95; color: var(--fg); letter-spacing: .015em; max-width: 74ch; }
+
+/* ── 6. SPECIALTY CARDS ──────────────────────────────────── */
+.cpv-spec-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(142px, 1fr)); gap: .65rem; }
+.cpv-spec-card {
+  background: rgba(255,255,255,.025); border: 1px solid rgba(255,255,255,.07);
+  border-radius: 1.05rem; padding: .95rem 1rem;
+  display: flex; flex-direction: column; gap: .45rem;
+  transition: transform .2s, background .18s; cursor: pointer; text-decoration: none;
+}
+.cpv-spec-card:hover { transform: translateY(-3px); background: rgba(255,255,255,.045); }
+.cpv-spec-icon { width: 2.35rem; height: 2.35rem; border-radius: .6rem; display: flex; align-items: center; justify-content: center; }
+.cpv-spec-icon svg { width: 1.08rem; height: 1.08rem; }
+.cpv-spec-name { font-size: .81rem; font-weight: 700; line-height: 1.3; color: var(--fg); }
+.cpv-spec-count { font-size: .67rem; color: var(--muted); }
+.cpv-doc-grid { display: flex; flex-wrap: wrap; gap: .55rem; }
+.cpv-doc-chip {
+  display: flex; align-items: center; gap: .5rem;
+  background: rgba(15,23,42,.55); border: 1px solid rgba(255,255,255,.08);
+  border-radius: .75rem; padding: .48rem .85rem; font-size: .81rem; font-weight: 600;
+}
+.cpv-doc-av {
+  width: 1.85rem; height: 1.85rem; border-radius: 50%;
+  background: linear-gradient(135deg, #1e3a5f, #312e81); color: #93c5fd;
+  border: 1px solid rgba(96,165,250,.22);
+  display: flex; align-items: center; justify-content: center;
+  font-size: .55rem; font-weight: 800; flex-shrink: 0;
+}
+
+/* ── 7. BENTO GRID ───────────────────────────────────────── */
+.cpv-bento { display: grid; grid-template-columns: repeat(3,1fr); grid-auto-rows: 185px; gap: .55rem; }
+.cpv-bento-item:nth-child(1) { grid-column: span 2; grid-row: span 2; }
+.cpv-bento-solo { grid-template-columns: 1fr !important; grid-auto-rows: 300px !important; }
+@media (max-width: 640px) { .cpv-bento { grid-auto-rows: 130px; } }
+.cpv-bento-item {
+  border-radius: .9rem; overflow: hidden;
+  background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.06);
+  position: relative; cursor: zoom-in;
+}
+.cpv-bento-item img { width:100%; height:100%; object-fit:cover; display:block; transition: transform .45s ease, filter .3s; }
+.cpv-bento-item:hover img { transform: scale(1.08); filter: brightness(1.06); }
+.cpv-bento-item::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,.48) 0%, transparent 55%);
+  opacity: 0; transition: opacity .3s; pointer-events: none;
+}
+.cpv-bento-item:hover::after { opacity: 1; }
+.cpv-bento-ph { width:100%; height:100%; display:flex; align-items:center; justify-content:center; color:var(--muted); opacity:.2; }
+.cpv-bento-ph svg { width:2.2rem; height:2.2rem; }
+
+/* ── 8. MAP ───────────────────────────────────────────────── */
+.cpv-map-wrap {
+  border-radius: 1.5rem; overflow: hidden; height: 370px;
+  border: 1px solid rgba(255,255,255,.07);
+  box-shadow: 0 4px 28px rgba(0,0,0,.28);
+}
+.cpv-map-wrap iframe {
+  width:100%; height:100%; border:none; display:block;
+  filter: grayscale(85%) brightness(.7) contrast(1.12) saturate(.2);
+}
+
+/* ── 9. SERVICES GRID ────────────────────────────────────── */
+.cpv-svc-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:.85rem; }
+.cpv-svc-card {
+  background:rgba(255,255,255,.025); border:1px solid rgba(255,255,255,.07);
+  border-radius:1.15rem; overflow:hidden;
+  display:flex; flex-direction:column;
+  transition: transform .2s, box-shadow .22s, border-color .22s;
+}
+.cpv-svc-card:hover { transform:translateY(-5px); box-shadow:0 14px 40px rgba(0,0,0,.32); border-color:rgba(59,130,246,.32); }
+.cpv-svc-img { width:100%; height:122px; flex-shrink:0; overflow:hidden; background:linear-gradient(135deg,rgba(30,58,138,.12),rgba(49,46,129,.12)); display:flex; align-items:center; justify-content:center; }
+.cpv-svc-img img { width:100%; height:100%; object-fit:cover; display:block; transition:transform .35s; }
+.cpv-svc-card:hover .cpv-svc-img img { transform:scale(1.07); }
+.cpv-svc-img-icon { width:1.75rem; height:1.75rem; color:var(--primary); opacity:.25; }
+.cpv-svc-body { padding:.88rem 1rem; flex:1; display:flex; flex-direction:column; gap:.3rem; }
+.cpv-svc-title { font-size:.88rem; font-weight:700; line-height:1.3; }
+.cpv-svc-meta { font-size:.7rem; color:var(--muted); display:flex; align-items:center; gap:.28rem; flex-wrap:wrap; }
+.cpv-svc-meta svg { width:.65rem; height:.65rem; flex-shrink:0; }
+.cpv-svc-spec { font-size:.65rem; font-weight:700; padding:.08rem .4rem; border-radius:99px; background:rgba(59,130,246,.09); color:var(--primary); border:1px solid rgba(59,130,246,.18); }
+.cpv-svc-price { font-size:1.05rem; font-weight:900; color:#4ade80; margin-top:auto; padding-top:.4rem; letter-spacing:-.01em; }
+.cpv-svc-foot { padding:.55rem 1rem; border-top:1px solid rgba(255,255,255,.06); }
+
+/* ── 10. FLOATING FAB ────────────────────────────────────── */
+.cpv-fab { position:fixed; bottom:1.75rem; right:1.75rem; z-index:50; display:flex; flex-direction:column; gap:.55rem; align-items:flex-end; }
+.cpv-fab-btn {
+  display:flex; align-items:center; gap:.55rem;
+  padding:.72rem 1.2rem; border-radius:99px; border:none; cursor:pointer;
+  font-size:.83rem; font-weight:700; text-decoration:none; white-space:nowrap;
+  box-shadow:0 4px 20px rgba(0,0,0,.38);
+  transition:transform .18s, box-shadow .18s;
+}
+.cpv-fab-btn:hover { transform:translateY(-3px); box-shadow:0 8px 30px rgba(0,0,0,.45); }
+.cpv-fab-btn svg { width:.95rem; height:.95rem; flex-shrink:0; }
+.cpv-fab-wa   { background:#15803d; color:#fff; }
+.cpv-fab-chat { background:linear-gradient(135deg,#1d4ed8,#4338ca); color:#fff; }
+@media (max-width:480px) {
+  .cpv-fab-label { display:none; }
+  .cpv-fab-btn   { padding:.8rem; border-radius:50%; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+{# ─────────────────────────────────────────────────────────── #}
+{% set profile = clinic.clinic_profile %}
+{% set cname   = profile.razao_social if profile else clinic.name %}
+{% set addr    = profile.endereco     if profile else '' %}
+
+{% set hero_img = namespace(url='') %}
+{% for svc in services %}
+  {% if not hero_img.url and svc.imagem_url %}
+    {% set hero_img.url = url_for('static', filename=svc.imagem_url) %}
+  {% endif %}
+{% endfor %}
+
+{% set map_addr = namespace(val='') %}
+{% for svc in services %}
+  {% if not map_addr.val %}
+    {% if svc.logradouro %}
+      {% set map_addr.val = svc.logradouro ~ (', ' ~ svc.numero if svc.numero else '') ~ (', ' ~ svc.cidade if svc.cidade else '') ~ (', ' ~ svc.estado if svc.estado else '') %}
+    {% elif svc.google_maps_link %}
+      {% set map_addr.val = svc.google_maps_link %}
+    {% endif %}
+  {% endif %}
+{% endfor %}
+{% if not map_addr.val and addr %}{% set map_addr.val = addr %}{% endif %}
+
+{% set gallery_imgs = services | selectattr('imagem_url') | list %}
+
+{% set wa_num = namespace(val='') %}
+{% if clinic.telefone %}
+  {% set _t = clinic.telefone | replace('(','') | replace(')','') | replace(' ','') | replace('-','') %}
+  {% set wa_num.val = ('55' ~ _t) if not _t.startswith('55') else _t %}
+{% endif %}
+
+{% set _icons  = ['stethoscope','heart','eye','brain','activity','shield-check','sun','zap','user-check','thermometer','microscope','syringe'] %}
+{% set _colors = ['#60a5fa','#f87171','#22d3ee','#c084fc','#4ade80','#34d399','#fbbf24','#fb923c','#f472b6','#a78bfa','#38bdf8','#e879f9'] %}
+{% set _bgs    = ['rgba(96,165,250,.1)','rgba(248,113,113,.1)','rgba(34,211,238,.1)','rgba(192,132,252,.1)','rgba(74,222,128,.1)','rgba(52,211,153,.1)','rgba(251,191,36,.1)','rgba(251,146,60,.1)','rgba(244,114,182,.1)','rgba(167,139,250,.1)','rgba(56,189,248,.1)','rgba(232,121,249,.1)'] %}
+
+<!-- ══════════════ HERO ══════════════ -->
+<section class="cpv-hero">
+  {% if hero_img.url %}
+  <div class="cpv-hero-bg" style="background-image:url('{{ hero_img.url }}');"></div>
+  {% else %}
+  <div class="cpv-hero-bg-grad"></div>
+  {% endif %}
+  <div class="cpv-hero-overlay"></div>
+  <div class="cpv-hero-inner">
+    <div class="cpv-hero-profile">
+      <div class="cpv-avatar-ring">
+        <div class="cpv-avatar">{{ cname[0] | upper }}</div>
+      </div>
+      <div>
+        <h1 class="cpv-hero-name">{{ cname }}</h1>
+        <div class="cpv-hero-badges">
+          <span class="cpv-badge cpv-badge-verified">
+            <i data-lucide="badge-check"></i> Verificada
+          </span>
+          {% if services %}
+          <span class="cpv-badge cpv-badge-open">Disponível para Agendamento</span>
+          {% endif %}
+          {% if specialties %}
+          <span class="cpv-badge cpv-badge-spec">
+            <i data-lucide="stethoscope"></i>
+            {% if specialties | length <= 2 %}{{ specialties | join(' · ') }}
+            {% else %}{{ specialties[:2] | join(' · ') }} +{{ specialties | length - 2 }}{% endif %}
+          </span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="cpv-hero-stats">
+      <div class="cpv-hstat">
+        <span class="cpv-hstat-val">{{ services | length }}</span>
+        <span class="cpv-hstat-lbl">Serviços</span>
+      </div>
+      <div class="cpv-hstat">
+        <span class="cpv-hstat-val" style="font-size:.92rem;">5.0&thinsp;★</span>
+        <span class="cpv-hstat-lbl">Avaliação</span>
+      </div>
+      {% if specialties %}
+      <div class="cpv-hstat">
+        <span class="cpv-hstat-val">{{ specialties | length }}</span>
+        <span class="cpv-hstat-lbl">Especialidades</span>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ STATS BAR ══════════════ -->
+<div class="cpv-statsbar-wrap">
+  <div class="cpv-statsbar">
+    <div class="cpv-sstat">
+      <div class="cpv-sstat-icon" style="background:rgba(96,165,250,.1);color:#60a5fa;"><i data-lucide="calendar-check"></i></div>
+      <div><div class="cpv-sstat-val">{{ services | length }}+</div><div class="cpv-sstat-lbl">Serviços Ativos</div></div>
+    </div>
+    <div class="cpv-sstat">
+      <div class="cpv-sstat-icon" style="background:rgba(251,191,36,.1);color:#fbbf24;"><i data-lucide="star"></i></div>
+      <div><div class="cpv-sstat-val" style="color:#fbbf24;">5.0</div><div class="cpv-sstat-lbl">Avaliação Média</div></div>
+    </div>
+    <div class="cpv-sstat">
+      <div class="cpv-sstat-icon" style="background:rgba(34,197,94,.1);color:#4ade80;"><i data-lucide="shield-check"></i></div>
+      <div><div class="cpv-sstat-val" style="color:#4ade80;font-size:.95rem;">Verificada</div><div class="cpv-sstat-lbl">Credencial MedMarket</div></div>
+    </div>
+    <div class="cpv-sstat">
+      <div class="cpv-sstat-icon" style="background:rgba(139,92,246,.1);color:#c084fc;"><i data-lucide="users"></i></div>
+      <div><div class="cpv-sstat-val">{{ doctors | length }}</div><div class="cpv-sstat-lbl">Profissionais</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Breadcrumb -->
+<div style="max-width:1200px;margin:0 auto 1.25rem;padding:0 1.5rem;">
+  <div class="breadcrumb-inner">
+    <a href="/" class="btn-icon"><i data-lucide="arrow-left"></i></a>
+    <span class="text-muted">Clínicas</span>
+    <i data-lucide="chevron-right" class="icon-xs text-muted"></i>
+    <span class="breadcrumb-title">{{ cname }}</span>
+  </div>
+</div>
+
+<!-- ══════════════ MAIN LAYOUT ══════════════ -->
+<div class="cpv-main-wrap">
+<div class="cpv-layout">
+
+  <!-- LEFT: STICKY CONTACT CARD -->
+  <aside class="cpv-aside">
+    <div class="cpv-contact-card">
+      <div class="cpv-cc-head">
+        <div class="cpv-cc-label">Informações de Contato</div>
+        {% if profile and profile.crm_cro %}
+        <div class="cpv-meta-row">
+          <i data-lucide="shield" class="cpv-meta-ico"></i>
+          <span class="cpv-meta-lbl">Registro</span>
+          <span class="cpv-meta-val">{{ profile.crm_cro }}</span>
+        </div>
+        {% endif %}
+        {% if profile and profile.cnpj %}
+        <div class="cpv-meta-row">
+          <i data-lucide="building-2" class="cpv-meta-ico"></i>
+          <span class="cpv-meta-lbl">CNPJ</span>
+          <span class="cpv-meta-val" style="font-size:.72rem;">
+            {{ profile.cnpj[:2] ~ '.' ~ profile.cnpj[2:5] ~ '.' ~ profile.cnpj[5:8] ~ '/' ~ profile.cnpj[8:12] ~ '-' ~ profile.cnpj[12:] if profile.cnpj | length == 14 else profile.cnpj }}
+          </span>
+        </div>
+        {% endif %}
+        {% if addr %}
+        <div class="cpv-meta-row">
+          <i data-lucide="map-pin" class="cpv-meta-ico"></i>
+          <span class="cpv-meta-val" style="font-size:.74rem;line-height:1.6;">{{ addr }}</span>
+        </div>
+        {% endif %}
+        {% if clinic.telefone %}
+        <div class="cpv-meta-row">
+          <i data-lucide="phone" class="cpv-meta-ico"></i>
+          <span class="cpv-meta-val">{{ clinic.telefone }}</span>
+        </div>
+        {% endif %}
+      </div>
+      <div class="cpv-cc-cta">
+        {% if is_logged_in %}
+        <a href="/chat/{{ clinic.id }}" class="cpv-btn-cta cpv-btn-primary">
+          <i data-lucide="message-circle"></i> Enviar Mensagem
+        </a>
+        {% else %}
+        <a href="/auth?redirect=/perfil/clinica/{{ clinic.id }}" class="cpv-btn-cta cpv-btn-primary">
+          <i data-lucide="log-in"></i> Entrar para Contato
+        </a>
+        {% endif %}
+        {% if clinic.telefone %}
+        <a href="https://wa.me/{{ wa_num.val }}" target="_blank" rel="noopener noreferrer" class="cpv-btn-cta cpv-btn-wa">
+          <svg viewBox="0 0 24 24" fill="currentColor" style="width:.9rem;height:.9rem;flex-shrink:0;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          WhatsApp
+        </a>
+        {% endif %}
+        {% if map_addr.val %}
+        <a href="https://maps.google.com/?q={{ map_addr.val | urlencode }}" target="_blank" rel="noopener noreferrer" class="cpv-btn-cta cpv-btn-outline">
+          <i data-lucide="map-pin"></i> Como Chegar
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </aside>
+
+  <!-- RIGHT: CONTENT SECTIONS -->
+  <div>
+
+    <!-- Sobre -->
+    <div class="cpv-section">
+      <div class="cpv-sec-hd"><i data-lucide="info"></i> Sobre a Clínica<div class="cpv-sec-hd-line"></div></div>
+      {% for svc in services if svc.description and svc.description | trim %}
+        {% if loop.first %}<p class="cpv-bio">{{ svc.description }}</p>{% endif %}
+      {% else %}
+      <p class="cpv-bio" style="color:var(--muted);">
+        {% if addr %}{{ cname }} está localizada em {{ addr }}.{% else %}{{ cname }}{% endif %}
+        Confira as especialidades e serviços disponíveis e agende sua consulta com praticidade pelo MedMarket.
+      </p>
+      {% endfor %}
+    </div>
+
+    <!-- Especialidades + Equipe -->
+    {% if specialties or doctors %}
+    <div class="cpv-section">
+      {% if specialties %}
+      <div class="cpv-sec-hd"><i data-lucide="layers"></i> Especialidades<div class="cpv-sec-hd-line"></div><span class="cpv-sec-hd-count">{{ specialties | length }}</span></div>
+      <div class="cpv-spec-grid">
+        {% for spec in specialties %}
+        {% set _ci = loop.index0 % 12 %}
+        <a href="/?category={{ spec | urlencode }}" class="cpv-spec-card">
+          <div class="cpv-spec-icon" style="background:{{ _bgs[_ci] }};color:{{ _colors[_ci] }};"><i data-lucide="{{ _icons[_ci] }}"></i></div>
+          <div class="cpv-spec-name">{{ spec }}</div>
+          {%- set sc = namespace(n=0) -%}{%- for sv in services -%}{%- if sv.specialty == spec -%}{%- set sc.n = sc.n + 1 -%}{%- endif -%}{%- endfor -%}
+          <div class="cpv-spec-count">{{ sc.n }} serviço{{ 's' if sc.n != 1 else '' }}</div>
+        </a>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% if doctors %}
+      <div class="cpv-divider"></div>
+      <div class="cpv-sec-hd" style="margin-top:.1rem;"><i data-lucide="users"></i> Nossa Equipe<div class="cpv-sec-hd-line"></div><span class="cpv-sec-hd-count">{{ doctors | length }}</span></div>
+      <div class="cpv-doc-grid">
+        {% for doc in doctors %}
+        <div class="cpv-doc-chip"><div class="cpv-doc-av">{{ doc[:2] | upper }}</div>{{ doc }}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Galeria Bento -->
+    {% if gallery_imgs %}
+    <div class="cpv-section">
+      <div class="cpv-sec-hd"><i data-lucide="image"></i> Galeria — Infraestrutura<div class="cpv-sec-hd-line"></div><span class="cpv-sec-hd-count">{{ gallery_imgs | length }}</span></div>
+      {%- set bento = gallery_imgs[:6] -%}
+      <div class="cpv-bento{% if bento | length == 1 %} cpv-bento-solo{% endif %}">
+        {% for svc in bento %}
+        <div class="cpv-bento-item"><img src="{{ url_for('static', filename=svc.imagem_url) }}" alt="{{ svc.title | e }}" loading="lazy" /></div>
+        {% endfor %}
+        {% if bento | length == 4 %}
+          <div class="cpv-bento-item"><div class="cpv-bento-ph"><i data-lucide="camera"></i></div></div>
+          <div class="cpv-bento-item"><div class="cpv-bento-ph"><i data-lucide="camera"></i></div></div>
+        {% elif bento | length == 5 %}
+          <div class="cpv-bento-item"><div class="cpv-bento-ph"><i data-lucide="camera"></i></div></div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Localização -->
+    {% if map_addr.val %}
+    <div class="cpv-section">
+      <div class="cpv-sec-hd"><i data-lucide="map-pin"></i> Localização<div class="cpv-sec-hd-line"></div></div>
+      <div class="cpv-map-wrap">
+        <iframe title="Localização {{ cname | e }}"
+          src="https://maps.google.com/maps?q={{ map_addr.val | urlencode }}&output=embed&hl=pt-BR&z=15"
+          allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade">
+        </iframe>
+      </div>
+      {% if addr %}
+      <p style="font-size:.78rem;color:var(--muted);margin:.7rem 0 0;display:flex;align-items:center;gap:.38rem;line-height:1.6;letter-spacing:.01em;">
+        <i data-lucide="map-pin" style="width:.72rem;height:.72rem;flex-shrink:0;"></i>{{ addr }}
+      </p>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Serviços -->
+    <div class="cpv-section">
+      <div class="cpv-sec-hd"><i data-lucide="stethoscope"></i> Serviços Disponíveis<div class="cpv-sec-hd-line"></div><span class="cpv-sec-hd-count">{{ services | length }}</span></div>
+      {% if services %}
+      <div class="cpv-svc-grid">
+        {% for svc in services %}
+        <div class="cpv-svc-card fade-in">
+          <div class="cpv-svc-img">
+            {% if svc.imagem_url %}
+            <img src="{{ url_for('static', filename=svc.imagem_url) }}" alt="{{ svc.title | e }}" loading="lazy" />
+            {% else %}
+            <i data-lucide="stethoscope" class="cpv-svc-img-icon"></i>
+            {% endif %}
+          </div>
+          <div class="cpv-svc-body">
+            <div class="cpv-svc-title">{{ svc.title }}</div>
+            <div class="cpv-svc-meta">
+              <i data-lucide="user"></i>{{ svc.doctor_name }}
+              <span class="cpv-svc-spec">{{ svc.specialty }}</span>
+            </div>
+            {% if svc.logradouro %}
+            <div style="font-size:.7rem;color:var(--muted);display:flex;align-items:center;gap:.25rem;margin-top:.1rem;">
+              <i data-lucide="map-pin" style="width:.6rem;height:.6rem;flex-shrink:0;"></i>
+              {{ svc.logradouro }}{% if svc.numero %}, {{ svc.numero }}{% endif %}{% if svc.cidade %} — {{ svc.cidade }}{% endif %}
+            </div>
+            {% endif %}
+            <div class="cpv-svc-price">R$ {{ "{:,.0f}".format(svc.price).replace(",", ".") }}</div>
+          </div>
+          <div class="cpv-svc-foot">
+            <a href="{{ url_for('listing_detail', listing_id=svc.id) }}"
+               class="btn btn-primary btn-sm w-full" style="font-size:.78rem;justify-content:center;">
+              <i data-lucide="calendar-check" style="width:.8rem;height:.8rem;"></i> Ver e Agendar
+            </a>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div style="text-align:center;padding:2.5rem 1rem;color:var(--muted);">
+        <i data-lucide="stethoscope" style="display:block;margin:0 auto .75rem;width:2.5rem;height:2.5rem;opacity:.25;"></i>
+        <p style="font-size:.86rem;margin:0;">Esta clínica ainda não possui serviços ativos.</p>
+      </div>
+      {% endif %}
+    </div>
+
+  </div><!-- /right -->
+</div><!-- /cpv-layout -->
+</div><!-- /cpv-main-wrap -->
+
+<!-- ══════════════ FLOATING FAB ══════════════ -->
+<div class="cpv-fab">
+  {% if clinic.telefone %}
+  <a href="https://wa.me/{{ wa_num.val }}" target="_blank" rel="noopener noreferrer" class="cpv-fab-btn cpv-fab-wa" title="WhatsApp">
+    <svg viewBox="0 0 24 24" fill="currentColor" style="width:.95rem;height:.95rem;flex-shrink:0;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+    <span class="cpv-fab-label">WhatsApp</span>
+  </a>
+  {% endif %}
+  {% if is_logged_in %}
+  <a href="/chat/{{ clinic.id }}" class="cpv-fab-btn cpv-fab-chat" title="Enviar Mensagem">
+    <i data-lucide="message-circle"></i><span class="cpv-fab-label">Mensagem</span>
+  </a>
+  {% else %}
+  <a href="/auth?redirect=/perfil/clinica/{{ clinic.id }}" class="cpv-fab-btn cpv-fab-chat" title="Entrar">
+    <i data-lucide="log-in"></i><span class="cpv-fab-label">Entrar</span>
+  </a>
+  {% endif %}
+</div>
+
+{% endblock %}

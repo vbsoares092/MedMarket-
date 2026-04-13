@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Acesso Negado — MedMarket</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <style>
+    .error-page {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      padding: 2rem 1rem;
+    }
+    .error-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 1.25rem;
+      padding: 3rem 2.5rem; max-width: 440px; width: 100%; text-align: center;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    }
+    .error-icon {
+      width: 4rem; height: 4rem; border-radius: 50%;
+      background: rgba(239,68,68,0.1); display: flex; align-items: center;
+      justify-content: center; margin: 0 auto 1.5rem;
+    }
+    .error-icon svg { width: 1.75rem; height: 1.75rem; color: #f87171; }
+    .error-code { font-size: 3rem; font-weight: 900; color: #f87171; line-height: 1; }
+    .error-title { font-size: 1.2rem; font-weight: 700; margin: 0.5rem 0 0.75rem; }
+    .error-desc  { font-size: 0.85rem; color: var(--muted); margin-bottom: 2rem; line-height: 1.6; }
+    .btn-back {
+      display: inline-flex; align-items: center; gap: .45rem;
+      padding: .6rem 1.5rem; border-radius: .55rem;
+      background: var(--primary); color: #fff; font-size: .875rem; font-weight: 700;
+      text-decoration: none; transition: opacity .15s;
+    }
+    .btn-back:hover { opacity: .88; }
+    .btn-back svg { width: .9rem; height: .9rem; }
+    .btn-secondary {
+      display: inline-flex; align-items: center; gap: .4rem;
+      padding: .6rem 1.25rem; border-radius: .55rem; margin-left: .75rem;
+      border: 1px solid var(--border); background: var(--secondary);
+      color: var(--muted); font-size: .875rem; font-weight: 600;
+      text-decoration: none; transition: background .15s;
+    }
+    .btn-secondary:hover { background: rgba(59,130,246,0.08); color: var(--primary); border-color: rgba(59,130,246,0.4); }
+  </style>
+</head>
+<body>
+<div class="error-page">
+  <div class="error-card">
+    <div class="error-icon">
+      <i data-lucide="shield-x"></i>
+    </div>
+    <div class="error-code">403</div>
+    <div class="error-title">Acesso Negado</div>
+    <p class="error-desc">
+      Você não tem permissão para acessar esta área.<br>
+      O Portal da Clínica é exclusivo para contas empresariais.
+    </p>
+    <a href="/" class="btn-back">
+      <i data-lucide="home"></i> Voltar à Vitrine
+    </a>
+    <a href="/clinica/login" class="btn-secondary">
+      <i data-lucide="building-2"></i> Login de Clínica
+    </a>
+  </div>
+</div>
+<script>lucide.createIcons();</script>
+</body>
+</html>

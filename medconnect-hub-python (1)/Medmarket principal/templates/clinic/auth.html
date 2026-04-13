@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% if action == 'registrar' %}Cadastro da Clínica{% else %}Login da Clínica{% endif %} — MedMarket</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <style>
+    .auth-page {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      padding: 2rem 1rem;
+      background: radial-gradient(ellipse at 50% -10%, rgba(59,130,246,0.08) 0%, transparent 65%);
+    }
+    .auth-wrapper { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 1.25rem; }
+    .auth-logo {
+      display: flex; align-items: center; gap: 0.65rem; align-self: center;
+    }
+    .auth-logo-icon {
+      width: 2.25rem; height: 2.25rem; border-radius: 0.6rem;
+      background: var(--primary); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 1rem;
+    }
+    .auth-logo-text  { font-size: 1.1rem; font-weight: 800; }
+    .auth-logo-accent { color: var(--primary); }
+    .auth-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 1.25rem; padding: 2rem;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    }
+    .auth-tabs {
+      display: flex; gap: 0.25rem; background: var(--secondary);
+      border-radius: 0.6rem; padding: 0.2rem; margin-bottom: 1.5rem;
+    }
+    .auth-tab {
+      flex: 1; padding: 0.5rem; border-radius: 0.45rem; border: none;
+      background: transparent; cursor: pointer; font-size: 0.82rem; font-weight: 600;
+      color: var(--muted); transition: background .15s, color .15s;
+      text-decoration: none; text-align: center; display: block;
+    }
+    .auth-tab.active { background: var(--card); color: var(--primary); box-shadow: 0 1px 4px rgba(0,0,0,0.15); }
+    .auth-heading { font-size: 1.05rem; font-weight: 700; margin-bottom: 0.25rem; }
+    .auth-sub     { font-size: 0.8rem; color: var(--muted); margin-bottom: 1.25rem; }
+    .form-group   { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.9rem; }
+    .form-label   { font-size: 0.78rem; font-weight: 600; color: var(--fg); }
+    .form-input {
+      padding: 0.6rem 0.85rem; border-radius: 0.5rem;
+      border: 1px solid var(--border); background: var(--secondary);
+      color: var(--fg); font-size: 0.85rem; transition: border-color .15s;
+    }
+    .form-input:focus { outline: none; border-color: var(--primary); }
+    .form-hint { font-size: 0.72rem; color: var(--muted); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    .btn-submit {
+      width: 100%; padding: 0.65rem; border-radius: 0.6rem;
+      background: var(--primary); color: #fff; border: none;
+      font-size: 0.875rem; font-weight: 700; cursor: pointer;
+      transition: opacity .15s; margin-top: 0.5rem;
+    }
+    .btn-submit:hover { opacity: 0.88; }
+    .error-box {
+      background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 0.5rem; padding: 0.65rem 0.85rem;
+      font-size: 0.8rem; color: #f87171; margin-bottom: 1rem;
+      display: flex; align-items: center; gap: 0.4rem;
+    }
+    .file-hint { font-size: 0.72rem; color: var(--muted); margin-top: 0.2rem; }
+  </style>
+</head>
+<body>
+<div class="auth-page">
+  <div class="auth-wrapper">
+
+    <!-- Logo -->
+    <div class="auth-logo">
+      <div class="auth-logo-icon">M+</div>
+      <span class="auth-logo-text">Med<span class="auth-logo-accent">Market</span></span>
+    </div>
+
+    <div class="auth-card">
+
+      <!-- Tabs -->
+      <div class="auth-tabs">
+        <a href="{{ url_for('clinic.login') }}"
+           class="auth-tab {% if action == 'login' %}active{% endif %}">
+          Entrar
+        </a>
+        <a href="{{ url_for('clinic.registrar') }}"
+           class="auth-tab {% if action == 'registrar' %}active{% endif %}">
+          Cadastrar Clínica
+        </a>
+      </div>
+
+      {% if erro %}
+      <div class="error-box">
+        <i data-lucide="alert-circle" style="width:.9rem;height:.9rem;flex-shrink:0;"></i>
+        {{ erro }}
+      </div>
+      {% endif %}
+
+      {% if action == 'login' %}
+      <!-- ── LOGIN ── -->
+      <div class="auth-heading">Acesso ao Portal</div>
+      <div class="auth-sub">Gerencie seus anúncios, horários e agendamentos.</div>
+
+      <form method="POST" action="{{ url_for('clinic.login') }}">
+        <div class="form-group">
+          <label class="form-label">E-mail corporativo</label>
+          <input type="email" name="email" class="form-input" placeholder="contato@clinica.com.br" required autocomplete="email" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Senha</label>
+          <input type="password" name="password" class="form-input" placeholder="••••••••" required autocomplete="current-password" />
+        </div>
+        <button type="submit" class="btn-submit">
+          <i data-lucide="log-in" style="width:.9rem;height:.9rem;vertical-align:middle;margin-right:.35rem;"></i>
+          Entrar no Portal
+        </button>
+      </form>
+
+      {% else %}
+      <!-- ── CADASTRO ── -->
+      <div class="auth-heading">Cadastre sua Clínica</div>
+      <div class="auth-sub">Crie sua conta empresarial para anunciar serviços no MedMarket.</div>
+
+      <form method="POST" action="{{ url_for('clinic.registrar') }}" enctype="multipart/form-data">
+        <div class="form-group">
+          <label class="form-label">Razão Social <span style="color:var(--primary)">*</span></label>
+          <input type="text" name="razao_social" class="form-input" placeholder="Clínica São Lucas Ltda." required />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">CNPJ <span style="color:var(--primary)">*</span></label>
+            <input type="text" name="cnpj" class="form-input" placeholder="00.000.000/0001-00"
+                   maxlength="18" required inputmode="numeric"
+                   oninput="this.value=this.value.replace(/[^\d]/g,'').replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/,'$1.$2.$3/$4-$5')" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">CRM / CRO</label>
+            <input type="text" name="crm_cro" class="form-input" placeholder="CRM-SP 123456" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">E-mail corporativo <span style="color:var(--primary)">*</span></label>
+          <input type="email" name="email" class="form-input" placeholder="contato@clinica.com.br" required autocomplete="email" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Senha <span style="color:var(--primary)">*</span></label>
+          <input type="password" name="password" class="form-input" placeholder="Mínimo 6 caracteres" required minlength="6" autocomplete="new-password" />
+          <span class="form-hint">Mínimo 6 caracteres.</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Documento (Alvará / Registro) — PDF ou Imagem</label>
+          <input type="file" name="document" class="form-input" accept=".pdf,.png,.jpg,.jpeg" style="padding:.45rem .85rem;" />
+          <span class="file-hint">Formatos aceitos: PDF, PNG, JPG. Máx. 5 MB.</span>
+        </div>
+        <button type="submit" class="btn-submit">
+          <i data-lucide="building-2" style="width:.9rem;height:.9rem;vertical-align:middle;margin-right:.35rem;"></i>
+          Criar Conta
+        </button>
+      </form>
+      {% endif %}
+
+    </div>
+
+    <p style="text-align:center;font-size:.78rem;color:var(--muted);">
+      Acesso de pacientes?
+      <a href="/auth" style="color:var(--primary);font-weight:600;">Entrar como cliente →</a>
+    </p>
+  </div>
+</div>
+<script>lucide.createIcons();</script>
+</body>
+</html>
