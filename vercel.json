@@ -1,8 +1,13 @@
 {
+  "version": 2,
   "rewrites": [
     {
+      "source": "/static/(.*)",
+      "destination": "/static/$1"
+    },
+    {
       "source": "/(.*)",
-      "destination": "https://seu-app.onrender.com/$1"
+      "destination": "https://medmarket.onrender.com/$1"
     }
   ]
 }
