@@ -128,8 +128,12 @@
         <i data-lucide="plus-circle"></i> Novo Anúncio
       </a>
       <a href="{{ url_for('clinic.agenda') }}"
-         class="sidebar-link {% if request.endpoint in ['clinic.agenda', 'clinic.salvar_disponibilidade', 'clinic.listar_disponibilidade', 'clinic.excluir_disponibilidade'] %}active{% endif %}">
+         class="sidebar-link {% if request.endpoint in ['clinic.agenda', 'clinic.listar_disponibilidade', 'clinic.excluir_disponibilidade'] %}active{% endif %}">
         <i data-lucide="calendar-clock"></i> Gestão de Agenda
+      </a>
+      <a href="{{ url_for('clinic.cadastrar_disponibilidade') }}"
+         class="sidebar-link {% if request.endpoint == 'clinic.cadastrar_disponibilidade' %}active{% endif %}">
+        <i data-lucide="calendar-plus"></i> Cadastrar Disponibilidade
       </a>
 
       <a href="{{ url_for('clinic.editar_vitrine') }}"

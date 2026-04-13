@@ -159,112 +159,6 @@
 }
 @keyframes agSpin { to { transform:rotate(360deg); } }
 
-/* ─── Slide-over overlay ─────────────────────────── */
-.ag-overlay {
-  position:fixed; inset:0; background:rgba(0,0,0,.55);
-  z-index:399; opacity:0; pointer-events:none; transition:opacity .25s;
-}
-.ag-overlay.open { opacity:1; pointer-events:all; }
-
-/* ─── Slide-over panel ───────────────────────────── */
-.ag-drawer {
-  position:fixed; top:0; right:0; bottom:0; width:min(460px,100vw);
-  background:#0f111a; border-left:1px solid #1a2035;
-  z-index:400; display:flex; flex-direction:column;
-  transform:translateX(100%); transition:transform .28s cubic-bezier(.4,0,.2,1);
-  overflow:hidden;
-}
-.ag-drawer.open { transform:translateX(0); }
-
-.ag-drawer-head {
-  display:flex; align-items:center; justify-content:space-between;
-  padding:1.1rem 1.5rem; border-bottom:1px solid #1a2035; flex-shrink:0;
-}
-.ag-drawer-title { font-size:1rem; font-weight:800; color:#f1f5f9; }
-.ag-drawer-close {
-  display:flex; align-items:center; justify-content:center;
-  width:2rem; height:2rem; border-radius:.5rem; border:1px solid #1e2740;
-  background:transparent; color:#6b7280; cursor:pointer; transition:all .15s;
-}
-.ag-drawer-close:hover { border-color:#ef4444; color:#ef4444; background:rgba(239,68,68,.08); }
-.ag-drawer-close svg { width:1rem; height:1rem; }
-
-.ag-drawer-body { flex:1; overflow-y:auto; padding:1.5rem; }
-.ag-drawer-body::-webkit-scrollbar { width:4px; }
-.ag-drawer-body::-webkit-scrollbar-thumb { background:#1e2740; border-radius:4px; }
-
-/* ─── Form elements inside drawer ────────────────── */
-.df { display:flex; flex-direction:column; gap:.45rem; margin-bottom:1.1rem; }
-.df-label { font-size:.8rem; font-weight:700; color:#d1d5db; }
-.df-input, .df-select {
-  background:#070a10; border:1px solid #1e2740; border-radius:.625rem;
-  padding:.75rem .9rem; color:#f1f5f9; font-size:.88rem; font-family:inherit;
-  outline:none; transition:border-color .2s; width:100%; box-sizing:border-box;
-}
-.df-input:focus, .df-select:focus { border-color:#3b82f6; }
-.df-hint { font-size:.72rem; color:#6b7280; }
-
-/* Hour chips in drawer */
-.dc-chips { display:flex; flex-wrap:wrap; gap:.35rem; }
-.dc-chip {
-  padding:.3rem .6rem; font-size:.75rem; font-weight:600;
-  border:1px solid #1e2740; border-radius:.4rem; cursor:pointer;
-  background:#070a10; color:#9ca3af; user-select:none; transition:all .12s;
-}
-.dc-chip.sel { background:linear-gradient(135deg,#2563eb,#06b6d4); color:#fff; border-color:transparent; }
-.dc-chip:hover:not(.sel) { border-color:rgba(59,130,246,.5); color:#60a5fa; }
-
-/* Shift quick-fill row */
-.dc-qrow { display:flex; gap:.4rem; flex-wrap:wrap; margin-bottom:.5rem; }
-.dc-qbtn {
-  font-size:.72rem; font-weight:600; padding:.28rem .6rem; border-radius:.4rem;
-  border:1px solid #1e2740; background:#070a10; color:#9ca3af; cursor:pointer; transition:all .15s;
-}
-.dc-qbtn:hover { border-color:rgba(59,130,246,.4); color:#60a5fa; }
-
-/* Pricing inside drawer */
-.dc-price-box {
-  border:1px solid #1e2740; border-radius:.75rem; padding:1rem;
-  background:rgba(59,130,246,.02); margin-bottom:1.1rem;
-}
-.dc-price-title { font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:#4b5563; margin-bottom:.75rem; }
-.dc-radio-row { display:flex; flex-direction:column; gap:.5rem; margin-bottom:0; }
-.dc-radio-row label { display:flex; align-items:center; gap:.5rem; font-size:.82rem; font-weight:600; color:#d1d5db; cursor:pointer; }
-.dc-ajuste-fields { margin-top:.8rem; display:flex; flex-direction:column; gap:.7rem; }
-
-/* Alert + save in drawer */
-.dc-alert {
-  border-radius:.625rem; padding:.6rem .85rem; font-size:.78rem;
-  display:none; margin-bottom:.9rem;
-}
-.dc-alert.show { display:flex; align-items:center; gap:.4rem; }
-.dc-alert.ok   { background:rgba(34,197,94,.1); border:1px solid rgba(34,197,94,.3); color:#4ade80; }
-.dc-alert.err  { background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.3); color:#f87171; }
-.dc-save {
-  width:100%; padding:.875rem; border:none; border-radius:.875rem; cursor:pointer;
-  background:linear-gradient(135deg,#2563eb,#06b6d4);
-  color:#fff; font-size:.95rem; font-weight:800;
-  box-shadow:0 4px 18px rgba(37,99,235,.3); transition:transform .15s, box-shadow .15s;
-}
-.dc-save:hover { transform:translateY(-1px); box-shadow:0 8px 28px rgba(6,182,212,.35); }
-.dc-save:disabled { opacity:.45; transform:none; cursor:not-allowed; }
-
-/* ─── Date tags for multi-date picker ────────────── */
-.dc-date-tags { display:flex; flex-wrap:wrap; gap:.3rem; margin-top:.4rem; }
-.dc-date-tag {
-  display:inline-flex; align-items:center; gap:.3rem;
-  font-size:.72rem; font-weight:600; padding:.2rem .5rem .2rem .65rem;
-  border-radius:99px; background:rgba(59,130,246,.1); color:#60a5fa;
-  border:1px solid rgba(59,130,246,.25);
-}
-.dc-date-tag button {
-  display:inline-flex; align-items:center; justify-content:center;
-  width:1rem; height:1rem; border-radius:50%; border:none;
-  background:rgba(59,130,246,.2); color:#60a5fa; cursor:pointer; font-size:.75rem; padding:0;
-  transition:background .12s;
-}
-.dc-date-tag button:hover { background:rgba(239,68,68,.25); color:#f87171; }
-
 /* ─── Inline slot action bar ─────────────────────── */
 .ag-slot-actions {
   display:none; position:absolute; bottom:0; left:0; right:0;
@@ -281,30 +175,10 @@
 .ag-action-del:hover { background:rgba(239,68,68,.18); }
 .ag-action-del svg { width:.75rem; height:.75rem; }
 
-/* ─── Flatpickr dark theme ───────────────────────── */
-.flatpickr-calendar {
-  background:#0f111a !important; border:1px solid #1a2035 !important;
-  border-radius:.875rem !important; box-shadow:0 12px 40px rgba(0,0,0,.5) !important; font-family:inherit !important;
-}
-.flatpickr-day { color:#f1f5f9 !important; border-radius:.4rem !important; }
-.flatpickr-day:hover:not(.selected) { background:#1a2035 !important; }
-.flatpickr-day.selected, .flatpickr-day.selected:hover {
-  background:linear-gradient(135deg,#2563eb,#06b6d4) !important; border-color:transparent !important; color:#fff !important;
-}
-.flatpickr-day.today:not(.selected) { border-color:#3b82f6 !important; color:#60a5fa !important; font-weight:800; }
-.flatpickr-day.prevMonthDay, .flatpickr-day.nextMonthDay { opacity:.25 !important; }
-.flatpickr-months .flatpickr-month, .flatpickr-current-month .cur-month,
-.flatpickr-current-month input.cur-year, span.flatpickr-weekday { color:#f1f5f9 !important; background:transparent !important; }
-.flatpickr-prev-month svg, .flatpickr-next-month svg { fill:#f1f5f9 !important; }
-.flatpickr-prev-month:hover svg, .flatpickr-next-month:hover svg { fill:#3b82f6 !important; }
-.flatpickr-weekdays { background:transparent !important; }
 </style>
 {% endblock %}
 
 {% block content %}
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pt.js"></script>
-
 <div class="ag">
 
   <!-- ── Page header ── -->
@@ -313,12 +187,12 @@
       <h1>Gestão de Agenda</h1>
       <p>Gerencie disponibilidade e acompanhe agendamentos em tempo real.</p>
     </div>
-    <button class="ag-btn-new" id="agBtnNew" type="button">
+    <a href="{{ url_for('clinic.cadastrar_disponibilidade') }}" class="ag-btn-new">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
       </svg>
       Cadastrar Disponibilidade
-    </button>
+    </a>
   </div>
 
   <!-- ── Filter bar ── -->
@@ -383,91 +257,6 @@
   </div>
 
 </div>
-
-<!-- ── Overlay ── -->
-<div class="ag-overlay" id="agOverlay"></div>
-
-<!-- ══════════ SLIDE-OVER DRAWER ══════════ -->
-<aside class="ag-drawer" id="agDrawer" aria-label="Cadastrar disponibilidade">
-  <div class="ag-drawer-head">
-    <span class="ag-drawer-title" id="drawerTitle">Cadastrar Disponibilidade</span>
-    <button class="ag-drawer-close" id="agDrawerClose" type="button" aria-label="Fechar">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-      </svg>
-    </button>
-  </div>
-
-  <div class="ag-drawer-body">
-    <div id="dcAlert" class="dc-alert"></div>
-
-    <form id="dcForm" autocomplete="off">
-      <!-- Service -->
-      <div class="df">
-        <label class="df-label" for="dcSvc">Serviço / Anúncio <span style="color:#ef4444">*</span></label>
-        <select class="df-select" id="dcSvc" name="service_id" required>
-          <option value="">— Selecione —</option>
-          {% for svc in services %}
-          <option value="{{ svc.id }}" data-preco="{{ svc.price }}">{{ svc.title }}{% if svc.doctor_name %} · {{ svc.doctor_name }}{% endif %}</option>
-          {% endfor %}
-        </select>
-      </div>
-
-      <!-- Dates -->
-      <div class="df">
-        <label class="df-label" for="dcDateInput">
-          Datas
-          <span id="dcDateBadge" style="display:none;font-size:.66rem;font-weight:700;padding:.1rem .45rem;border-radius:99px;background:rgba(59,130,246,.12);color:#60a5fa;margin-left:.35rem;"></span>
-        </label>
-        <input type="text" id="dcDateInput" class="df-input" placeholder="Clique para selecionar datas…" readonly/>
-        <input type="hidden" name="datas" id="dcDatasHidden"/>
-        <div id="dcDateTags" class="dc-date-tags"></div>
-      </div>
-
-      <!-- Hours -->
-      <div class="df">
-        <label class="df-label">Horários do dia</label>
-        <div class="dc-qrow">
-          <button type="button" class="dc-qbtn" id="dcQMadrugada">🌙 Madrugada</button>
-          <button type="button" class="dc-qbtn" id="dcQManha">☀️ Manhã</button>
-          <button type="button" class="dc-qbtn" id="dcQTarde">🌤️ Tarde</button>
-          <button type="button" class="dc-qbtn" id="dcQNoite">🌙 Noite</button>
-          <button type="button" class="dc-qbtn" id="dcQTodo">Tudo</button>
-          <button type="button" class="dc-qbtn" id="dcQLimpar">Limpar</button>
-        </div>
-        <div class="dc-chips" id="dcChips"></div>
-        <div id="dcHiddenHorarios"></div>
-      </div>
-
-      <!-- Pricing -->
-      <div class="dc-price-box">
-        <div class="dc-price-title">Precificação</div>
-        <div class="dc-radio-row">
-          <label><input type="radio" name="preco_tipo" value="padrao" checked> Manter Preço Padrão</label>
-          <label><input type="radio" name="preco_tipo" value="ajuste"> Aplicar Ajuste (R$)</label>
-        </div>
-        <div class="dc-ajuste-fields" id="dcAjusteWrap" style="display:none;">
-          <div class="df" style="margin-bottom:0;">
-            <label class="df-label" for="dcValorAjuste">Ajuste de valor (+acréscimo / −desconto)</label>
-            <input class="df-input" type="number" id="dcValorAjuste" name="valor_ajuste" step="0.01" placeholder="+50.00 ou -20.00"/>
-          </div>
-          <div class="df" style="margin-bottom:0;">
-            <label class="df-label" for="dcAjusteScope">Aplicar em</label>
-            <select class="df-select" id="dcAjusteScope" name="ajuste_scope">
-              <option value="todos">Todos os horários</option>
-              <option value="madrugada">Madrugada (22h–06h)</option>
-              <option value="comercial">Horário Comercial (08h–18h)</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <button type="submit" class="dc-save" id="dcSave" disabled>
-        Salvar horários
-      </button>
-    </form>
-  </div>
-</aside>
 {% endblock %}
 
 {% block extra_js %}
@@ -509,22 +298,17 @@ var elSvc    = g('agSvc');
 var elDate   = g('agDate');
 var elGrid   = g('agGrid');
 var elSumRow = g('agSummary');
-var elOverlay  = g('agOverlay');
-var elDrawer   = g('agDrawer');
-var elDcAlert  = g('dcAlert');
 
 /* ══════════════════════════════════════════
    STATE
 ══════════════════════════════════════════ */
 var _slots       = [];          // raw from API
 var _statusFilter = 'all';
-var _dcSelectedHours = new Set();
-var _dcFP; // flatpickr instance
 
 /* ══════════════════════════════════════════
    FILTER BAR LOGIC
 ══════════════════════════════════════════ */
-elSvc.addEventListener('change',  function () { loadSlots(); syncDcSvc(); });
+elSvc.addEventListener('change',  loadSlots);
 elDate.addEventListener('change', loadSlots);
 
 document.querySelectorAll('.ag-status-btn').forEach(function (btn) {
@@ -649,11 +433,11 @@ function renderGrid() {
 
   elGrid.innerHTML = html;
 
-  /* Wire click handlers */
+  /* Wire click handlers — only delete is wired; add slots via sidebar link */
   elGrid.querySelectorAll('.ag-slot.s-available').forEach(function (el) {
     el.addEventListener('click', function (e) {
       if (e.target.closest('.ag-action-del')) return;
-      openDrawer(el.dataset.time);
+      /* no-op: use 'Cadastrar Disponibilidade' in the sidebar */
     });
   });
 
@@ -692,206 +476,6 @@ function deleteSlot(id) {
     .then(function (d) { if (d.ok) loadSlots(); else alert(d.msg || 'Erro ao excluir.'); })
     .catch(function () { alert('Erro de conexão.'); });
 }
-
-/* ══════════════════════════════════════════
-   SLIDE-OVER DRAWER
-══════════════════════════════════════════ */
-g('agBtnNew').addEventListener('click', function () { openDrawer(null); });
-g('agDrawerClose').addEventListener('click', closeDrawer);
-elOverlay.addEventListener('click', closeDrawer);
-
-function openDrawer(presetTime) {
-  /* Pre-sync service to filter bar value */
-  syncDcSvc();
-  /* Pre-fill date from filter bar */
-  syncDcDate();
-  /* Pre-select the clicked time slot */
-  if (presetTime) {
-    _dcSelectedHours.clear();
-    _dcSelectedHours.add(presetTime);
-  }
-  buildDcChips();
-  syncDcSave();
-  elOverlay.classList.add('open');
-  elDrawer.classList.add('open');
-}
-
-function closeDrawer() {
-  elOverlay.classList.remove('open');
-  elDrawer.classList.remove('open');
-}
-
-/* Sync drawer service select with filter bar */
-function syncDcSvc() {
-  var svcId = elSvc.value;
-  if (svcId) g('dcSvc').value = svcId;
-}
-
-/* Sync drawer date with filter bar */
-function syncDcDate() {
-  var dateVal = elDate.value;
-  if (dateVal && _dcFP) {
-    _dcFP.setDate([new Date(dateVal + 'T00:00:00')], true);
-  }
-}
-
-/* ── Drawer flatpickr ── */
-_dcFP = flatpickr('#dcDateInput', {
-  mode: 'multiple',
-  dateFormat: 'Y-m-d',
-  minDate: 'today',
-  locale: 'pt',
-  disableMobile: true,
-  onChange: function (selectedDates) {
-    renderDcDateTags(selectedDates);
-    g('dcDatasHidden').value = selectedDates.map(function (d) {
-      return d.toISOString().slice(0, 10);
-    }).join(',');
-    syncDcSave();
-  },
-});
-
-function renderDcDateTags(dates) {
-  var container = g('dcDateTags');
-  var badge     = g('dcDateBadge');
-  container.innerHTML = '';
-  if (!dates || !dates.length) { badge.style.display = 'none'; return; }
-  badge.textContent = dates.length + ' data' + (dates.length > 1 ? 's' : '');
-  badge.style.display = 'inline';
-  dates.forEach(function (d) {
-    var iso   = d.toISOString().slice(0, 10);
-    var parts = iso.split('-');
-    var lbl   = parts[2] + '/' + parts[1] + '/' + parts[0];
-    var tag   = document.createElement('span');
-    tag.className = 'dc-date-tag';
-    tag.innerHTML = lbl;
-    var rm  = document.createElement('button');
-    rm.type = 'button'; rm.textContent = '×'; rm.title = 'Remover';
-    rm.setAttribute('data-iso', iso);
-    rm.addEventListener('click', function () {
-      var remaining = _dcFP.selectedDates.filter(function (x) {
-        return x.toISOString().slice(0, 10) !== iso;
-      });
-      _dcFP.setDate(remaining, true);
-    });
-    tag.appendChild(rm);
-    container.appendChild(tag);
-  });
-}
-
-/* ── Hour chips in drawer ── */
-var MADRUGADA_T = ALL_TIMES.filter(function (t){ var h=parseInt(t,10); return h>=0 && h<6; });
-var MANHA_T     = ALL_TIMES.filter(function (t){ var h=parseInt(t,10); return h>=6 && h<12; });
-var TARDE_T     = ALL_TIMES.filter(function (t){ var h=parseInt(t,10); return h>=12 && h<18; });
-var NOITE_T     = ALL_TIMES.filter(function (t){ var h=parseInt(t,10); return h>=18; });
-
-function buildDcChips() {
-  var container  = g('dcChips');
-  var hiddenWrap = g('dcHiddenHorarios');
-  container.innerHTML  = '';
-  hiddenWrap.innerHTML = '';
-  var lastSh = null;
-  ALL_TIMES.forEach(function (t) {
-    var sh = _shift(t);
-    if (sh !== lastSh) {
-      lastSh = sh;
-      var lbl = document.createElement('div');
-      lbl.style.cssText = 'width:100%;font-size:.66rem;font-weight:700;color:#4b5563;text-transform:uppercase;letter-spacing:.05em;margin:.4rem 0 .1rem;';
-      lbl.textContent = SHIFTS[sh].label;
-      container.appendChild(lbl);
-    }
-    var chip = document.createElement('span');
-    chip.className = 'dc-chip' + (_dcSelectedHours.has(t) ? ' sel' : '');
-    chip.textContent = t;
-    chip.addEventListener('click', function () {
-      if (_dcSelectedHours.has(t)) _dcSelectedHours.delete(t); else _dcSelectedHours.add(t);
-      buildDcChips(); syncDcSave();
-    });
-    container.appendChild(chip);
-    if (_dcSelectedHours.has(t)) {
-      var inp = document.createElement('input');
-      inp.type = 'hidden'; inp.name = 'horarios'; inp.value = t;
-      hiddenWrap.appendChild(inp);
-    }
-  });
-  lastSh = null;
-}
-
-g('dcQMadrugada').addEventListener('click', function () {
-  MADRUGADA_T.forEach(function (t) { _dcSelectedHours.add(t); }); buildDcChips(); syncDcSave();
-});
-g('dcQManha').addEventListener('click', function () {
-  MANHA_T.forEach(function (t) { _dcSelectedHours.add(t); }); buildDcChips(); syncDcSave();
-});
-g('dcQTarde').addEventListener('click', function () {
-  TARDE_T.forEach(function (t) { _dcSelectedHours.add(t); }); buildDcChips(); syncDcSave();
-});
-g('dcQNoite').addEventListener('click', function () {
-  NOITE_T.forEach(function (t) { _dcSelectedHours.add(t); }); buildDcChips(); syncDcSave();
-});
-g('dcQTodo').addEventListener('click', function () {
-  ALL_TIMES.forEach(function (t) { _dcSelectedHours.add(t); }); buildDcChips(); syncDcSave();
-});
-g('dcQLimpar').addEventListener('click', function () {
-  _dcSelectedHours.clear(); buildDcChips(); syncDcSave();
-});
-
-/* ── Pricing toggle ── */
-document.querySelectorAll('#dcForm input[name="preco_tipo"]').forEach(function (r) {
-  r.addEventListener('change', function () {
-    g('dcAjusteWrap').style.display = r.value === 'ajuste' ? '' : 'none';
-  });
-});
-
-/* ── Save gate ── */
-function syncDcSave() {
-  var hasSvc   = !!g('dcSvc').value;
-  var hasDates = !!g('dcDatasHidden').value;
-  var hasHours = _dcSelectedHours.size > 0;
-  g('dcSave').disabled = !(hasSvc && hasDates && hasHours);
-}
-
-g('dcSvc').addEventListener('change', syncDcSave);
-
-/* ── Form submit ── */
-g('dcForm').addEventListener('submit', function (e) {
-  e.preventDefault();
-  showDcAlert('', '');
-  var btn = g('dcSave');
-  btn.disabled = true; btn.textContent = 'Salvando…';
-  var fd = new FormData(this);
-  fetch('/clinica/agenda/salvar', { method: 'POST', body: fd })
-    .then(function (r) { return r.json(); })
-    .then(function (d) {
-      if (d.ok) {
-        showDcAlert((d.salvos || 0) + ' horário(s) criado(s) com sucesso!', 'ok');
-        _dcSelectedHours.clear();
-        buildDcChips();
-        _dcFP.clear();
-        g('dcDatasHidden').value = '';
-        syncDcSave();
-        setTimeout(closeDrawer, 1200);
-        loadSlots();
-      } else {
-        showDcAlert(d.msg || 'Erro ao salvar.', 'err');
-        btn.disabled = false; btn.textContent = 'Salvar horários';
-      }
-    })
-    .catch(function () {
-      showDcAlert('Erro de conexão.', 'err');
-      btn.disabled = false; btn.textContent = 'Salvar horários';
-    });
-});
-
-function showDcAlert(msg, type) {
-  if (!msg) { elDcAlert.className = 'dc-alert'; return; }
-  elDcAlert.className = 'dc-alert show ' + type;
-  elDcAlert.textContent = msg;
-  if (type === 'err') setTimeout(function () { elDcAlert.className = 'dc-alert'; }, 5000);
-}
-
-/* ── Initial chip build ── */
-buildDcChips();
 
 /* ── Kick-off if service pre-selected ── */
 if (elSvc.options.length === 2) {

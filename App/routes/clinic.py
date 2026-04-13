@@ -640,6 +640,20 @@ def agenda():
     )
 
 
+@clinic_bp.route("/cadastrar-disponibilidade", methods=["GET"])
+@login_required_clinic
+def cadastrar_disponibilidade():
+    """Dedicated full-page form to register new availability slots."""
+    user     = _session_clinic()
+    services = ClinicService.query.filter_by(clinic_id=user.id, active=True).all()
+    return render_template(
+        "clinic/cadastrar_disponibilidade.html",
+        clinic=user,
+        services=services,
+        now_date=date.today().isoformat(),
+    )
+
+
 @clinic_bp.route("/agenda/salvar", methods=["POST"])
 @login_required_clinic
 def salvar_disponibilidade():
