@@ -1,12 +1,14 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% block title %}MedMarket — Vitrine Médica{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/vitrine.css') }}" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 {% endblock %}
 
 {% block content %}
+
 <!-- ── CATEGORY BAR ── -->
 <nav class="category-bar">
   <div class="container category-inner">
@@ -14,7 +16,7 @@
       <i data-lucide="layout-grid"></i><span>Todos</span>
     </a>
     {% for cat in categories %}
-    <a href="/?category={{ cat.name }}{% if query %}&q={{ query }}{% endif %}"
+    <a href="/?specialty={{ cat.name | urlencode }}{% if query %}&q={{ query | urlencode }}{% endif %}{% if location %}&location={{ location | urlencode }}{% endif %}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}{% if fair_price %}&fair_price={{ fair_price }}{% endif %}"
        class="category-item {% if selected_category == cat.name %}active{% endif %}">
       <i data-lucide="{{ cat.icon }}"></i><span>{{ cat.name }}</span>
     </a>
@@ -22,8 +24,169 @@
   </div>
 </nav>
 
-<!-- ── HERO CAROUSEL ── -->
-{% if banner_listings and not query and not selected_category %}
+<!-- ── SEARCH OVERLAY ── -->
+<div class="airbnb-overlay" id="searchOverlay"></div>
+
+<!-- ── AIRBNB-STYLE SEARCH BAR ── -->
+<section class="search-stage">
+  <div class="container ab-panels-wrap">
+
+    <!-- Pill bar -->
+    <div class="ab-bar" id="abBar">
+
+      <!-- Onde -->
+      <div class="ab-seg" data-seg="onde">
+        <div class="ab-seg-inner">
+          <span class="ab-seg-label">Onde</span>
+          <span class="ab-seg-val {% if not location %}ab-seg-val--placeholder{% endif %}" id="valOnde">
+            {{- location or 'Buscar localização' -}}
+          </span>
+        </div>
+      </div>
+
+      <div class="ab-divider"></div>
+
+      <!-- De -->
+      <div class="ab-seg" data-seg="checkin">
+        <div class="ab-seg-inner">
+          <span class="ab-seg-label">De</span>
+          <span class="ab-seg-val {% if not start_date %}ab-seg-val--placeholder{% endif %}" id="valCheckin">
+            {{- start_date or 'Adicionar data' -}}
+          </span>
+          <span class="ab-seg-caption">Seu intervalo disponível</span>
+        </div>
+      </div>
+
+      <div class="ab-divider"></div>
+
+      <!-- Até -->
+      <div class="ab-seg" data-seg="checkout">
+        <div class="ab-seg-inner">
+          <span class="ab-seg-label">Até</span>
+          <span class="ab-seg-val {% if not end_date %}ab-seg-val--placeholder{% endif %}" id="valCheckout">
+            {{- end_date or 'Adicionar data' -}}
+          </span>
+          <span class="ab-seg-caption">Seu intervalo disponível</span>
+        </div>
+      </div>
+
+      <div class="ab-divider"></div>
+
+      <!-- Especialidade -->
+      <div class="ab-seg" data-seg="spec">
+        <div class="ab-seg-inner">
+          <span class="ab-seg-label">Especialidade</span>
+          <span class="ab-seg-val {% if not selected_category %}ab-seg-val--placeholder{% endif %}" id="valSpec">
+            {{- selected_category or 'Adicionar especialidade' -}}
+          </span>
+        </div>
+      </div>
+
+      <div class="ab-divider"></div>
+
+      <!-- Preço + botão -->
+      <div class="ab-seg ab-seg--price" data-seg="preco">
+        <div class="ab-seg-inner">
+          <span class="ab-seg-label">Preço <span class="ab-opt">Opcional</span></span>
+          <span class="ab-seg-val {% if not fair_price %}ab-seg-val--muted{% endif %}" id="valPreco">
+            {%- if fair_price %}R$ {{ fair_price }}{%- else %}Preço justo?{%- endif %}
+          </span>
+        </div>
+        <button type="submit" form="abForm" class="ab-submit" aria-label="Buscar">
+          <i data-lucide="search"></i>
+          <span>Buscar</span>
+        </button>
+      </div>
+
+    </div><!-- /ab-bar -->
+
+    <!-- Hidden real form -->
+    <form id="abForm" action="/" method="get" style="display:none;">
+      <input type="hidden" name="location"   id="hidLocation"   value="{{ location }}">
+      <input type="hidden" name="start_date" id="hidStartDate"  value="{{ start_date }}">
+      <input type="hidden" name="end_date"   id="hidEndDate"    value="{{ end_date }}">
+      <input type="hidden" name="specialty"  id="hidSpecialty"  value="{{ selected_category }}">
+      <input type="hidden" name="fair_price" id="hidFairPrice"  value="{{ fair_price }}">
+    </form>
+
+    <!-- Panel: Onde -->
+    <div class="ab-panel" id="panelOnde">
+      <label class="ab-panel-label">
+        <i data-lucide="map-pin" style="width:.78rem;height:.78rem;"></i> Escolha a cidade
+      </label>
+      <div class="ab-city-grid">
+        {% for city in cities %}
+        <button type="button" class="ab-city-btn {% if location == city %}ab-city-btn--active{% endif %}" data-val="{{ city }}">
+          <i data-lucide="map-pin" style="width:.78rem;height:.78rem;flex-shrink:0;"></i>
+          <span>{{ city }}</span>
+        </button>
+        {% endfor %}
+      </div>
+      <div class="ab-city-divider">Ou digite livremente</div>
+      <input type="text" class="ab-panel-input" id="inputLocation"
+             placeholder="Ex: Campinas, SP"
+             value="{{ location }}" autocomplete="off">
+    </div>
+
+    <!-- Panel: Calendário unificado De + Até -->
+    <div class="ab-panel ab-panel--cal" id="panelCal">
+      <div class="ab-cal-top">
+        <div class="ab-cal-fields">
+          <div class="ab-cal-field-item" id="calFocusStart">
+            <span class="ab-cal-field-label">De</span>
+            <span class="ab-cal-field-val {% if not start_date %}ab-cal-field-val--placeholder{% endif %}" id="calDispStart">{{- start_date or 'Adicionar data' -}}</span>
+          </div>
+          <i data-lucide="arrow-right" style="color:#3d5468;width:.85rem;height:.85rem;flex-shrink:0;"></i>
+          <div class="ab-cal-field-item" id="calFocusEnd">
+            <span class="ab-cal-field-label">Até</span>
+            <span class="ab-cal-field-val {% if not end_date %}ab-cal-field-val--placeholder{% endif %}" id="calDispEnd">{{- end_date or 'Adicionar data' -}}</span>
+          </div>
+        </div>
+        <button type="button" class="ab-cal-clear-btn" id="calClearBtn">Limpar</button>
+      </div>
+      <div class="ab-cal-nav-row">
+        <button type="button" class="ab-cal-nav" id="calPrev">&#8249;</button>
+        <div class="ab-cal-months" id="calMonths"><!-- preenchido por JS --></div>
+        <button type="button" class="ab-cal-nav" id="calNext">&#8250;</button>
+      </div>
+    </div>
+
+    <!-- Panel: Especialidade -->
+    <div class="ab-panel ab-panel--wide" id="panelSpec">
+      <label class="ab-panel-label">
+        <i data-lucide="stethoscope" style="width:.78rem;height:.78rem;"></i> Especialidade médica
+      </label>
+      <div class="ab-spec-grid">
+        <button type="button" class="ab-spec-btn {% if not selected_category %}ab-spec-btn--active{% endif %}" data-val="">
+          <i data-lucide="layout-grid"></i><span>Todas</span>
+        </button>
+        {% for cat in categories %}
+        <button type="button" class="ab-spec-btn {% if selected_category == cat.name %}ab-spec-btn--active{% endif %}" data-val="{{ cat.name }}">
+          <i data-lucide="{{ cat.icon }}"></i><span>{{ cat.name }}</span>
+        </button>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Panel: Preço -->
+    <div class="ab-panel ab-panel--right" id="panelPreco">
+      <label class="ab-panel-label">
+        <i data-lucide="wallet" style="width:.78rem;height:.78rem;"></i>
+        Preço justo <span class="ab-opt">Opcional</span>
+      </label>
+      <p class="ab-panel-hint">Informe um orçamento e ordenaremos os resultados pela melhor aderência ao seu preço.</p>
+      <div class="ab-price-wrap">
+        <span class="ab-price-prefix">R$</span>
+        <input type="number" class="ab-panel-input ab-panel-input--price" id="inputFairPrice"
+               min="0" step="10" placeholder="0" value="{{ fair_price }}">
+      </div>
+    </div>
+
+  </div><!-- /container -->
+</section>
+
+<!-- ── HERO CAROUSEL (somente sem filtros ativos) ── -->
+{% if banner_listings and not has_filters %}
 <section class="hero-carousel-section">
   <div class="container">
     <div class="swiper hero-swiper">
@@ -70,120 +233,169 @@
 </section>
 {% endif %}
 
-<!-- ── VITRINE ── -->
-<div class="vitrine-wrap">
+<!-- map data for JS (avoids Jinja2 inside script parse errors) -->
+<script type="application/json" id="mapDataJson">{{ map_points | tojson }}</script>
 
-  <!-- Clínicas Parceiras strip -->
-  {% if partners and not query and not selected_category %}
-  <div class="partners-strip">
-    <div class="partners-label">
-      <i data-lucide="building-2" style="width:.75rem;height:.75rem;color:var(--primary);"></i>
-      Clínicas Parceiras
+<!-- ── RESULTS ── -->
+<div class="search-layout {% if query or selected_category or location or fair_price or (start_date and end_date) %}search-layout--explore{% endif %}">
+
+  <!-- LEFT: results column (60%) -->
+  <div class="results-column">
+
+    <!-- Results header -->
+    <div class="vitrine-hdr">
+      <div style="display:flex;align-items:center;gap:.55rem;">
+        <span id="resultsCount" class="vitrine-count">{{ listings | length }}</span>
+        <span style="font-size:.83rem;color:#94a3b8;">
+          anúncio{{ 's' if listings|length != 1 else '' }}
+          {%- if selected_category %} em <strong style="color:#f8fafc;">{{ selected_category }}</strong>
+          {%- elif query %} para <strong style="color:#f8fafc;">"{{ query }}"</strong>
+          {%- elif location %} em <strong style="color:#f8fafc;">{{ location }}</strong>
+          {%- else %} em destaque{%- endif %}
+          {%- if start_date and end_date %} · <span style="color:#f8fafc;">{{ start_date }} → {{ end_date }}</span>{%- endif %}
+          {%- if fair_price %} · próx. <span style="color:#3b82f6;">R$ {{ fair_price }}</span>{%- endif %}
+        </span>
+      </div>
+      <div style="display:flex;align-items:center;gap:.55rem;">
+        {% if has_filters %}
+        <a href="/" class="btn btn-ghost btn-sm gap-2" style="font-size:.74rem;">
+          <i data-lucide="x" style="width:.7rem;height:.7rem;"></i>Limpar
+        </a>
+        {% endif %}
+        <select id="sortOrder" class="vsb-select" style="width:auto;padding:.32rem .7rem;font-size:.78rem;background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:6px;" onchange="sortCards()">
+          <option value="default">{% if fair_price %}Melhor aderência{% else %}Mais recentes{% endif %}</option>
+          <option value="price-asc">Menor preço</option>
+          <option value="price-desc">Maior preço</option>
+          <option value="name-asc">A–Z</option>
+        </select>
+      </div>
     </div>
-    <div class="partners-scroll">
-      {% for pu, sc in partners %}
-      {%- set pname = pu.clinic_profile.razao_social if pu.clinic_profile else pu.name -%}
-      <a href="/?q={{ pname | urlencode }}" class="partner-chip">
-        <div class="partner-av">{{ pname[0] | upper }}</div>
-        <div>
-          <div style="font-size:.7rem;font-weight:700;line-height:1.2;white-space:nowrap;">
-            {{ pname | truncate(18, true, '…') }}
+
+    {% if listings %}
+    <div class="vm-grid" id="vmGrid">
+      {% for listing in listings %}
+      {%- set cname = listing.clinic.clinic_profile.razao_social if listing.clinic.clinic_profile else listing.clinic.name -%}
+      {%- set shown_price = listing.display_price if listing.display_price is defined else listing.price -%}
+      {%- set score = listing.reco_score if listing.reco_score is defined else 0 -%}
+      <a href="/listing/{{ listing.id }}" class="doctor-card fade-in"
+         data-price="{{ shown_price | int }}"
+         data-cat="{{ listing.specialty | lower | e }}"
+         data-title="{{ listing.title | lower | e }}"
+         data-score="{{ score }}"
+         data-delay="{{ loop.index0 }}">
+
+        <div class="card-img-wrap">
+          <img class="card-img"
+               src="{% if listing.imagem_url %}{{ url_for('static', filename=listing.imagem_url) }}{% else %}https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=480&h=320&fit=crop{% endif %}"
+               alt="{{ listing.title | e }}" loading="lazy">
+          <span class="card-category-pill">{{ listing.specialty or 'Serviço' }}</span>
+        </div>
+
+        <div class="card-content">
+          <h3 class="card-title">{{ listing.title }}</h3>
+          <div class="card-clinic-row">
+            <span class="card-clinic-name">{{ cname | truncate(28, true, '…') }}</span>
           </div>
-          <div style="font-size:.62rem;color:var(--muted);">
-            {{ sc }} serviço{{ 's' if sc != 1 else '' }}
+          <div class="card-stars-row">
+            {%- if listing.real_review_count is defined and listing.real_review_count > 0 -%}
+              {%- set rating_val = listing.real_avg_rating -%}
+              {%- for i in range(1, 6) -%}
+                {%- if i <= (rating_val | int) -%}
+                <i data-lucide="star" class="card-star card-star--filled"></i>
+                {%- else -%}
+                <i data-lucide="star" class="card-star card-star--empty"></i>
+                {%- endif -%}
+              {%- endfor -%}
+              <span class="card-rating-value">{{ rating_val }}</span>
+              <span class="card-review-count">({{ listing.real_review_count }})</span>
+            {%- else -%}
+              <span class="card-rating-new">Novo</span>
+            {%- endif -%}
+          </div>
+          {% if listing.doctor_name %}
+          <div class="card-doctor">
+            <i data-lucide="user-round" style="width:.65rem;height:.65rem;flex-shrink:0;"></i>
+            {{ listing.doctor_name }}
+          </div>
+          {% endif %}
+          {% if listing.tempo_resultado or listing.preparacao %}
+          <div class="card-exam-badges">
+            {% if listing.tempo_resultado %}
+            <span class="card-exam-badge">
+              <i data-lucide="clock" style="width:.55rem;height:.55rem;"></i>
+              {{ listing.tempo_resultado }}
+            </span>
+            {% endif %}
+            {% if listing.preparacao %}
+            <span class="card-exam-badge card-exam-badge--prep">
+              <i data-lucide="clipboard-list" style="width:.55rem;height:.55rem;"></i>
+              Preparo
+            </span>
+            {% endif %}
+          </div>
+          {% endif %}
+          <div class="card-footer">
+            <span class="card-price">R$ {{ "{:,.0f}".format(shown_price).replace(",", ".") }}</span>
+            <span class="card-agendar">
+              <i data-lucide="calendar-check" style="width:.65rem;height:.65rem;"></i>
+              Agendar
+            </span>
           </div>
         </div>
       </a>
       {% endfor %}
     </div>
-  </div>
-  {% endif %}
 
-  <!-- Results header -->
-  <div class="vitrine-hdr">
-    <div style="display:flex;align-items:center;gap:.55rem;">
-      <span id="resultsCount" class="vitrine-count">{{ listings | length }}</span>
-      <span style="font-size:.83rem;color:var(--muted);">
-        anúncio{{ 's' if listings|length != 1 else '' }}
-        {%- if selected_category %} em <strong style="color:var(--fg);">{{ selected_category }}</strong>
-        {%- elif query %} para <strong style="color:var(--fg);">"{{ query }}"</strong>
-        {%- else %} em destaque{%- endif %}
-      </span>
+    {% else %}
+    <div class="vm-empty-state">
+      <i data-lucide="search-x" style="width:2.8rem;height:2.8rem;opacity:.25;display:block;margin:0 auto .9rem;"></i>
+      {% if location and (start_date or end_date) %}
+      <p style="font-size:.92rem;font-weight:600;">Nenhum médico disponível nesta região para estas datas.</p>
+      <p style="font-size:.78rem;color:#94a3b8;margin-top:.4rem;line-height:1.6;">Tente ajustar as datas ou selecionar outra cidade.</p>
+      {% elif location %}
+      <p style="font-size:.92rem;font-weight:600;">Nenhum serviço encontrado em <strong style="color:#f8fafc;">{{ location }}</strong>.</p>
+      <p style="font-size:.78rem;color:#94a3b8;margin-top:.4rem;">Verifique o nome da cidade ou tente outra localização.</p>
+      {% elif selected_category %}
+      <p style="font-size:.92rem;font-weight:600;">Nenhum anúncio de <strong style="color:#f8fafc;">{{ selected_category }}</strong> encontrado.</p>
+      <p style="font-size:.78rem;color:#94a3b8;margin-top:.4rem;">Ainda não há serviços nessa especialidade cadastrados.</p>
+      {% elif fair_price %}
+      <p style="font-size:.92rem;font-weight:600;">Nenhum serviço disponível até R$ {{ fair_price }}.</p>
+      <p style="font-size:.78rem;color:#94a3b8;margin-top:.4rem;">Tente aumentar o orçamento ou ajustar os filtros.</p>
+      {% else %}
+      <p style="font-size:.92rem;font-weight:600;">Nenhum anúncio encontrado.</p>
+      {% endif %}
+      <a href="/" class="btn btn-outline btn-sm" style="margin-top:1.1rem;">Ver todos</a>
     </div>
-    <select id="sortOrder" class="vsb-select" style="width:auto;padding:.32rem .7rem;font-size:.78rem;" onchange="sortCards()">
-      <option value="default">Mais recentes</option>
-      <option value="price-asc">Menor preço</option>
-      <option value="price-desc">Maior preço</option>
-      <option value="name-asc">A–Z</option>
-    </select>
-  </div>
+    {% endif %}
 
-  <!-- Grid de Cards -->
-  {% if listings %}
-  <div class="vm-grid" id="vmGrid">
-    {% for listing in listings %}
-    {%- set cname = listing.clinic.clinic_profile.razao_social if listing.clinic.clinic_profile else listing.clinic.name -%}
-    <a href="/listing/{{ listing.id }}" class="vm-card fade-in"
-       data-price="{{ listing.price | int }}"
-       data-cat="{{ listing.specialty | lower | e }}"
-       data-title="{{ listing.title | lower | e }}"
-       data-delay="{{ loop.index0 }}">
+  </div><!-- /results-column -->
 
-      <!-- Imagem -->
-      <div class="vm-img-wrap">
-        <img class="vm-img"
-             src="{% if listing.imagem_url %}{{ url_for('static', filename=listing.imagem_url) }}{% else %}https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=480&h=320&fit=crop{% endif %}"
-             alt="{{ listing.title | e }}" loading="lazy">
-        <span class="vm-badge-cat">{{ listing.specialty or 'Serviço' }}</span>
-        {% if listing.active %}
-        <span class="vm-badge-status">Ativo</span>
-        {% endif %}
-        <div class="vm-overlay">
-          <div class="vm-overlay-btn">
-            <i data-lucide="calendar-plus" style="width:1rem;height:1rem;"></i>
-          </div>
-        </div>
-      </div>
-
-      <!-- Corpo -->
-      <div class="vm-body">
-        <div class="vm-clinic-row">
-          <div class="vm-av">{{ (cname or 'M')[0] | upper }}</div>
-          <span class="vm-clinic-nm" title="{{ cname | e }}">{{ cname | truncate(22, true, '…') }}</span>
-        </div>
-        <h3 class="vm-card-title">{{ listing.title }}</h3>
-        {% if listing.doctor_name %}
-        <div class="vm-doctor">
-          <i data-lucide="user-round" style="width:.68rem;height:.68rem;flex-shrink:0;"></i>
-          {{ listing.doctor_name }}
-        </div>
-        {% endif %}
-        <div class="vm-footer">
-          <span class="vm-price">R$&nbsp;{{ "{:,.0f}".format(listing.price).replace(",", ".") }}</span>
-          <span class="vm-cta-hint">
-            <i data-lucide="calendar-check" style="width:.65rem;height:.65rem;"></i>
-            Agendar
-          </span>
-        </div>
-      </div>
-    </a>
-    {% endfor %}
-  </div>
-
-  {% else %}
-  <div class="vm-empty-state">
-    <i data-lucide="search-x" style="width:2.5rem;height:2.5rem;opacity:.3;display:block;margin:0 auto .75rem;"></i>
-    <p style="font-size:.88rem;">Nenhum anúncio encontrado.</p>
-    <a href="/" class="btn btn-outline btn-sm mt-4">Ver todos</a>
+  {% if query or selected_category or location or fair_price or (start_date and end_date) %}
+  <!-- RIGHT: map column (40%) — only in explore mode -->
+  <div class="map-column" id="ctMapPanel">
+    <div class="ct-map-head">
+      <i data-lucide="map-pin" style="width:.8rem;height:.8rem;"></i>
+      <span>Mapa de preços</span>
+    </div>
+    <div id="resultsMap" class="ct-map-canvas"></div>
   </div>
   {% endif %}
 
-</div><!-- /vitrine-wrap -->
+</div><!-- /search-layout -->
+
+{% if listings and (query or selected_category or location or fair_price or (start_date and end_date)) %}
+<button class="map-toggle-btn" id="mapToggleBtn">
+  <i data-lucide="map" style="width:.9rem;height:.9rem;"></i>
+  <span id="mapToggleLbl">Exibir Mapa</span>
+</button>
+{% endif %}
 
 <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function () {
-  /* ── Swiper Hero Carousel ── */
+
+  /* ── Swiper Hero ── */
   if (document.querySelector('.hero-swiper')) {
     new Swiper('.hero-swiper', {
       loop: true,
@@ -200,9 +412,9 @@
     var grid  = document.getElementById('vmGrid');
     if (!grid) return;
     var sort  = document.getElementById('sortOrder').value;
-    var cards = Array.from(grid.querySelectorAll('.vm-card'));
+    var cards = Array.from(grid.querySelectorAll('.doctor-card'));
     if (sort === 'default') {
-      cards.sort(function (a, b) { return (parseInt(a.dataset.delay) || 0) - (parseInt(b.dataset.delay) || 0); });
+      cards.sort(function (a, b) { return (parseFloat(b.dataset.score) || parseFloat(-(a.dataset.delay))) - (parseFloat(a.dataset.score) || parseFloat(-(b.dataset.delay))); });
     } else if (sort === 'price-asc') {
       cards.sort(function (a, b) { return (parseInt(a.dataset.price) || 0) - (parseInt(b.dataset.price) || 0); });
     } else if (sort === 'price-desc') {
@@ -214,12 +426,403 @@
   };
 
   /* ── Staggered card fade-in ── */
-  document.querySelectorAll('.vm-card[data-delay]').forEach(function (c) {
-    c.style.animationDelay = (parseInt(c.dataset.delay, 10) * 0.04) + 's';
+  document.querySelectorAll('.doctor-card[data-delay]').forEach(function (c) {
+    c.style.animationDelay = (parseInt(c.dataset.delay, 10) * 0.05) + 's';
   });
 
-  /* Re-init Lucide icons injected by Swiper slide clones */
+  /* ── Map init ── */
+  var mapData = JSON.parse(document.getElementById('mapDataJson').textContent);
+  var mapEl = document.getElementById('resultsMap');
+  if (mapEl && typeof L !== 'undefined' && mapData.length) {
+    var first = mapData[0];
+    var map = L.map('resultsMap', { zoomControl: true }).setView([first.lat, first.lng], 11);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
+    }).addTo(map);
+
+    var bounds = [];
+    mapData.forEach(function (item) {
+      var pinHtml = '<a href="' + item.url + '" class="ct-map-pin">R$&nbsp;' + item.price.toLocaleString('pt-BR') + '</a>';
+      var icon = L.divIcon({ className: 'ct-pin-wrap', html: pinHtml, iconSize: [80, 28], iconAnchor: [40, 14] });
+      var popupHtml =
+        '<div style="font-family:inherit;min-width:160px;">' +
+          '<a href="' + item.url + '" style="font-size:.82rem;font-weight:700;color:#00d9ff;text-decoration:none;display:block;margin-bottom:.3rem;">' + item.title + '</a>' +
+          '<div style="font-size:.72rem;color:#94a3b8;margin-bottom:.4rem;">' + item.clinic + '</div>' +
+          '<div style="font-size:1rem;font-weight:800;color:#e2f8ff;">R$&nbsp;' + item.price.toLocaleString('pt-BR') + '</div>' +
+        '</div>';
+      L.marker([item.lat, item.lng], { icon: icon }).addTo(map)
+        .bindPopup(popupHtml, { className: 'ct-map-popup', maxWidth: 220 });
+      bounds.push([item.lat, item.lng]);
+    });
+    if (bounds.length > 1) map.fitBounds(bounds, { padding: [36, 36] });
+    setTimeout(function () { map.invalidateSize(); }, 150);
+  }
+
+  /* ── Map toggle (mobile) ── */
+  window.toggleMap = function () {
+    var panel  = document.getElementById('ctMapPanel');
+    var btn    = document.getElementById('mapToggleBtn');
+    var lbl    = document.getElementById('mapToggleLbl');
+    if (!panel) return;
+    var visible = panel.classList.toggle('ct-map-panel--visible');
+    if (lbl) lbl.textContent = visible ? 'Ocultar Mapa' : 'Exibir Mapa';
+    if (visible && typeof map !== 'undefined') setTimeout(function () { map.invalidateSize(); }, 120);
+  };
+  var mapToggleBtn = document.getElementById('mapToggleBtn');
+  if (mapToggleBtn) mapToggleBtn.addEventListener('click', toggleMap);
+
+  var closeBtn = document.getElementById('ctMapClose');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', function () {
+      var panel = document.getElementById('ctMapPanel');
+      if (!panel) return;
+      /* Desktop: just hides; mobile: removes visible class */
+      panel.classList.remove('ct-map-panel--visible');
+      var lbl = document.getElementById('mapToggleLbl');
+      if (lbl) lbl.textContent = 'Exibir Mapa';
+    });
+  }
+
   if (typeof lucide !== 'undefined') lucide.createIcons();
+
+  /* ── Range Calendar ── */
+  (function () {
+    var calMonths = document.getElementById('calMonths');
+    if (!calMonths) return;
+
+    var today = new Date(); today.setHours(0, 0, 0, 0);
+    var viewYear  = today.getFullYear();
+    var viewMonth = today.getMonth();
+
+    var rangeStart = (document.getElementById('hidStartDate') || {}).value || null;
+    var rangeEnd   = (document.getElementById('hidEndDate')   || {}).value || null;
+    var pickMode   = 'start';
+
+    var MON = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+               'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+    var DOW = ['D','S','T','Q','Q','S','S'];
+
+    function parseDate(s) {
+      if (!s) return null;
+      var p = s.split('-');
+      return new Date(+p[0], +p[1] - 1, +p[2]);
+    }
+    function fmtISO(d) {
+      return d.getFullYear() + '-' +
+        String(d.getMonth() + 1).padStart(2, '0') + '-' +
+        String(d.getDate()).padStart(2, '0');
+    }
+    function fmtDisp(s) {
+      if (!s) return null;
+      var d = parseDate(s);
+      return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+    }
+
+    function renderCalendar() {
+      calMonths.innerHTML = '';
+      for (var m = 0; m < 2; m++) {
+        var y  = viewYear + (viewMonth + m >= 12 ? 1 : 0);
+        var mo = (viewMonth + m) % 12;
+        calMonths.appendChild(buildMonth(y, mo));
+      }
+      updateCalDisp();
+      var sf = document.getElementById('calFocusStart');
+      var ef = document.getElementById('calFocusEnd');
+      if (sf) sf.classList.toggle('ab-cal-field-item--active', pickMode === 'start');
+      if (ef) ef.classList.toggle('ab-cal-field-item--active', pickMode === 'end');
+    }
+
+    function buildMonth(y, mo) {
+      var wrap = document.createElement('div');
+      wrap.className = 'ab-cal-month';
+
+      var hdr = document.createElement('div');
+      hdr.className = 'ab-cal-month-header';
+      hdr.textContent = MON[mo] + ' ' + y;
+      wrap.appendChild(hdr);
+
+      var dowRow = document.createElement('div');
+      dowRow.className = 'ab-cal-dow-row';
+      DOW.forEach(function (d) {
+        var cell = document.createElement('div');
+        cell.className = 'ab-cal-dow';
+        cell.textContent = d;
+        dowRow.appendChild(cell);
+      });
+      wrap.appendChild(dowRow);
+
+      var grid = document.createElement('div');
+      grid.className = 'ab-cal-grid';
+      var firstDay = new Date(y, mo, 1).getDay();
+      var daysInM  = new Date(y, mo + 1, 0).getDate();
+      var rsDate   = parseDate(rangeStart);
+      var reDate   = parseDate(rangeEnd);
+
+      for (var e = 0; e < firstDay; e++) {
+        var empty = document.createElement('div');
+        empty.className = 'ab-cal-cell ab-cal-empty';
+        grid.appendChild(empty);
+      }
+
+      for (var d = 1; d <= daysInM; d++) {
+        var thisDate = new Date(y, mo, d);
+        var isoStr   = fmtISO(thisDate);
+        var isPast   = thisDate < today;
+        var isStart  = rangeStart && isoStr === rangeStart;
+        var isEnd    = rangeEnd   && isoStr === rangeEnd;
+        var inRange  = rsDate && reDate && thisDate > rsDate && thisDate < reDate;
+        var isToday  = fmtISO(thisDate) === fmtISO(today);
+
+        var cell = document.createElement('div');
+        cell.className = 'ab-cal-cell';
+        if (inRange)          cell.classList.add('ab-cal-cell--range');
+        if (isStart && !isEnd) cell.classList.add('ab-cal-cell--start');
+        if (isEnd   && !isStart) cell.classList.add('ab-cal-cell--end');
+        if (isStart && isEnd)  cell.classList.add('ab-cal-cell--single');
+
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'ab-cal-day';
+        btn.textContent = d;
+        if (isToday) btn.classList.add('ab-cal-day--today');
+        if (isPast) {
+          btn.disabled = true;
+          btn.classList.add('ab-cal-day--disabled');
+        } else {
+          (function (iso) {
+            btn.addEventListener('click', function () { dayClick(iso); });
+          })(isoStr);
+        }
+        cell.appendChild(btn);
+        grid.appendChild(cell);
+      }
+      wrap.appendChild(grid);
+      return wrap;
+    }
+
+    function dayClick(iso) {
+      if (pickMode === 'start') {
+        rangeStart = iso;
+        rangeEnd   = null;
+        pickMode   = 'end';
+      } else {
+        if (rangeStart && iso < rangeStart) {
+          rangeEnd   = rangeStart;
+          rangeStart = iso;
+        } else {
+          rangeEnd = iso;
+        }
+        if (rangeStart && rangeEnd) {
+          pickMode = 'start';
+          syncHidden();
+          setTimeout(function () { window.abCloseAll && window.abCloseAll(); }, 380);
+        }
+      }
+      renderCalendar();
+    }
+
+    function syncHidden() {
+      var hidS = document.getElementById('hidStartDate');
+      var hidE = document.getElementById('hidEndDate');
+      if (hidS) hidS.value = rangeStart || '';
+      if (hidE) hidE.value = rangeEnd   || '';
+      var vs = document.getElementById('valCheckin');
+      var ve = document.getElementById('valCheckout');
+      if (vs) {
+        vs.textContent = rangeStart ? fmtDisp(rangeStart) : 'Adicionar data';
+        vs.classList.toggle('ab-seg-val--placeholder', !rangeStart);
+      }
+      if (ve) {
+        ve.textContent = rangeEnd ? fmtDisp(rangeEnd) : 'Adicionar data';
+        ve.classList.toggle('ab-seg-val--placeholder', !rangeEnd);
+      }
+    }
+
+    function updateCalDisp() {
+      var sd = document.getElementById('calDispStart');
+      var ed = document.getElementById('calDispEnd');
+      if (sd) {
+        sd.textContent = rangeStart ? fmtDisp(rangeStart) : 'Adicionar data';
+        sd.classList.toggle('ab-cal-field-val--placeholder', !rangeStart);
+      }
+      if (ed) {
+        ed.textContent = rangeEnd ? fmtDisp(rangeEnd) : 'Adicionar data';
+        ed.classList.toggle('ab-cal-field-val--placeholder', !rangeEnd);
+      }
+    }
+
+    /* Focusable field items inside calendar header */
+    var focusStart = document.getElementById('calFocusStart');
+    var focusEnd   = document.getElementById('calFocusEnd');
+    if (focusStart) focusStart.addEventListener('click', function (e) {
+      e.stopPropagation();
+      pickMode = 'start'; renderCalendar();
+    });
+    if (focusEnd) focusEnd.addEventListener('click', function (e) {
+      e.stopPropagation();
+      pickMode = 'end'; renderCalendar();
+    });
+
+    document.getElementById('calPrev').addEventListener('click', function (e) {
+      e.stopPropagation();
+      viewMonth--;
+      if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+      renderCalendar();
+    });
+    document.getElementById('calNext').addEventListener('click', function (e) {
+      e.stopPropagation();
+      viewMonth++;
+      if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+      renderCalendar();
+    });
+    var clearBtn = document.getElementById('calClearBtn');
+    if (clearBtn) clearBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      rangeStart = null; rangeEnd = null; pickMode = 'start';
+      syncHidden(); renderCalendar();
+    });
+
+    window.calSetPickMode = function (mode) { pickMode = mode; renderCalendar(); };
+
+    renderCalendar();
+    syncHidden();
+  })();
+
+  /* ── City Chips ── */
+  document.querySelectorAll('.ab-city-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.ab-city-btn').forEach(function (b) { b.classList.remove('ab-city-btn--active'); });
+      this.classList.add('ab-city-btn--active');
+      var val  = this.dataset.val;
+      var hid  = document.getElementById('hidLocation');
+      var disp = document.getElementById('valOnde');
+      var inp  = document.getElementById('inputLocation');
+      if (hid)  hid.value = val;
+      if (inp)  inp.value = val;
+      if (disp) {
+        disp.textContent = val;
+        disp.classList.remove('ab-seg-val--placeholder', 'ab-seg-val--muted');
+      }
+      setTimeout(function () { window.abCloseAll && window.abCloseAll(); }, 200);
+    });
+  });
+
+  /* ── Airbnb Search Bar ── */
+  (function () {
+    var bar     = document.getElementById('abBar');
+    var overlay = document.getElementById('searchOverlay');
+    if (!bar || !overlay) return;
+
+    var segCfg = {
+      'onde':    { panelId: 'panelOnde',  inputId: 'inputLocation',  hidId: 'hidLocation',  dispId: 'valOnde',    ph: 'Buscar localização',     fmt: null },
+      'checkin': { panelId: 'panelCal',   inputId: null,             hidId: 'hidStartDate', dispId: 'valCheckin', ph: 'Adicionar data',          fmt: null },
+      'checkout':{ panelId: 'panelCal',   inputId: null,             hidId: 'hidEndDate',   dispId: 'valCheckout',ph: 'Adicionar data',          fmt: null },
+      'spec':    { panelId: 'panelSpec',  inputId: null,             hidId: 'hidSpecialty', dispId: 'valSpec',    ph: 'Adicionar especialidade', fmt: null },
+      'preco':   { panelId: 'panelPreco', inputId: 'inputFairPrice', hidId: 'hidFairPrice', dispId: 'valPreco',   ph: 'Preço justo?',            fmt: fmtPrice },
+    };
+
+    function fmtPrice(v) {
+      var n = parseInt(v, 10);
+      return isNaN(n) ? 'Preço justo?' : 'R$ ' + n.toLocaleString('pt-BR');
+    }
+
+    var activeSeg = null;
+
+    function openSeg(id) {
+      /* Clicking active cal segment toggles pick mode instead of closing */
+      if (activeSeg === id && id !== 'checkin' && id !== 'checkout') { closeAll(); return; }
+      closeAll(true);
+      activeSeg = id;
+      var cfg     = segCfg[id];
+      var panelEl = document.getElementById(cfg.panelId);
+      var segEl   = bar.querySelector('[data-seg="' + id + '"]');
+      bar.classList.add('ab-bar--active');
+      if (panelEl) panelEl.classList.add('ab-panel--show');
+      if (segEl)   segEl.classList.add('ab-seg--active');
+      overlay.classList.add('show');
+      /* Tell calendar which end to fill next */
+      if ((id === 'checkin' || id === 'checkout') && window.calSetPickMode) {
+        window.calSetPickMode(id === 'checkin' ? 'start' : 'end');
+      }
+      if (cfg.inputId) {
+        var inp = document.getElementById(cfg.inputId);
+        if (inp) setTimeout(function () { inp.focus(); }, 60);
+      }
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    function closeAll(keepOverlay) {
+      activeSeg = null;
+      bar.classList.remove('ab-bar--active');
+      bar.querySelectorAll('.ab-seg--active').forEach(function (el) { el.classList.remove('ab-seg--active'); });
+      document.querySelectorAll('.ab-panel--show').forEach(function (el) { el.classList.remove('ab-panel--show'); });
+      if (!keepOverlay) overlay.classList.remove('show');
+    }
+    window.abCloseAll = closeAll;
+
+    bar.querySelectorAll('.ab-seg[data-seg]').forEach(function (seg) {
+      seg.addEventListener('click', function (e) {
+        openSeg(this.dataset.seg);
+        e.stopPropagation();
+      });
+    });
+
+    overlay.addEventListener('click', function () { closeAll(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeAll(); });
+    document.querySelectorAll('.ab-panel').forEach(function (p) {
+      p.addEventListener('click', function (e) { e.stopPropagation(); });
+    });
+
+    /* Location free-form input sync */
+    function wireInput(inputId, hidId, dispId, ph, fmt, muted) {
+      var inp  = document.getElementById(inputId);
+      var hid  = document.getElementById(hidId);
+      var disp = document.getElementById(dispId);
+      if (!inp || !hid || !disp) return;
+      function sync() {
+        hid.value = inp.value;
+        if (inp.value) {
+          disp.textContent = fmt ? fmt(inp.value) : inp.value;
+          disp.classList.remove('ab-seg-val--placeholder', 'ab-seg-val--muted');
+          /* Deactivate city chips if user typed manually */
+          if (inputId === 'inputLocation') {
+            document.querySelectorAll('.ab-city-btn').forEach(function (b) { b.classList.remove('ab-city-btn--active'); });
+          }
+        } else {
+          disp.textContent = ph;
+          disp.classList.add(muted ? 'ab-seg-val--muted' : 'ab-seg-val--placeholder');
+        }
+      }
+      inp.addEventListener('input',  sync);
+      inp.addEventListener('change', sync);
+    }
+
+    wireInput('inputLocation',  'hidLocation',  'valOnde',  'Buscar localização', null,     false);
+    wireInput('inputFairPrice', 'hidFairPrice', 'valPreco', 'Preço justo?',       fmtPrice, true);
+
+    /* Specialty buttons */
+    document.querySelectorAll('.ab-spec-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        document.querySelectorAll('.ab-spec-btn').forEach(function (b) { b.classList.remove('ab-spec-btn--active'); });
+        this.classList.add('ab-spec-btn--active');
+        var val  = this.dataset.val;
+        var hid  = document.getElementById('hidSpecialty');
+        var disp = document.getElementById('valSpec');
+        if (hid)  hid.value = val;
+        if (disp) {
+          if (val) {
+            disp.textContent = val;
+            disp.classList.remove('ab-seg-val--placeholder', 'ab-seg-val--muted');
+          } else {
+            disp.textContent = 'Adicionar especialidade';
+            disp.classList.add('ab-seg-val--placeholder');
+          }
+        }
+        setTimeout(closeAll, 220);
+      });
+    });
+  })();
 })();
 </script>
 {% endblock %}

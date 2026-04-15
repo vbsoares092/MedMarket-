@@ -293,7 +293,96 @@
   .cpv-fab-label { display:none; }
   .cpv-fab-btn   { padding:.8rem; border-radius:50%; }
 }
-</style>
+
+/* ── 11. REVIEWS / DEPOIMENTOS ───────────────────────────── */
+.cpv-reviews-list { display:flex; flex-direction:column; gap:.75rem; }
+.cpv-review-card {
+  background:rgba(255,255,255,.025); border:1px solid rgba(255,255,255,.07);
+  border-radius:1rem; padding:1rem 1.15rem;
+  transition:background .18s;
+}
+.cpv-review-card:hover { background:rgba(255,255,255,.04); }
+.cpv-review-header { display:flex; align-items:center; gap:.65rem; margin-bottom:.55rem; }
+.cpv-review-avatar {
+  width:2.1rem; height:2.1rem; border-radius:50%;
+  background:linear-gradient(135deg,#1e3a5f,#312e81); color:#93c5fd;
+  border:1px solid rgba(96,165,250,.22);
+  display:flex; align-items:center; justify-content:center;
+  font-size:.65rem; font-weight:800; flex-shrink:0;
+}
+.cpv-review-info { display:flex; flex-direction:column; gap:.1rem; }
+.cpv-review-name { font-size:.82rem; font-weight:700; color:var(--fg); }
+.cpv-review-stars { display:flex; align-items:center; gap:.08rem; }
+.cpv-review-text { font-size:.84rem; line-height:1.7; color:#94a3b8; margin:0; }
+/* ── 12. REVIEW FORM ─────────────────────────────────────── */
+.cpv-review-form-wrap {
+  background: #1e293b;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 1.1rem;
+  padding: 1.35rem 1.5rem;
+  margin-bottom: 1.25rem;
+}
+.cpv-review-form-title {
+  font-size: .82rem; font-weight: 700; color: var(--fg);
+  margin-bottom: .85rem;
+}
+.cpv-star-selector {
+  display: flex; gap: .25rem; margin-bottom: .85rem;
+}
+.cpv-star-btn {
+  background: none; border: none; cursor: pointer;
+  color: #374151; padding: .1rem;
+  transition: color .15s, transform .15s;
+}
+.cpv-star-btn:hover,
+.cpv-star-btn.active {
+  color: #fbbf24;
+  transform: scale(1.12);
+}
+.cpv-star-btn.active svg {
+  fill: #fbbf24;
+  filter: drop-shadow(0 0 6px rgba(251,191,36,.5));
+}
+.cpv-star-btn svg {
+  transition: fill .15s, filter .15s;
+}
+.cpv-review-textarea {
+  width: 100%; box-sizing: border-box;
+  background: rgba(0,0,0,.25);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: .75rem;
+  color: var(--fg); font-size: .84rem;
+  padding: .75rem 1rem; resize: vertical;
+  min-height: 70px;
+  transition: border-color .2s;
+  font-family: inherit;
+}
+.cpv-review-textarea:focus {
+  outline: none;
+  border-color: rgba(251,191,36,.4);
+}
+.cpv-review-textarea::placeholder { color: #475569; }
+.cpv-review-submit-btn {
+  display: inline-flex; align-items: center; gap: .45rem;
+  margin-top: .75rem;
+  padding: .62rem 1.5rem;
+  background: #10b981;
+  color: #fff; font-size: .82rem; font-weight: 700;
+  border: none; border-radius: .7rem; cursor: pointer;
+  transition: background .18s, transform .15s, opacity .18s;
+}
+.cpv-review-submit-btn:hover:not(:disabled) {
+  background: #059669;
+  transform: translateY(-1px);
+}
+.cpv-review-submit-btn:disabled {
+  opacity: .45; cursor: not-allowed;
+}
+.cpv-review-form-msg {
+  font-size: .78rem; margin-top: .5rem; min-height: 1.2em;
+}
+.cpv-review-form-msg.success { color: #10b981; }
+.cpv-review-form-msg.error   { color: #ef4444; }</style>
 {% endblock %}
 
 {% block content %}
@@ -371,7 +460,9 @@
         <span class="cpv-hstat-lbl">Serviços</span>
       </div>
       <div class="cpv-hstat">
-        <span class="cpv-hstat-val" style="font-size:.92rem;">5.0&thinsp;★</span>
+        <span class="cpv-hstat-val" style="font-size:.92rem;">
+          {% if avg_rating > 0 %}{{ avg_rating }}&thinsp;★{% else %}Novo{% endif %}
+        </span>
         <span class="cpv-hstat-lbl">Avaliação</span>
       </div>
       {% if specialties %}
@@ -393,7 +484,7 @@
     </div>
     <div class="cpv-sstat">
       <div class="cpv-sstat-icon" style="background:rgba(251,191,36,.1);color:#fbbf24;"><i data-lucide="star"></i></div>
-      <div><div class="cpv-sstat-val" style="color:#fbbf24;">5.0</div><div class="cpv-sstat-lbl">Avaliação Média</div></div>
+      <div><div class="cpv-sstat-val" style="color:#fbbf24;">{% if avg_rating > 0 %}{{ avg_rating }}{% else %}—{% endif %}</div><div class="cpv-sstat-lbl">Avaliação Média</div></div>
     </div>
     <div class="cpv-sstat">
       <div class="cpv-sstat-icon" style="background:rgba(34,197,94,.1);color:#4ade80;"><i data-lucide="shield-check"></i></div>
@@ -606,6 +697,92 @@
       {% endif %}
     </div>
 
+    <!-- Depoimentos / Reviews -->
+    <div class="cpv-section">
+      <div class="cpv-sec-hd"><i data-lucide="message-square"></i> Avaliações<div class="cpv-sec-hd-line"></div><span class="cpv-sec-hd-count" id="reviewCountBadge">{{ review_count }}</span></div>
+
+      <!-- ── Average summary ── -->
+      <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.25rem;">
+        <div style="font-size:2.2rem;font-weight:900;color:#fbbf24;line-height:1;" id="avgRatingDisplay">
+          {% if avg_rating > 0 %}{{ avg_rating }}{% else %}—{% endif %}
+        </div>
+        <div>
+          <div class="cpv-review-stars" id="avgStarsDisplay">
+            {%- for i in range(1, 6) -%}
+              {%- if avg_rating > 0 and i <= (avg_rating | round(0, 'floor') | int) -%}
+              <i data-lucide="star" style="width:.85rem;height:.85rem;fill:#fbbf24;color:#fbbf24;"></i>
+              {%- else -%}
+              <i data-lucide="star" style="width:.85rem;height:.85rem;fill:none;color:#374151;"></i>
+              {%- endif -%}
+            {%- endfor -%}
+          </div>
+          <div style="font-size:.72rem;color:var(--muted);margin-top:.15rem;" id="reviewCountText">
+            {% if review_count > 0 %}{{ review_count }} avaliação{{ 'ões' if review_count != 1 else '' }}{% else %}Sem avaliações ainda{% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Review form (logged-in users only) ── -->
+      {% if is_logged_in %}
+      <div class="cpv-review-form-wrap" id="reviewFormWrap">
+        <div class="cpv-review-form-title">Deixe sua avaliação</div>
+        <div class="cpv-star-selector" id="starSelector">
+          {%- for i in range(1, 6) -%}
+          <button type="button" class="cpv-star-btn" data-value="{{ i }}" aria-label="{{ i }} estrela{{ 's' if i > 1 else '' }}">
+            <svg viewBox="0 0 24 24" width="28" height="28"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+          </button>
+          {%- endfor -%}
+        </div>
+        <textarea id="reviewComment" class="cpv-review-textarea" placeholder="Compartilhe sua experiência (opcional)..." maxlength="1000" rows="3"></textarea>
+        <button type="button" id="submitReviewBtn" class="cpv-review-submit-btn" disabled>
+          <i data-lucide="send" style="width:.85rem;height:.85rem;"></i> Enviar Avaliação
+        </button>
+        <div id="reviewFormMsg" class="cpv-review-form-msg"></div>
+      </div>
+      {% else %}
+      <div style="text-align:center;padding:1.2rem;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:1rem;margin-bottom:1rem;">
+        <p style="font-size:.84rem;color:var(--muted);margin:0 0 .5rem;">Faça login para deixar sua avaliação</p>
+        <a href="/auth?redirect=/perfil/clinica/{{ clinic.id }}" class="cpv-btn-cta cpv-btn-primary" style="display:inline-flex;width:auto;padding:.55rem 1.5rem;">
+          <i data-lucide="log-in" style="width:.8rem;height:.8rem;"></i> Entrar
+        </a>
+      </div>
+      {% endif %}
+
+      <!-- ── Reviews list ── -->
+      <div class="cpv-reviews-list" id="reviewsList">
+        {% for rev in reviews %}
+        <div class="cpv-review-card">
+          <div class="cpv-review-header">
+            <div class="cpv-review-avatar">{{ rev.user.name[0] | upper if rev.user else '?' }}</div>
+            <div class="cpv-review-info">
+              <span class="cpv-review-name">{{ rev.user.name if rev.user else 'Paciente' }}</span>
+              <div class="cpv-review-stars">
+                {%- for i in range(1, 6) -%}
+                  {%- if i <= rev.rating -%}
+                  <i data-lucide="star" style="width:.68rem;height:.68rem;fill:#fbbf24;color:#fbbf24;"></i>
+                  {%- else -%}
+                  <i data-lucide="star" style="width:.68rem;height:.68rem;fill:none;color:#374151;"></i>
+                  {%- endif -%}
+                {%- endfor -%}
+                <span style="font-size:.7rem;font-weight:700;color:#10b981;margin-left:.2rem;">{{ rev.rating }}.0</span>
+              </div>
+            </div>
+            <span style="margin-left:auto;font-size:.65rem;color:var(--muted);">{{ rev.created_at.strftime('%d/%m/%Y') if rev.created_at else '' }}</span>
+          </div>
+          {% if rev.comment %}
+          <p class="cpv-review-text">{{ rev.comment }}</p>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+
+      {% if review_count == 0 %}
+      <p style="font-size:.82rem;color:var(--muted);text-align:center;padding:1.5rem 0;" id="noReviewsMsg">Seja o primeiro a avaliar esta clínica!</p>
+      {% else %}
+      <p style="font-size:.72rem;color:var(--muted);margin-top:.8rem;text-align:center;">Avaliações verificadas por pacientes reais do MedMarket.</p>
+      {% endif %}
+    </div>
+
   </div><!-- /right -->
 </div><!-- /cpv-layout -->
 </div><!-- /cpv-main-wrap -->
@@ -628,5 +805,123 @@
   </a>
   {% endif %}
 </div>
+
+<script>
+/* ── Review star selector + AJAX submit ── */
+(function(){
+  const CLINIC_ID = {{ clinic.id }};
+  const wrap = document.getElementById('reviewFormWrap');
+  if (!wrap) return;
+
+  const starBtns = wrap.querySelectorAll('.cpv-star-btn');
+  const textarea = document.getElementById('reviewComment');
+  const submitBtn = document.getElementById('submitReviewBtn');
+  const msgEl = document.getElementById('reviewFormMsg');
+  let selectedRating = 0;
+
+  starBtns.forEach(btn => {
+    btn.addEventListener('mouseenter', () => highlightStars(parseInt(btn.dataset.value)));
+    btn.addEventListener('mouseleave', () => highlightStars(selectedRating));
+    btn.addEventListener('click', () => {
+      selectedRating = parseInt(btn.dataset.value);
+      highlightStars(selectedRating);
+      submitBtn.disabled = false;
+    });
+  });
+
+  function highlightStars(n) {
+    starBtns.forEach(btn => {
+      const v = parseInt(btn.dataset.value);
+      const svg = btn.querySelector('polygon');
+      if (v <= n) {
+        btn.classList.add('active');
+        if (svg) svg.setAttribute('fill', '#fbbf24');
+      } else {
+        btn.classList.remove('active');
+        if (svg) svg.setAttribute('fill', 'none');
+      }
+    });
+  }
+
+  submitBtn.addEventListener('click', async () => {
+    if (selectedRating < 1) return;
+    submitBtn.disabled = true;
+    msgEl.textContent = '';
+    msgEl.className = 'cpv-review-form-msg';
+
+    try {
+      const res = await fetch('/submit_review', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          clinic_id: CLINIC_ID,
+          rating: selectedRating,
+          comment: textarea.value.trim()
+        })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        msgEl.textContent = 'Avaliação enviada com sucesso!';
+        msgEl.className = 'cpv-review-form-msg success';
+
+        // Prepend new review card
+        const rev = data.review;
+        const card = document.createElement('div');
+        card.className = 'cpv-review-card';
+        let starsHtml = '';
+        for (let i = 1; i <= 5; i++) {
+          if (i <= rev.rating)
+            starsHtml += '<i data-lucide="star" style="width:.68rem;height:.68rem;fill:#fbbf24;color:#fbbf24;"></i>';
+          else
+            starsHtml += '<i data-lucide="star" style="width:.68rem;height:.68rem;fill:none;color:#374151;"></i>';
+        }
+        card.innerHTML =
+          '<div class="cpv-review-header">' +
+            '<div class="cpv-review-avatar">' + (rev.user_name ? rev.user_name[0].toUpperCase() : '?') + '</div>' +
+            '<div class="cpv-review-info">' +
+              '<span class="cpv-review-name">' + (rev.user_name || 'Paciente') + '</span>' +
+              '<div class="cpv-review-stars">' + starsHtml +
+                '<span style="font-size:.7rem;font-weight:700;color:#10b981;margin-left:.2rem;">' + rev.rating + '.0</span>' +
+              '</div>' +
+            '</div>' +
+            '<span style="margin-left:auto;font-size:.65rem;color:var(--muted);">' + (rev.created_at || '') + '</span>' +
+          '</div>' +
+          (rev.comment ? '<p class="cpv-review-text">' + rev.comment.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</p>' : '');
+
+        const list = document.getElementById('reviewsList');
+        list.insertBefore(card, list.firstChild);
+
+        // Re-init lucide icons for the new card
+        if (window.lucide) lucide.createIcons();
+
+        // Update counters
+        const avgDisplay = document.getElementById('avgRatingDisplay');
+        const countBadge = document.getElementById('reviewCountBadge');
+        const countText = document.getElementById('reviewCountText');
+        if (avgDisplay) avgDisplay.textContent = data.avg_rating;
+        if (countBadge) countBadge.textContent = data.review_count;
+        if (countText) countText.textContent = data.review_count + ' avaliação' + (data.review_count !== 1 ? 'ões' : '');
+
+        // Remove "no reviews" placeholder
+        const noMsg = document.getElementById('noReviewsMsg');
+        if (noMsg) noMsg.remove();
+
+        // Reset form
+        selectedRating = 0;
+        highlightStars(0);
+        textarea.value = '';
+      } else {
+        msgEl.textContent = data.error || 'Erro ao enviar avaliação.';
+        msgEl.className = 'cpv-review-form-msg error';
+        submitBtn.disabled = false;
+      }
+    } catch (e) {
+      msgEl.textContent = 'Erro de conexão. Tente novamente.';
+      msgEl.className = 'cpv-review-form-msg error';
+      submitBtn.disabled = false;
+    }
+  });
+})();
+</script>
 
 {% endblock %}

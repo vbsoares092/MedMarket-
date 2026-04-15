@@ -483,6 +483,8 @@ def novo_anuncio():
         estado           = ((request.form.get("estado") or "").strip()[:2].upper()) or None
         cep              = (request.form.get("cep") or "").strip() or None
         google_maps_link = (request.form.get("google_maps_link") or "").strip() or None
+        tempo_resultado  = (request.form.get("tempo_resultado") or "").strip()[:50] or None
+        preparacao       = (request.form.get("preparacao") or "").strip() or None
         try:
             price = float(request.form.get("price", "0").replace(",", "."))
         except ValueError:
@@ -508,11 +510,13 @@ def novo_anuncio():
                 estado=estado,
                 cep=cep,
                 google_maps_link=google_maps_link,
+                tempo_resultado=tempo_resultado,
+                preparacao=preparacao,
                 active=True,
             )
             db.session.add(service)
             db.session.commit()
-            return redirect("/clinica/dashboard")
+            return redirect(f"/listing/{service.id}")
 
     return render_template("clinic/new_service.html", clinic=user, erro=erro)
 
@@ -537,6 +541,8 @@ def editar_anuncio(service_id):
         estado           = ((request.form.get("estado") or "").strip()[:2].upper()) or None
         cep              = (request.form.get("cep") or "").strip() or None
         google_maps_link = (request.form.get("google_maps_link") or "").strip() or None
+        tempo_resultado  = (request.form.get("tempo_resultado") or "").strip()[:50] or None
+        preparacao       = (request.form.get("preparacao") or "").strip() or None
         try:
             price = float(request.form.get("price", "0").replace(",", "."))
         except ValueError:
@@ -558,6 +564,8 @@ def editar_anuncio(service_id):
             service.estado           = estado
             service.cep              = cep
             service.google_maps_link = google_maps_link
+            service.tempo_resultado  = tempo_resultado
+            service.preparacao       = preparacao
             new_img = _save_service_image(request.files.get("imagem"))
             if new_img:
                 if service.imagem_url:

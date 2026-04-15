@@ -550,7 +550,93 @@
   <button class="dash-tab-btn" id="tabBtnAnalytics" onclick="switchDashTab('analytics', this)">
     <i data-lucide="bar-chart-2"></i> Analytics
   </button>
+  <button class="dash-tab-btn" id="tabBtnReviews" onclick="switchDashTab('reviews', this)">
+    <i data-lucide="star"></i> Minhas Avaliações
+  </button>
 </div>
+
+<!-- ════════════════════════════════════════════════════ -->
+<!--  MINHAS AVALIAÇÕES TAB                              -->
+<!-- ════════════════════════════════════════════════════ -->
+<div id="tabReviews" hidden>
+
+  <!-- Average rating header -->
+  <div style="background:#111827;border:1px solid rgba(255,255,255,0.07);border-radius:1.25rem;
+              padding:1.8rem 2rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap;">
+    <div style="text-align:center;">
+      <div style="font-size:3rem;font-weight:900;color:#fbbf24;line-height:1;">4.7</div>
+      <div style="display:flex;align-items:center;gap:.12rem;justify-content:center;margin-top:.35rem;">
+        <i data-lucide="star" style="width:1rem;height:1rem;fill:#fbbf24;color:#fbbf24;"></i>
+        <i data-lucide="star" style="width:1rem;height:1rem;fill:#fbbf24;color:#fbbf24;"></i>
+        <i data-lucide="star" style="width:1rem;height:1rem;fill:#fbbf24;color:#fbbf24;"></i>
+        <i data-lucide="star" style="width:1rem;height:1rem;fill:#fbbf24;color:#fbbf24;"></i>
+        <i data-lucide="star" style="width:1rem;height:1rem;fill:none;color:#374151;"></i>
+      </div>
+      <div style="font-size:.7rem;color:#6b7280;margin-top:.25rem;">Média Geral</div>
+    </div>
+    <div style="flex:1;min-width:200px;">
+      <div style="font-size:.82rem;font-weight:700;color:#f8fafc;margin-bottom:.6rem;">Resumo de Avaliações</div>
+      {% set bar_data = [(5, 60), (4, 25), (3, 10), (2, 3), (1, 2)] %}
+      {% for stars, pct in bar_data %}
+      <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.25rem;">
+        <span style="font-size:.72rem;font-weight:600;color:#9ca3af;min-width:1rem;text-align:right;">{{ stars }}</span>
+        <i data-lucide="star" style="width:.6rem;height:.6rem;fill:#fbbf24;color:#fbbf24;"></i>
+        <div style="flex:1;height:.45rem;background:rgba(255,255,255,.06);border-radius:99px;overflow:hidden;">
+          <div style="width:{{ pct }}%;height:100%;background:#fbbf24;border-radius:99px;"></div>
+        </div>
+        <span style="font-size:.65rem;color:#6b7280;min-width:2rem;">{{ pct }}%</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Reviews list -->
+  <div style="display:flex;flex-direction:column;gap:.75rem;">
+    {% set mock_clinic_reviews = [
+      {"name": "Maria Santos", "rating": 5, "date": "2026-04-10", "text": "Atendimento excelente! Profissionais muito atenciosos e ambiente muito confortável. Voltarei com certeza para outros exames.", "service": "Consulta Cardiológica"},
+      {"name": "João Pereira",  "rating": 4, "date": "2026-04-08", "text": "Bom atendimento, pontualidade e preço justo. O único ponto de melhoria seria o estacionamento.", "service": "Exame de Sangue"},
+      {"name": "Ana Carvalho",  "rating": 5, "date": "2026-04-05", "text": "Equipe muito qualificada. Fui muito bem recebida e tudo foi explicado com clareza. Recomendo!", "service": "Ressonância Magnética"},
+      {"name": "Carlos Lima",   "rating": 5, "date": "2026-03-28", "text": "Resultado do exame saiu rápido e o preparo foi simples. Ótima experiência geral.", "service": "Raio-X"},
+      {"name": "Fernanda Souza","rating": 3, "date": "2026-03-20", "text": "Atendimento ok, mas a espera foi um pouco longa. Resultado demorou 3 dias.", "service": "Exame de Sangue"},
+    ] %}
+    {% for rev in mock_clinic_reviews %}
+    <div style="background:#111827;border:1px solid rgba(255,255,255,0.07);border-radius:1rem;padding:1rem 1.25rem;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:.5rem;">
+        <div style="display:flex;align-items:center;gap:.55rem;">
+          <div style="width:2.1rem;height:2.1rem;border-radius:50%;background:linear-gradient(135deg,#1e3a5f,#312e81);
+                      color:#93c5fd;display:flex;align-items:center;justify-content:center;
+                      font-size:.65rem;font-weight:800;flex-shrink:0;">{{ rev.name[0] | upper }}</div>
+          <div>
+            <span style="font-size:.82rem;font-weight:700;color:#f8fafc;">{{ rev.name }}</span>
+            <div style="display:flex;align-items:center;gap:.08rem;">
+              {%- for i in range(1, 6) -%}
+                {%- if i <= rev.rating -%}
+                <i data-lucide="star" style="width:.62rem;height:.62rem;fill:#fbbf24;color:#fbbf24;"></i>
+                {%- else -%}
+                <i data-lucide="star" style="width:.62rem;height:.62rem;fill:none;color:#374151;"></i>
+                {%- endif -%}
+              {%- endfor -%}
+              <span style="font-size:.65rem;font-weight:700;color:#10b981;margin-left:.15rem;">{{ rev.rating }}.0</span>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.1rem;">
+          <span style="font-size:.68rem;color:#6b7280;">{{ rev.date }}</span>
+          <span style="font-size:.62rem;font-weight:600;padding:.1rem .4rem;border-radius:99px;
+                       background:rgba(59,130,246,.09);color:#60a5fa;border:1px solid rgba(59,130,246,.18);">{{ rev.service }}</span>
+        </div>
+      </div>
+      <p style="font-size:.84rem;line-height:1.65;color:#94a3b8;margin:0;">{{ rev.text }}</p>
+    </div>
+    {% endfor %}
+  </div>
+
+  <p style="font-size:.72rem;color:#6b7280;text-align:center;margin-top:1.25rem;">
+    <i data-lucide="info" style="width:.7rem;height:.7rem;vertical-align:middle;margin-right:.2rem;"></i>
+    Avaliações verificadas por pacientes reais do MedMarket.
+  </p>
+</div>
+<!-- /Reviews tab -->
 
 <!-- ════════════════════════════════════════════════════ -->
 <!--  ANALYTICS TAB                                       -->
@@ -1507,8 +1593,10 @@ function switchDashTab(tab, btn) {
   document.querySelectorAll('.dash-tab-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   const isAnalytics = (tab === 'analytics');
-  document.getElementById('tabOverview').hidden  =  isAnalytics;
+  const isReviews   = (tab === 'reviews');
+  document.getElementById('tabOverview').hidden  = isAnalytics || isReviews;
   document.getElementById('tabAnalytics').hidden = !isAnalytics;
+  document.getElementById('tabReviews').hidden   = !isReviews;
   if (isAnalytics && !_chartsInitialized) { initAnalytics(); }
   lucide.createIcons({ attrs: { 'stroke-width': 2 } });
 }

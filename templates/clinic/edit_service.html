@@ -28,11 +28,12 @@
   .btn-row { display: flex; gap: 0.75rem; margin-top: 0.5rem; }
   .btn-submit {
     padding: 0.6rem 1.5rem; border-radius: 0.55rem;
-    background: var(--primary); color: #fff; border: none;
+    background: #10b981; color: #fff; border: none;
     font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: opacity .15s;
     display: inline-flex; align-items: center; gap: .4rem;
+    box-shadow: 0 0 20px rgba(16,185,129,0.2);
   }
-  .btn-submit:hover { opacity: .88; }
+  .btn-submit:hover { opacity: .88; background: #0d9668; }
   .btn-cancel {
     padding: 0.6rem 1.25rem; border-radius: 0.55rem;
     background: var(--secondary); color: var(--muted); border: 1px solid var(--border);
@@ -74,23 +75,14 @@
                value="{{ service.doctor_name }}" required maxlength="100" />
       </div>
       <div class="form-group">
-        <label class="form-label">Especialidade <span style="color:var(--primary)">*</span></label>
-        <input type="text" name="specialty" class="form-input"
-               value="{{ service.specialty }}" required maxlength="80"
-               list="specialties-list" />
-        <datalist id="specialties-list">
-          <option value="Cardiologia">
-          <option value="Clínica Geral">
-          <option value="Dermatologia">
-          <option value="Endocrinologia">
-          <option value="Ginecologia">
-          <option value="Neurologia">
-          <option value="Oftalmologia">
-          <option value="Ortopedia">
-          <option value="Pediatria">
-          <option value="Psiquiatria">
-          <option value="Urologia">
-        </datalist>
+        <label class="form-label">Especialidade / Categoria <span style="color:var(--primary)">*</span></label>
+        <select name="specialty" class="form-input" required>
+          <option value="" disabled>Selecione a categoria</option>
+          {% set spec_options = ['Clínica Geral','Cardiologia','Neurologia','Ortopedia','Pediatria','Oftalmologia','Exames','Exame de Sangue','Ressonância Magnética','Raio-X','Farmácia','Laboratório','Equipamentos','Emergência','Diagnóstico','Dermatologia','Endocrinologia','Ginecologia','Psiquiatria','Urologia','Outros'] %}
+          {% for opt in spec_options %}
+          <option value="{{ opt }}" {% if service.specialty == opt %}selected{% endif %}>{{ opt }}</option>
+          {% endfor %}
+        </select>
       </div>
     </div>
 
@@ -104,6 +96,26 @@
     <div class="form-group">
       <label class="form-label">Descrição</label>
       <textarea name="description" class="form-textarea">{{ service.description or '' }}</textarea>
+    </div>
+
+    <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
+                color:var(--primary);display:flex;align-items:center;gap:.4rem;margin:.25rem 0 .75rem;">
+      <i data-lucide="flask-conical" style="width:.8rem;height:.8rem;"></i> Metadados de Exame (Opcional)
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Tempo de Resultado</label>
+        <input type="text" name="tempo_resultado" class="form-input"
+               value="{{ service.tempo_resultado or '' }}"
+               placeholder="Ex: 24h, Imediato, 3 dias úteis" maxlength="50" />
+        <span class="form-hint">Preencha se o serviço for um exame.</span>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Preparação Necessária</label>
+        <textarea name="preparacao" class="form-textarea" style="min-height:60px;"
+                  placeholder="Ex: Jejum de 8 horas, Não usar creme no dia...">{{ service.preparacao or '' }}</textarea>
+        <span class="form-hint">Instruções para o paciente antes do exame.</span>
+      </div>
     </div>
 
     <div class="form-group">

@@ -98,6 +98,10 @@ class ClinicService(db.Model):
     estado           = db.Column(db.String(2),    nullable=True)
     cep              = db.Column(db.String(9),    nullable=True)   # "00000-000"
     google_maps_link = db.Column(db.String(500),  nullable=True)
+    rating           = db.Column(db.Float,        default=0)
+    review_count     = db.Column(db.Integer,      default=0)
+    tempo_resultado  = db.Column(db.String(50),   nullable=True)   # e.g. "24h", "Imediato"
+    preparacao       = db.Column(db.Text,         nullable=True)   # e.g. "Jejum de 8h"
     created_at       = db.Column(db.DateTime,    server_default=db.func.now())
 
     @property
@@ -287,3 +291,37 @@ class DocumentoPaciente(db.Model):
 
     def __repr__(self):
         return f'<DocumentoPaciente {self.titulo} paciente={self.paciente_id}>'
+
+
+class Review(db.Model):
+    """Patient review/rating for a clinic."""
+    __tablename__ = 'reviews'
+
+    id         = db.Column(db.Integer, primary_key=True)
+    user_id    = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    clinic_id  = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    rating     = db.Column(db.Integer, nullable=False)   # 1–5
+    comment    = db.Column(db.Text,    nullable=True)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    user   = db.relationship('User', foreign_keys=[user_id])
+    clinic = db.relationship('User', foreign_keys=[clinic_id])
+
+    __table_args__ = (
+        db.CheckConstraint('rating >= 1 AND rating <= 5', name='ck_review_rating_range'),
+    )
+
+    @staticmethod
+    def avg_rating_for_clinic(clinic_id):
+        """Return (average, count) for a given clinic."""
+        from sqlalchemy import func as sa_func
+        result = db.session.query(
+            sa_func.avg(Review.rating),
+            sa_func.count(Review.id),
+        ).filter(Review.clinic_id == clinic_id).first()
+        avg = round(float(result[0]), 1) if result[0] else 0.0
+        count = result[1] or 0
+        return avg, count
+
+    def __repr__(self):
+        return f'<Review user={self.user_id} clinic={self.clinic_id} rating={self.rating}>'

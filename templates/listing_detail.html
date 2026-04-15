@@ -5,7 +5,7 @@
 <!-- BREADCRUMB BAR -->
 <div class="breadcrumb-bar">
   <div class="container breadcrumb-inner">
-    <a href="/" class="btn-icon"><i data-lucide="arrow-left"></i></a>
+    <a href="javascript:history.back()" class="btn-icon"><i data-lucide="arrow-left"></i></a>
     <span class="text-muted">{{ listing.specialty }}</span>
     <i data-lucide="chevron-right" class="icon-xs text-muted"></i>
     <span class="breadcrumb-title">{{ listing.title }}</span>
@@ -42,12 +42,45 @@
     <div class="detail-reviews card">
       <h3 class="card-section-title">Avaliações</h3>
       <div class="stars-row">
-        {% for i in range(5) %}
-        <i data-lucide="star" class="star filled"></i>
-        {% endfor %}
-        <span class="text-muted ml-2">5.0 / 5</span>
+        {%- set svc_rating = listing.rating if listing.rating else 4.5 -%}
+        {%- for i in range(1, 6) -%}
+          {%- if i <= (svc_rating | int) -%}
+          <i data-lucide="star" class="star filled" style="fill:#fbbf24;color:#fbbf24;"></i>
+          {%- else -%}
+          <i data-lucide="star" class="star" style="fill:none;color:#374151;"></i>
+          {%- endif -%}
+        {%- endfor -%}
+        <span class="text-muted ml-2">{{ svc_rating }} / 5</span>
       </div>
-      <p class="text-muted text-sm">Nenhuma avaliação detalhada ainda.</p>
+
+      <div style="margin-top:1rem;display:flex;flex-direction:column;gap:.75rem;">
+        {% set mock_reviews = [
+          {"name": "Maria S.", "rating": 5, "text": "Atendimento excelente! Profissionais muito atenciosos."},
+          {"name": "João P.",  "rating": 4, "text": "Bom atendimento, pontualidade e preço justo."},
+          {"name": "Ana C.",   "rating": 5, "text": "Equipe muito qualificada. Fui muito bem recebida."},
+        ] %}
+        {% for rev in mock_reviews %}
+        <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:.75rem;padding:.85rem 1rem;">
+          <div style="display:flex;align-items:center;gap:.55rem;margin-bottom:.35rem;">
+            <div style="width:1.85rem;height:1.85rem;border-radius:50%;background:linear-gradient(135deg,#1e3a5f,#312e81);color:#93c5fd;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:800;flex-shrink:0;">{{ rev.name[0] | upper }}</div>
+            <div>
+              <span style="font-size:.8rem;font-weight:700;color:var(--fg);">{{ rev.name }}</span>
+              <div style="display:flex;align-items:center;gap:.08rem;">
+                {%- for i in range(1, 6) -%}
+                  {%- if i <= rev.rating -%}
+                  <i data-lucide="star" style="width:.6rem;height:.6rem;fill:#fbbf24;color:#fbbf24;"></i>
+                  {%- else -%}
+                  <i data-lucide="star" style="width:.6rem;height:.6rem;fill:none;color:#374151;"></i>
+                  {%- endif -%}
+                {%- endfor -%}
+                <span style="font-size:.65rem;font-weight:700;color:#10b981;margin-left:.15rem;">{{ rev.rating }}.0</span>
+              </div>
+            </div>
+          </div>
+          <p style="font-size:.82rem;line-height:1.65;color:#94a3b8;margin:0;">{{ rev.text }}</p>
+        </div>
+        {% endfor %}
+      </div>
     </div>
   </div>
 
@@ -56,7 +89,7 @@
     <!-- Price & CTA -->
     <div class="card price-card">
       <h2 style="font-size:1.25rem;font-weight:800;line-height:1.25;margin-bottom:.55rem;">{{ listing.title }}</h2>
-      <div class="detail-price" style="color:#4ade80;font-size:1.75rem;">
+      <div class="detail-price" style="color:#10b981;font-size:1.75rem;">
         {% set _base = (listing.price or 0.0) %}
         {% set _min  = (min_price if min_price is defined else _base) or 0.0 %}
         {% if has_discount is defined and has_discount and _min < _base %}
