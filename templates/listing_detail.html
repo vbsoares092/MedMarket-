@@ -41,13 +41,111 @@
     <!-- Reviews -->
     <div class="detail-reviews card">
       <h3 class="card-section-title">Avaliações</h3>
-      <div class="stars-row">
-        {% for i in range(5) %}
-        <i data-lucide="star" class="star filled"></i>
+      {% set _avg = listing.avg_rating %}
+      {% set _cnt = listing.review_count %}
+      {% if _avg is not none %}
+        <div class="stars-row">
+          {% for i in range(5) %}
+            {% if i < (_avg | round(0, 'floor') | int) %}
+              <i data-lucide="star" class="star filled"></i>
+            {% elif i < _avg %}
+              <i data-lucide="star-half" class="star filled"></i>
+            {% else %}
+              <i data-lucide="star" class="star"></i>
+            {% endif %}
+          {% endfor %}
+          <span class="text-muted ml-2">{{ "%.1f"|format(_avg) }} / 5</span>
+        </div>
+        <p class="text-muted text-sm">{{ _cnt }} avaliação{{ 'ões' if _cnt != 1 else '' }}</p>
+        {% set _reviews = listing.reviews.limit(5).all() %}
+        {% for rv in _reviews %}
+        <div style="border-top:1px solid var(--border);padding:.6rem 0 .4rem;">
+          <div style="display:flex;align-items:center;gap:.35rem;margin-bottom:.2rem;">
+            {% set _rvfloor = rv.rating | round(0, 'floor') | int %}
+            {% for i in range(5) %}
+              {% if i < _rvfloor %}<i data-lucide="star" class="star filled" style="width:.7rem;height:.7rem;"></i>
+              {% elif i < rv.rating %}<i data-lucide="star-half" class="star filled" style="width:.7rem;height:.7rem;"></i>
+              {% else %}<i data-lucide="star" class="star" style="width:.7rem;height:.7rem;opacity:.35;"></i>
+              {% endif %}
+            {% endfor %}
+            {% if rv.author %}<span style="font-size:.72rem;color:var(--muted);">— {{ rv.author.name }}</span>{% endif %}
+          </div>
+          {% if rv.comentario %}<p class="text-muted text-sm">{{ rv.comentario }}</p>{% endif %}
+        </div>
         {% endfor %}
-        <span class="text-muted ml-2">5.0 / 5</span>
+      {% else %}
+        <div class="stars-row">
+          {% for i in range(5) %}<i data-lucide="star" class="star" style="opacity:.35;"></i>{% endfor %}
+          <span class="text-muted ml-2">Novo</span>
+        </div>
+        <p class="text-muted text-sm">Sem avaliações ainda. Seja o primeiro a avaliar!</p>
+      {% endif %}
+
+      {% if is_logged_in and current_user_type != 'CLINICA' %}
+      <div id="reviewFormWrap" style="margin-top:.85rem;padding-top:.85rem;border-top:1px solid var(--border);">
+        <p style="font-size:.78rem;font-weight:700;margin-bottom:.5rem;">Deixe sua avaliação</p>
+        <div id="reviewStarPick" style="display:flex;gap:.2rem;cursor:pointer;margin-bottom:.5rem;">
+          {% for i in range(1,6) %}
+          <i data-lucide="star" data-val="{{ i }}" class="star" style="width:1.4rem;height:1.4rem;transition:opacity .12s;"></i>
+          {% endfor %}
+        </div>
+        <textarea id="reviewComent" class="input" style="width:100%;min-height:60px;resize:vertical;font-size:.8rem;" placeholder="Comentário (opcional)..."></textarea>
+        <button id="reviewSubmit" class="btn btn-primary btn-sm" style="margin-top:.5rem;">
+          <i data-lucide="send" style="width:.8rem;height:.8rem;"></i> Enviar Avaliação
+        </button>
+        <p id="reviewMsg" style="font-size:.78rem;margin-top:.4rem;display:none;"></p>
       </div>
-      <p class="text-muted text-sm">Nenhuma avaliação detalhada ainda.</p>
+      <script>
+      (function(){
+        var stars = document.querySelectorAll('#reviewStarPick [data-lucide="star"]');
+        var picked = 0;
+        function highlight(n){
+          stars.forEach(function(s,i){
+            s.style.opacity = (i < n) ? '1' : '.3';
+            s.style.color   = (i < n) ? '#fbbf24' : '';
+          });
+        }
+        stars.forEach(function(s){
+          s.addEventListener('mouseover', function(){ highlight(parseInt(this.dataset.val)); });
+          s.addEventListener('mouseout',  function(){ highlight(picked); });
+          s.addEventListener('click',     function(){ picked = parseInt(this.dataset.val); highlight(picked); });
+        });
+        document.getElementById('reviewSubmit').addEventListener('click', function(){
+          var msg = document.getElementById('reviewMsg');
+          if(!picked){
+            msg.style.display = 'block';
+            msg.style.color = '#f59e0b';
+            msg.textContent = 'Selecione uma nota de 1 a 5 estrelas.';
+            return;
+          }
+          var btn = this;
+          btn.disabled = true;
+          fetch('/api/review', {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({
+              service_id: {{ listing.id }},
+              rating: picked,
+              comentario: document.getElementById('reviewComent').value.trim()
+            })
+          }).then(function(r){ return r.json(); }).then(function(d){
+            var msg = document.getElementById('reviewMsg');
+            msg.style.display = 'block';
+            if(d.ok){
+              msg.style.color = '#4ade80';
+              msg.textContent = 'Avaliação enviada! Obrigado.';
+              document.getElementById('reviewFormWrap').style.opacity = '.5';
+              btn.disabled = true;
+            } else {
+              msg.style.color = '#f87171';
+              msg.textContent = d.msg || 'Erro ao enviar avaliação.';
+              btn.disabled = false;
+            }
+          }).catch(function(){ btn.disabled = false; });
+        });
+      })();
+      </script>
+      {% endif %}
     </div>
   </div>
 

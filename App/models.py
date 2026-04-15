@@ -1,3 +1,4 @@
+from sqlalchemy import func as _func
 from App.database import db
 
 
@@ -73,6 +74,16 @@ class ClinicProfile(db.Model):
 
     user = db.relationship('User', back_populates='clinic_profile')
 
+    @property
+    def avg_rating(self):
+        """Average rating across all services of this clinic; None if no reviews."""
+        result = db.session.query(_func.avg(Review.rating)).join(
+            ClinicService, Review.service_id == ClinicService.id
+        ).filter(
+            ClinicService.clinic_id == self.user_id
+        ).scalar()
+        return round(float(result), 1) if result is not None else None
+
     def __repr__(self):
         return f'<ClinicProfile {self.razao_social}>'
 
@@ -121,6 +132,21 @@ class ClinicService(db.Model):
         if self.cep:
             parts.append('CEP ' + self.cep)
         return ', '.join(parts)
+
+    @property
+    def avg_rating(self):
+        """Average rating from real reviews; None if no reviews exist."""
+        result = db.session.query(_func.avg(Review.rating)).filter(
+            Review.service_id == self.id
+        ).scalar()
+        return round(float(result), 1) if result is not None else None
+
+    @property
+    def review_count(self):
+        """Number of reviews for this service."""
+        return db.session.query(_func.count(Review.id)).filter(
+            Review.service_id == self.id
+        ).scalar() or 0
 
     schedules        = db.relationship('ClinicSchedule', backref='service', lazy='dynamic',
                                        cascade='all, delete-orphan')
@@ -287,3 +313,38 @@ class DocumentoPaciente(db.Model):
 
     def __repr__(self):
         return f'<DocumentoPaciente {self.titulo} paciente={self.paciente_id}>'
+
+
+class Review(db.Model):
+    """Patient review for a clinic service."""
+    __tablename__ = 'reviews'
+
+    id         = db.Column(db.Integer,  primary_key=True)
+    service_id = db.Column(db.Integer,  db.ForeignKey('clinic_services.id'), nullable=False)
+    user_id    = db.Column(db.Integer,  db.ForeignKey('users.id'), nullable=True)
+    rating     = db.Column(db.Float,    nullable=False)   # 1.0 – 5.0
+    comentario = db.Column(db.Text,     nullable=True)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    service = db.relationship('ClinicService', backref=db.backref('reviews', lazy='dynamic'))
+    author  = db.relationship('User', foreign_keys=[user_id])
+
+    def __repr__(self):
+        return f'<Review service={self.service_id} rating={self.rating}>'
+
+
+class GlobalMensagem(db.Model):
+    """Message in the community (global) chat panel."""
+    __tablename__ = 'global_mensagens'
+
+    id         = db.Column(db.Integer,     primary_key=True)
+    user_id    = db.Column(db.Integer,     db.ForeignKey('users.id'), nullable=True)
+    user_name  = db.Column(db.String(80),  nullable=False, default='Visitante')
+    avatar     = db.Column(db.String(2),   nullable=False, default='?')
+    conteudo   = db.Column(db.Text,        nullable=False)
+    timestamp  = db.Column(db.DateTime,    default=db.func.now())
+
+    sender = db.relationship('User', foreign_keys=[user_id])
+
+    def __repr__(self):
+        return f'<GlobalMensagem {self.user_name}: {self.conteudo[:30]}>'
