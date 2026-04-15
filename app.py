@@ -6,33 +6,66 @@ from App.routes.auth import auth as auth_bp
 from App.routes.clinic import clinic_bp
 from App.routes.prontuario import prontuario_bp
 from App.database import db
-from App.models import User, ClinicProfile, ClinicService, Mensagem, ChatConversa, Appointment, Prontuario, DocumentoPaciente
+from App.models import User, ClinicProfile, ClinicService, Mensagem, ChatConversa, Appointment, Prontuario, DocumentoPaciente, Review, GlobalMensagem
 from App.utils.security import hash_password, verify_password, sanitize_cpf
 
-# ── Static reference data ──────────────────────────────────────────────────────
-categories = [
-    {"name": "Clínica Geral",  "icon": "stethoscope"},
-    {"name": "Cardiologia",    "icon": "heart"},
-    {"name": "Neurologia",     "icon": "brain"},
-    {"name": "Ortopedia",      "icon": "bone"},
-    {"name": "Pediatria",      "icon": "baby"},
-    {"name": "Oftalmologia",   "icon": "eye"},
-    {"name": "Farmácia",       "icon": "pill"},
-    {"name": "Laboratório",    "icon": "flask-conical"},
-    {"name": "Equipamentos",   "icon": "monitor"},
-    {"name": "Emergência",     "icon": "siren"},
-    {"name": "Diagnóstico",    "icon": "scan-line"},
-    {"name": "Outros",         "icon": "more-horizontal"},
-]
+# ── Static category icon map (specialties come from DB; icons are a UI hint) ──
+_CATEGORY_ICONS = {
+    "Clínica Geral":  "stethoscope",
+    "Cardiologia":    "heart",
+    "Neurologia":     "brain",
+    "Ortopedia":      "bone",
+    "Pediatria":      "baby",
+    "Oftalmologia":   "eye",
+    "Farmácia":       "pill",
+    "Laboratório":    "flask-conical",
+    "Equipamentos":   "monitor",
+    "Emergência":     "siren",
+    "Diagnóstico":    "scan-line",
+}
+_DEFAULT_ICON = "more-horizontal"
 
-chat_messages = [
-    {"id": "1", "user": "Dr. Carlos",  "avatar": "C", "message": "Alguém tem experiência com o novo Butterfly iQ3?",            "time": "14:32"},
-    {"id": "2", "user": "Dra. Ana",    "avatar": "A", "message": "Sim! Uso há 3 meses, excelente para cardiologia.",            "time": "14:35"},
-    {"id": "3", "user": "MedEquip",    "avatar": "M", "message": "Temos unidades disponíveis com desconto para compra em grupo.", "time": "14:38"},
-    {"id": "4", "user": "Dr. Ricardo", "avatar": "R", "message": "Procurando plantão para o próximo feriado. Alguém precisa?",   "time": "14:42"},
-    {"id": "5", "user": "LabVida",     "avatar": "L", "message": "Novo pacote de exames com coleta domiciliar disponível!",      "time": "14:45"},
-    {"id": "6", "user": "Dra. Fernanda","avatar": "F", "message": "Vendo cadeira odontológica Gnatus, ótimo estado. Aceito proposta!", "time": "14:50"},
-]
+
+def _load_categories():
+    """Return category list built from distinct specialties in the DB.
+
+    Known specialties get a specific icon; any specialty not in the map
+    uses the default icon.  The list is deduplicated and sorted.
+    """
+    rows = (
+        db.session.query(ClinicService.specialty)
+        .filter(ClinicService.active == True, ClinicService.specialty.isnot(None))
+        .distinct()
+        .all()
+    )
+    specialties = sorted({r[0].strip() for r in rows if r[0] and r[0].strip()})
+    return [
+        {"name": s, "icon": _CATEGORY_ICONS.get(s, _DEFAULT_ICON)}
+        for s in specialties
+    ]
+
+
+def _load_global_chat(limit: int = 50):
+    """Return the most recent global chat messages from the DB."""
+    msgs = (
+        GlobalMensagem.query
+        .order_by(GlobalMensagem.timestamp.desc())
+        .limit(limit)
+        .all()
+    )
+    msgs.reverse()   # oldest first for display
+    return [
+        {
+            "id":      m.id,
+            "user":    m.user_name,
+            "avatar":  m.avatar,
+            "message": m.conteudo,
+            "time":    m.timestamp.strftime("%H:%M") if m.timestamp else "",
+        }
+        for m in msgs
+    ]
+
+
 # ── App factory ───────────────────────────────────────────────────────────────
 _basedir = os.path.abspath(os.path.dirname(__file__))
 
@@ -141,10 +174,10 @@ def index():
     return render_template(
         "index.html",
         listings=filtered,
-        categories=categories,
+        categories=_load_categories(),
         query=query,
         selected_category=category,
-        chat_messages=chat_messages,
+        chat_messages=_load_global_chat(),
         is_logged_in=session.get("user") is not None,
         partners=partners,
         banner_listings=banner_listings,
@@ -200,7 +233,7 @@ def chat_with_clinic(clinic_id):
         is_logged_in=True,
         query="",
         selected_category="",
-        chat_messages=chat_messages,
+        chat_messages=_load_global_chat(),
     )
 
 
@@ -221,28 +254,28 @@ def auth():
                     "auth.html", redirect_to=redirect_to,
                     erro="CPF inválido. Informe 11 dígitos numéricos.",
                     is_logged_in=False, query="", selected_category="",
-                    chat_messages=chat_messages,
+                    chat_messages=_load_global_chat(),
                 )
             if not email or len(password) < 6:
                 return render_template(
                     "auth.html", redirect_to=redirect_to,
                     erro="Email e senha (mín. 6 caracteres) são obrigatórios.",
                     is_logged_in=False, query="", selected_category="",
-                    chat_messages=chat_messages,
+                    chat_messages=_load_global_chat(),
                 )
             if User.query.filter_by(email=email).first():
                 return render_template(
                     "auth.html", redirect_to=redirect_to,
                     erro="Este e-mail já está cadastrado.",
                     is_logged_in=False, query="", selected_category="",
-                    chat_messages=chat_messages,
+                    chat_messages=_load_global_chat(),
                 )
             if User.query.filter_by(cpf=cpf).first():
                 return render_template(
                     "auth.html", redirect_to=redirect_to,
                     erro="Este CPF já está cadastrado.",
                     is_logged_in=False, query="", selected_category="",
-                    chat_messages=chat_messages,
+                    chat_messages=_load_global_chat(),
                 )
             user = User(
                 email=email, name=name,
@@ -263,7 +296,7 @@ def auth():
                     "auth.html", redirect_to=redirect_to,
                     erro="E-mail ou senha incorretos.",
                     is_logged_in=False, query="", selected_category="",
-                    chat_messages=chat_messages,
+                    chat_messages=_load_global_chat(),
                 )
 
         session["user"] = {
@@ -277,7 +310,7 @@ def auth():
     return render_template(
         "auth.html", redirect_to=redirect_to,
         erro=None, is_logged_in=session.get("user") is not None,
-        query="", selected_category="", chat_messages=chat_messages,
+        query="", selected_category="", chat_messages=_load_global_chat(),
     )
 
 
@@ -290,19 +323,31 @@ def logout():
 @app.route("/api/chat", methods=["POST"])
 def api_chat():
     data = request.get_json()
-    msg = data.get("message", "").strip()
-    if not msg:
+    msg = (data.get("message") or "").strip()
+    if not msg or len(msg) > 500:
         return jsonify({"ok": False})
-    user = session.get("user", {"name": "Visitante", "email": "?"})
-    new_msg = {
-        "id": str(len(chat_messages) + 1),
-        "user": user["name"],
-        "avatar": user["name"][0].upper(),
-        "message": msg,
-        "time": __import__("datetime").datetime.now().strftime("%H:%M"),
-    }
-    chat_messages.append(new_msg)
-    return jsonify({"ok": True, "message": new_msg})
+    user = session.get("user", {})
+    user_name = (user.get("name") or "Visitante")
+    avatar    = user_name[0].upper() if user_name else "?"
+    user_id   = user.get("id")
+    new_entry = GlobalMensagem(
+        user_id   = user_id,
+        user_name = user_name,
+        avatar    = avatar,
+        conteudo  = msg,
+    )
+    db.session.add(new_entry)
+    db.session.commit()
+    return jsonify({
+        "ok": True,
+        "message": {
+            "id":      new_entry.id,
+            "user":    user_name,
+            "avatar":  avatar,
+            "message": msg,
+            "time":    new_entry.timestamp.strftime("%H:%M"),
+        },
+    })
 
 
 @app.route("/perfil/clinica/<int:clinic_id>")
@@ -322,7 +367,7 @@ def clinic_profile_view(clinic_id):
         is_logged_in=session.get("user") is not None,
         query="",
         selected_category="",
-        chat_messages=chat_messages,
+        chat_messages=_load_global_chat(),
     )
 
 
@@ -512,6 +557,70 @@ def api_listings():
         }
         for s in services
     ])
+
+
+@app.route("/api/review", methods=["POST"])
+def api_review():
+    """Submit a rating review for a service.
+
+    Only authenticated patients who have had a *completed* appointment
+    for the service may leave a review. Duplicate reviews are rejected.
+    """
+    user_sess = session.get("user")
+    if not user_sess:
+        return jsonify({"ok": False, "msg": "Faça login para avaliar."}), 401
+
+    if user_sess.get("user_type") == "CLINICA":
+        return jsonify({"ok": False, "msg": "Clínicas não podem deixar avaliações."}), 403
+
+    data       = request.get_json(silent=True) or {}
+    service_id = data.get("service_id")
+    try:
+        rating = float(data.get("rating", 0))
+    except (ValueError, TypeError):
+        rating = 0.0
+
+    if not service_id or not (1.0 <= rating <= 5.0):
+        return jsonify({"ok": False, "msg": "Dados inválidos."}), 400
+
+    service = ClinicService.query.filter_by(id=service_id, active=True).first()
+    if not service:
+        return jsonify({"ok": False, "msg": "Serviço não encontrado."}), 404
+
+    patient_id = user_sess["id"]
+
+    # Ensure the patient has completed at least one appointment for this service
+    completed = Appointment.query.filter_by(
+        service_id=service_id,
+        user_id=patient_id,
+        status=Appointment.STATUS_COMPLETED,
+    ).first()
+    if not completed:
+        return jsonify({
+            "ok": False,
+            "msg": "Você só pode avaliar serviços após uma consulta concluída.",
+        }), 403
+
+    # Prevent duplicate reviews
+    existing = Review.query.filter_by(service_id=service_id, user_id=patient_id).first()
+    if existing:
+        return jsonify({"ok": False, "msg": "Você já avaliou este serviço."}), 409
+
+    comentario = (data.get("comentario") or "").strip()[:500] or None
+    review = Review(
+        service_id=service_id,
+        user_id=patient_id,
+        rating=round(rating, 1),
+        comentario=comentario,
+    )
+    db.session.add(review)
+    db.session.commit()
+
+    return jsonify({
+        "ok":           True,
+        "avg_rating":   service.avg_rating,
+        "review_count": service.review_count,
+    })
 
 
 if __name__ == "__main__":
