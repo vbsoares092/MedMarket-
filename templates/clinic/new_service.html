@@ -6,44 +6,86 @@
 <style>
   .form-card {
     background: var(--card); border: 1px solid var(--border); border-radius: 1rem;
-    padding: 2rem; max-width: 660px; box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+    padding: 2rem; max-width: 700px; box-shadow: 0 2px 12px rgba(0,0,0,0.1);
   }
   .form-group { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 1rem; }
-  .form-label { font-size: 0.78rem; font-weight: 600; }
-  .form-input, .form-textarea {
-    padding: 0.6rem 0.85rem; border-radius: 0.5rem;
+  .form-label { font-size: 0.82rem; font-weight: 700; }
+  .form-label span.req { color: var(--primary); }
+  .form-input, .form-textarea, .form-select {
+    padding: 0.65rem 0.9rem; border-radius: 0.55rem;
     border: 1px solid var(--border); background: var(--secondary);
-    color: var(--fg); font-size: 0.85rem; transition: border-color .15s;
+    color: var(--fg); font-size: 0.88rem; transition: border-color .15s;
   }
-  .form-input:focus, .form-textarea:focus { outline: none; border-color: var(--primary); }
+  .form-input:focus, .form-textarea:focus, .form-select:focus {
+    outline: none; border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(59,130,246,.12);
+  }
   .form-textarea { resize: vertical; min-height: 90px; font-family: inherit; }
   .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-  .form-hint { font-size: 0.72rem; color: var(--muted); }
+  .form-hint { font-size: 0.74rem; color: var(--muted); line-height: 1.5; }
   .error-box {
     background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);
     border-radius: 0.5rem; padding: 0.65rem 0.85rem;
-    font-size: 0.8rem; color: #f87171; margin-bottom: 1.25rem;
+    font-size: 0.82rem; color: #f87171; margin-bottom: 1.25rem;
     display: flex; align-items: center; gap: 0.4rem;
   }
   .btn-row { display: flex; gap: 0.75rem; margin-top: 0.5rem; }
   .btn-submit {
-    padding: 0.6rem 1.5rem; border-radius: 0.55rem;
+    padding: 0.68rem 1.6rem; border-radius: 0.6rem;
     background: var(--primary); color: #fff; border: none;
-    font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: opacity .15s;
+    font-size: 0.9rem; font-weight: 700; cursor: pointer; transition: opacity .15s;
     display: inline-flex; align-items: center; gap: .4rem;
   }
   .btn-submit:hover { opacity: .88; }
   .btn-cancel {
-    padding: 0.6rem 1.25rem; border-radius: 0.55rem;
+    padding: 0.68rem 1.25rem; border-radius: 0.6rem;
     background: var(--secondary); color: var(--muted); border: 1px solid var(--border);
-    font-size: 0.85rem; font-weight: 600; cursor: pointer; text-decoration: none;
+    font-size: 0.9rem; font-weight: 600; cursor: pointer; text-decoration: none;
     display: inline-flex; align-items: center; gap: .4rem; transition: background .15s;
   }
   .btn-cancel:hover { background: rgba(239,68,68,0.08); color: #f87171; border-color: rgba(239,68,68,0.3); }
-  .page-sub { font-size: 0.82rem; color: var(--muted); margin-bottom: 1.5rem; }
+  .page-sub { font-size: 0.84rem; color: var(--muted); margin-bottom: 1.5rem; line-height: 1.65; }
+
+  .svc-type-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: .7rem; margin-bottom: .3rem; }
+  .svc-type-opt  { display: none; }
+  .svc-type-lbl {
+    display: flex; flex-direction: column; align-items: center; gap: .4rem;
+    padding: .85rem .5rem; border-radius: .85rem;
+    border: 1.5px solid var(--border); background: var(--secondary);
+    cursor: pointer; text-align: center; transition: border-color .15s, background .15s;
+    user-select: none;
+  }
+  .svc-type-lbl i { width: 1.5rem; height: 1.5rem; }
+  .svc-type-lbl span { font-size: .82rem; font-weight: 700; line-height: 1.25; }
+  .svc-type-lbl small { font-size: .68rem; color: var(--muted); line-height: 1.4; }
+  .svc-type-opt:checked + .svc-type-lbl {
+    border-color: var(--primary); background: rgba(59,130,246,.1); color: #93c5fd;
+  }
+  .svc-type-opt:checked + .svc-type-lbl small { color: rgba(147,197,253,.7); }
+
+  .exam-panel { display: none; }
+  .exam-panel.visible { display: block; }
+
+  .orientation-box {
+    background: rgba(16,185,129,.07); border: 1px solid rgba(16,185,129,.2);
+    border-radius: .75rem; padding: 1rem 1.1rem; margin-top: .5rem;
+  }
+  .orientation-hint {
+    font-size: .75rem; color: #34d399; display: flex; align-items: center; gap: .3rem;
+    margin-bottom: .45rem; font-weight: 700;
+  }
+  .orientation-hint i { width: .75rem; height: .75rem; flex-shrink: 0; }
+
+  .form-section-title {
+    font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em;
+    color: var(--muted); display: flex; align-items: center; gap: .4rem;
+    margin: .5rem 0 .9rem;
+  }
+  .form-section-title i { width: .8rem; height: .8rem; }
+  .form-section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 </style>
 
-<p class="page-sub">Preencha as informações da consulta ou serviço que sua clínica deseja oferecer.</p>
+<p class="page-sub">Preencha as informações do serviço. Você pode cadastrar uma Consulta, um Exame ou um Pacote que inclui ambos.</p>
 
 <div class="form-card">
   {% if erro %}
@@ -53,89 +95,166 @@
   </div>
   {% endif %}
 
-  <form method="POST" action="{{ url_for('clinic.novo_anuncio') }}" enctype="multipart/form-data">
+  <form method="POST" action="{{ url_for('clinic.novo_anuncio') }}" enctype="multipart/form-data" id="newSvcForm">
+
     <div class="form-group">
-      <label class="form-label">Título do Serviço <span style="color:var(--primary)">*</span></label>
-      <input type="text" name="title" class="form-input"
-             placeholder="Ex: Consulta Cardiológica Online" required maxlength="150" />
+      <label class="form-label">Tipo de Serviço <span class="req">*</span></label>
+      <div class="svc-type-grid">
+        <div>
+          <input type="radio" name="service_category" id="sc_consulta" value="consulta" class="svc-type-opt" checked />
+          <label for="sc_consulta" class="svc-type-lbl">
+            <i data-lucide="stethoscope"></i>
+            <span>Consulta</span>
+            <small>Clínico Geral, Especialistas</small>
+          </label>
+        </div>
+        <div>
+          <input type="radio" name="service_category" id="sc_exame" value="exame" class="svc-type-opt" />
+          <label for="sc_exame" class="svc-type-lbl">
+            <i data-lucide="microscope"></i>
+            <span>Exame</span>
+            <small>Laboratorial, Imagem, Check-up</small>
+          </label>
+        </div>
+        <div>
+          <input type="radio" name="service_category" id="sc_pacote" value="pacote" class="svc-type-opt" />
+          <label for="sc_pacote" class="svc-type-lbl">
+            <i data-lucide="package-check"></i>
+            <span>Pacote Híbrido</span>
+            <small>Consulta + Exame juntos</small>
+          </label>
+        </div>
+      </div>
+      <span class="form-hint">Selecione o tipo que melhor descreve o que está sendo ofertado.</span>
+    </div>
+
+    <div class="exam-panel" id="examPanel">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="exam_type">Categoria do Exame</label>
+          <select name="exam_type" id="exam_type" class="form-select">
+            <option value="">Selecione&hellip;</option>
+            <option value="laboratorial">Laboratorial (sangue, urina&hellip;)</option>
+            <option value="imagem">Imagem (Raio-X, US, RM, TC&hellip;)</option>
+            <option value="checkup">Check-up / Triagem</option>
+            <option value="funcional">Funcional (ECG, Espirometria&hellip;)</option>
+            <option value="outro">Outro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="exam_name_hint">Nome do Exame (sugestão)</label>
+          <input type="text" name="exam_name_hint" id="exam_name_hint" class="form-input"
+                 placeholder="Ex: Hemograma, TSH, Raio-X de Tórax"
+                 list="exam-suggestions" maxlength="150" />
+          <datalist id="exam-suggestions">
+            <option value="Hemograma Completo">
+            <option value="Glicemia em Jejum">
+            <option value="Colesterol Total e Frações">
+            <option value="TSH e T4 Livre">
+            <option value="Vitamina D (25-OH)">
+            <option value="Ferritina">
+            <option value="HbA1c">
+            <option value="Urina Tipo I">
+            <option value="Eletrocardiograma (ECG)">
+            <option value="Ecocardiograma">
+            <option value="Ultrassom Abdominal">
+            <option value="Mamografia">
+            <option value="Raio-X de Tórax">
+            <option value="Ressonância Magnética">
+            <option value="Tomografia Computadorizada">
+            <option value="Densitometria Óssea">
+            <option value="Espirometria">
+            <option value="Papanicolau">
+            <option value="PSA Total">
+          </datalist>
+        </div>
+      </div>
+      <div class="orientation-box">
+        <div class="orientation-hint">
+          <i data-lucide="info"></i>
+          Orientações para o Paciente (jejum, preparo, documentos&hellip;)
+        </div>
+        <textarea name="exam_orientations" id="exam_orientations" class="form-textarea"
+                  placeholder="Ex: Jejum de 8h necessário. Trazer pedido médico."
+                  rows="3"></textarea>
+        <span class="form-hint">Essas orientações serão exibidas em destaque na página do serviço.</span>
+      </div>
+    </div>
+
+    <div class="form-section-title"><i data-lucide="file-text"></i> Informações Gerais</div>
+
+    <div class="form-group">
+      <label class="form-label" for="svc_title">Título do Serviço <span class="req">*</span></label>
+      <input type="text" name="title" id="svc_title" class="form-input"
+             placeholder="Ex: Consulta Cardiológica, Hemograma Completo" required maxlength="150" />
     </div>
 
     <div class="form-row">
       <div class="form-group">
-        <label class="form-label">Médico Responsável <span style="color:var(--primary)">*</span></label>
+        <label class="form-label">Profissional Responsável <span class="req">*</span></label>
         <input type="text" name="doctor_name" class="form-input"
                placeholder="Dr. João Silva" required maxlength="100" />
       </div>
       <div class="form-group">
-        <label class="form-label">Especialidade <span style="color:var(--primary)">*</span></label>
+        <label class="form-label">Especialidade / Área <span class="req">*</span></label>
         <input type="text" name="specialty" class="form-input"
                placeholder="Cardiologia" required maxlength="80" list="specialties-list" />
         <datalist id="specialties-list">
-          <option value="Cardiologia">
-          <option value="Clínica Geral">
-          <option value="Dermatologia">
-          <option value="Endocrinologia">
-          <option value="Ginecologia">
-          <option value="Neurologia">
-          <option value="Oftalmologia">
-          <option value="Ortopedia">
-          <option value="Pediatria">
-          <option value="Psiquiatria">
-          <option value="Urologia">
+          <option value="Cardiologia"><option value="Clínica Geral"><option value="Dermatologia">
+          <option value="Endocrinologia"><option value="Ginecologia"><option value="Neurologia">
+          <option value="Oftalmologia"><option value="Ortopedia"><option value="Pediatria">
+          <option value="Psiquiatria"><option value="Urologia"><option value="Laboratório">
+          <option value="Diagnóstico por Imagem"><option value="Reumatologia">
+          <option value="Gastroenterologia"><option value="Hematologia">
         </datalist>
       </div>
     </div>
 
-    <div class="form-group">
-      <label class="form-label">Preço (R$) <span style="color:var(--primary)">*</span></label>
-      <input type="number" name="price" class="form-input"
+    <div class="form-group" id="priceGroup">
+      <label class="form-label" for="price_main">Preço (R$) <span class="req">*</span></label>
+      <input type="number" name="price" id="price_main" class="form-input"
              placeholder="280.00" min="1" step="0.01" required />
-      <span class="form-hint">Valor em reais. Use ponto como separador decimal.</span>
+      <span class="form-hint" id="priceHint">Valor em reais. Use ponto como separador decimal.</span>
     </div>
 
     <div class="form-group">
       <label class="form-label">Descrição</label>
       <textarea name="description" class="form-textarea"
-                placeholder="Descreva o serviço, o que está incluído, modalidade (presencial/online)..."></textarea>
+                placeholder="Descreva o serviço: o que está incluído, modalidade (presencial/online), duração…"
+                rows="4"></textarea>
     </div>
 
     <div class="form-group">
       <label class="form-label">Foto do Anúncio</label>
-      <input type="file" name="imagem" class="form-input" accept="image/png,image/jpeg,image/jpg,image/webp,image/gif" />
-      <span class="form-hint">Opcional. PNG, JPG ou WEBP. Se não enviar, será exibida uma imagem padrão.</span>
+      <input type="file" name="imagem" class="form-input"
+             accept="image/png,image/jpeg,image/jpg,image/webp,image/gif" />
+      <span class="form-hint">Opcional. PNG, JPG ou WEBP. Será exibida como capa do card.</span>
     </div>
 
-    <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
-                color:var(--muted);display:flex;align-items:center;gap:.4rem;margin:.25rem 0 .75rem;">
-      <i data-lucide="map-pin" style="width:.8rem;height:.8rem;"></i> Localização do Serviço
-    </div>
+    <div class="form-section-title"><i data-lucide="map-pin"></i> Localização do Serviço</div>
+
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">Logradouro (Rua / Av.)</label>
-        <input type="text" name="logradouro" class="form-input"
-               placeholder="Rua das Flores" maxlength="200" />
+        <input type="text" name="logradouro" class="form-input" placeholder="Rua das Flores" maxlength="200" />
       </div>
       <div class="form-group">
         <label class="form-label">Número</label>
-        <input type="text" name="numero" class="form-input"
-               placeholder="42" maxlength="20" />
+        <input type="text" name="numero" class="form-input" placeholder="42" maxlength="20" />
       </div>
     </div>
     <div class="form-group">
       <label class="form-label">Complemento</label>
-      <input type="text" name="complemento" class="form-input"
-             placeholder="Sala 12, Bloco B" maxlength="100" />
+      <input type="text" name="complemento" class="form-input" placeholder="Sala 12, Bloco B" maxlength="100" />
     </div>
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">Bairro</label>
-        <input type="text" name="bairro" class="form-input"
-               placeholder="Centro" maxlength="100" />
+        <input type="text" name="bairro" class="form-input" placeholder="Centro" maxlength="100" />
       </div>
       <div class="form-group">
-        <label class="form-label">Cidade</label>
-        <input type="text" name="cidade" class="form-input"
-               placeholder="São Paulo" maxlength="100" />
+        <label class="form-label">Cidade <span class="req">*</span></label>
+        <input type="text" name="cidade" class="form-input" placeholder="São Paulo" maxlength="100" required />
       </div>
     </div>
     <div class="form-row">
@@ -146,15 +265,14 @@
       </div>
       <div class="form-group">
         <label class="form-label">CEP</label>
-        <input type="text" name="cep" class="form-input"
-               placeholder="01310-100" maxlength="9" />
+        <input type="text" name="cep" class="form-input" placeholder="01310-100" maxlength="9" />
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label">Link do Google Maps ou Plus Code <span style="color:var(--muted);font-weight:400;">(opcional)</span></label>
+      <label class="form-label">Link do Google Maps <span style="color:var(--muted);font-weight:400;">(opcional)</span></label>
       <input type="url" name="google_maps_link" class="form-input"
-             placeholder="https://maps.app.goo.gl/... ou https://plus.codes/..." maxlength="500" />
-      <span class="form-hint">Cole o link direto do Google Maps para garantir precisão na localização.</span>
+             placeholder="https://maps.app.goo.gl/..." maxlength="500" />
+      <span class="form-hint">Cole o link direto do Google Maps para garantir precisão no mapa.</span>
     </div>
 
     <div class="btn-row">
@@ -167,4 +285,24 @@
     </div>
   </form>
 </div>
+
+<script>
+(function () {
+  var radios    = document.querySelectorAll('input[name="service_category"]');
+  var examPanel = document.getElementById('examPanel');
+  var priceHint = document.getElementById('priceHint');
+  var hints = {
+    consulta: 'Valor cobrado pela consulta. Use ponto como separador decimal.',
+    exame:    'Valor do exame. Pode ser ajustado por turno nas disponibilidades.',
+    pacote:   'Preco do pacote (consulta + exame). Informe o valor total.',
+  };
+  function onTypeChange() {
+    var val = document.querySelector('input[name="service_category"]:checked').value;
+    examPanel.classList.toggle('visible', val === 'exame' || val === 'pacote');
+    if (priceHint) priceHint.textContent = hints[val] || hints.consulta;
+  }
+  radios.forEach(function (r) { r.addEventListener('change', onTypeChange); });
+  onTypeChange();
+})();
+</script>
 {% endblock %}

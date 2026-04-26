@@ -8,7 +8,7 @@ from flask import (
 )
 from werkzeug.utils import secure_filename
 from App.database import db
-from App.models import User, ClinicProfile, ClinicService, ClinicSchedule, Appointment, Disponibilidade, Mensagem, ChatConversa
+from App.models import User, ClinicProfile, ClinicService, ClinicSchedule, Appointment, Disponibilidade, Mensagem, ChatConversa, PostAtendimento
 from App.utils.security import (
     hash_password, verify_password, sanitize_cnpj, login_required_clinic,
 )
@@ -483,6 +483,12 @@ def novo_anuncio():
         estado           = ((request.form.get("estado") or "").strip()[:2].upper()) or None
         cep              = (request.form.get("cep") or "").strip() or None
         google_maps_link = (request.form.get("google_maps_link") or "").strip() or None
+        # Hybrid fields
+        service_category  = (request.form.get("service_category") or "consulta").strip()
+        if service_category not in ('consulta', 'exame', 'pacote'):
+            service_category = 'consulta'
+        exam_type         = (request.form.get("exam_type") or "").strip() or None
+        exam_orientations = (request.form.get("exam_orientations") or "").strip() or None
         try:
             price = float(request.form.get("price", "0").replace(",", "."))
         except ValueError:
@@ -508,6 +514,9 @@ def novo_anuncio():
                 estado=estado,
                 cep=cep,
                 google_maps_link=google_maps_link,
+                service_category=service_category,
+                exam_type=exam_type,
+                exam_orientations=exam_orientations,
                 active=True,
             )
             db.session.add(service)
@@ -545,19 +554,27 @@ def editar_anuncio(service_id):
         if not title or not doctor_name or not specialty or price <= 0:
             erro = "Preencha todos os campos obrigatórios e um preço válido."
         else:
-            service.title            = title
-            service.doctor_name      = doctor_name
-            service.specialty        = specialty
-            service.description      = description
-            service.price            = price
-            service.logradouro       = logradouro
-            service.numero           = numero
-            service.complemento      = complemento
-            service.bairro           = bairro
-            service.cidade           = cidade
-            service.estado           = estado
-            service.cep              = cep
-            service.google_maps_link = google_maps_link
+            service_category  = (request.form.get("service_category") or "consulta").strip()
+            if service_category not in ('consulta', 'exame', 'pacote'):
+                service_category = 'consulta'
+            exam_type         = (request.form.get("exam_type") or "").strip() or None
+            exam_orientations = (request.form.get("exam_orientations") or "").strip() or None
+            service.title             = title
+            service.doctor_name       = doctor_name
+            service.specialty         = specialty
+            service.description       = description
+            service.price             = price
+            service.logradouro        = logradouro
+            service.numero            = numero
+            service.complemento       = complemento
+            service.bairro            = bairro
+            service.cidade            = cidade
+            service.estado            = estado
+            service.cep               = cep
+            service.google_maps_link  = google_maps_link
+            service.service_category  = service_category
+            service.exam_type         = exam_type
+            service.exam_orientations = exam_orientations
             new_img = _save_service_image(request.files.get("imagem"))
             if new_img:
                 if service.imagem_url:
@@ -752,13 +769,27 @@ def salvar_disponibilidade():
                 saved += 1
 
     db.session.commit()
-    ndatas = len(datas)
-    msg = (
-        f"{saved} horário(s) criado(s) com sucesso em {ndatas} data(s)."
-        if saved > 0
-        else "Nenhum horário novo foi adicionado (todos já existiam)."
-    )
-    return jsonify({"ok": True, "salvos": saved, "msg": msg})
+    ndatas     = len(datas)
+    total_req  = len(datas) * len(horarios)
+    duplicados = total_req - saved
+
+    if saved == 0:
+        return jsonify({
+            "ok":        False,
+            "salvos":    0,
+            "duplicados": duplicados,
+            "msg":       "Este horário já está cadastrado em sua agenda.",
+        }), 409
+
+    if duplicados > 0:
+        msg = (
+            f"{saved} horário(s) criado(s) em {ndatas} data(s). "
+            f"{duplicados} já existia(m) e foram ignorados."
+        )
+    else:
+        msg = f"{saved} horário(s) criado(s) com sucesso em {ndatas} data(s)."
+
+    return jsonify({"ok": True, "salvos": saved, "duplicados": duplicados, "msg": msg})
 
 
 @clinic_bp.route("/agenda/slots", methods=["GET"])
@@ -854,6 +885,62 @@ def excluir_disponibilidade(slot_id):
     db.session.delete(slot)
     db.session.commit()
     return jsonify({"ok": True})
+
+
+@clinic_bp.route("/agenda/horarios-ocupados", methods=["GET"])
+@login_required_clinic
+def horarios_ocupados():
+    """Return already-registered horários for a service across given dates.
+
+    Query params:
+      service_id — int
+      datas      — comma-separated ISO dates "2026-04-05,2026-04-08,…"
+
+    Returns:
+      {
+        "taken": {
+          "2026-04-05": ["09:00", "10:00"],
+          "2026-04-08": ["14:00"]
+        }
+      }
+    """
+    user       = _session_clinic()
+    service_id = request.args.get("service_id", type=int)
+    datas_str  = (request.args.get("datas") or "").strip()
+
+    if not service_id:
+        return jsonify({"taken": {}})
+
+    service = ClinicService.query.filter_by(id=service_id, clinic_id=user.id).first_or_404()
+
+    datas = []
+    for token in datas_str.split(","):
+        token = token.strip()
+        if token:
+            try:
+                datas.append(datetime.strptime(token, "%Y-%m-%d").date())
+            except ValueError:
+                pass
+
+    if not datas:
+        return jsonify({"taken": {}})
+
+    rows = (
+        Disponibilidade.query
+        .filter(
+            Disponibilidade.service_id == service.id,
+            Disponibilidade.data.in_(datas),
+        )
+        .with_entities(Disponibilidade.data, Disponibilidade.horario)
+        .all()
+    )
+
+    taken: dict = {}
+    for r in rows:
+        key = r.data.isoformat()
+        taken.setdefault(key, []).append(r.horario)
+
+    return jsonify({"taken": taken})
 
 
 # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -973,6 +1060,25 @@ def confirmar_chegada(appt_id):
     return jsonify({"ok": True, "msg": "Chegada confirmada. Consulta em andamento."})
 
 
+@clinic_bp.route("/agenda/appointment/<int:appt_id>/iniciar", methods=["POST"])
+@login_required_clinic
+def iniciar_atendimento(appt_id):
+    """Start consultation in one click: pending or confirmed → in_progress."""
+    user = _session_clinic()
+    appt = Appointment.query.filter_by(id=appt_id, clinic_id=user.id).first_or_404()
+
+    allowed = {Appointment.STATUS_PENDING, Appointment.STATUS_CONFIRMED}
+    # Idempotent: already in_progress is fine (doctor may have re-clicked)
+    if appt.status == Appointment.STATUS_IN_PROGRESS:
+        return jsonify({"ok": True, "msg": "Consulta já está em andamento."})
+    if appt.status not in allowed:
+        return jsonify({"ok": False, "msg": "Consulta não pode ser iniciada neste estado."}), 400
+
+    appt.status = Appointment.STATUS_IN_PROGRESS
+    db.session.commit()
+    return jsonify({"ok": True, "msg": "Consulta iniciada."})
+
+
 @clinic_bp.route("/agenda/appointment/<int:appt_id>/encerrar", methods=["POST"])
 @login_required_clinic
 def encerrar_consulta(appt_id):
@@ -986,4 +1092,46 @@ def encerrar_consulta(appt_id):
     appt.status = Appointment.STATUS_COMPLETED
     db.session.commit()
     return jsonify({"ok": True, "msg": "Consulta encerrada e marcada como Realizada."})
+
+
+@clinic_bp.route("/agenda/appointment/<int:appt_id>/finalizar", methods=["POST"])
+@login_required_clinic
+def finalizar_atendimento(appt_id):
+    """Finalize with post-care: in_progress|completed → finalized + PostAtendimento record."""
+    user = _session_clinic()
+    appt = Appointment.query.filter_by(id=appt_id, clinic_id=user.id).first_or_404()
+
+    allowed = {Appointment.STATUS_IN_PROGRESS, Appointment.STATUS_COMPLETED}
+    if appt.status not in allowed:
+        return jsonify({"ok": False, "msg": "Agendamento não pode ser finalizado neste estado."}), 400
+
+    # Prevent duplicate post-atendimento
+    existing = PostAtendimento.query.filter_by(appointment_id=appt_id).first()
+    if existing:
+        return jsonify({"ok": False, "msg": "Este atendimento já foi finalizado."}), 400
+
+    data = request.get_json(force=True, silent=True) or {}
+    recomendacoes   = (data.get("recomendacoes")   or "").strip() or None
+    proximos_passos = (data.get("proximos_passos") or "").strip() or None
+    retorno_tipo    = (data.get("retorno_tipo")    or "").strip() or None
+    retorno_meses_raw = data.get("retorno_meses")
+    try:
+        retorno_meses = int(retorno_meses_raw) if retorno_meses_raw not in (None, "") else None
+    except (ValueError, TypeError):
+        retorno_meses = None
+    retorno_sugerido = bool(data.get("retorno_sugerido")) and retorno_tipo is not None
+
+    post = PostAtendimento(
+        appointment_id   = appt_id,
+        recomendacoes    = recomendacoes,
+        proximos_passos  = proximos_passos,
+        retorno_sugerido = retorno_sugerido,
+        retorno_tipo     = retorno_tipo if retorno_sugerido else None,
+        retorno_meses    = retorno_meses if retorno_sugerido else None,
+        notificacao_lida = False,
+    )
+    appt.status = Appointment.STATUS_FINALIZED
+    db.session.add(post)
+    db.session.commit()
+    return jsonify({"ok": True, "msg": "Atendimento finalizado com sucesso."})
 

@@ -1,3 +1,4 @@
+from sqlalchemy import func as sa_func
 from App.database import db
 
 
@@ -73,6 +74,17 @@ class ClinicProfile(db.Model):
 
     user = db.relationship('User', back_populates='clinic_profile')
 
+    @property
+    def avg_rating(self):
+        """Aggregate average rating across all services owned by this clinic."""
+        result = (
+            db.session.query(sa_func.avg(Review.rating))
+            .join(ClinicService, Review.service_id == ClinicService.id)
+            .filter(ClinicService.clinic_id == self.user_id)
+            .scalar()
+        )
+        return round(result, 1) if result is not None else None
+
     def __repr__(self):
         return f'<ClinicProfile {self.razao_social}>'
 
@@ -98,7 +110,16 @@ class ClinicService(db.Model):
     estado           = db.Column(db.String(2),    nullable=True)
     cep              = db.Column(db.String(9),    nullable=True)   # "00000-000"
     google_maps_link = db.Column(db.String(500),  nullable=True)
+    lat              = db.Column(db.Float,        nullable=True)   # geocoded latitude
+    lng              = db.Column(db.Float,        nullable=True)   # geocoded longitude
     created_at       = db.Column(db.DateTime,    server_default=db.func.now())
+    # ── Hybrid service architecture ────────────────────────────────────────────
+    # service_category: 'consulta' (default) | 'exame' | 'pacote'
+    # exam_type:        None | 'laboratorial' | 'imagem' | 'checkup'
+    # exam_orientations: free-text instructions (e.g. "Jejum de 8h necessário")
+    service_category  = db.Column(db.String(20), nullable=False, default='consulta')
+    exam_type         = db.Column(db.String(30), nullable=True)
+    exam_orientations = db.Column(db.Text,       nullable=True)
 
     @property
     def endereco_formatado(self) -> str:
@@ -129,6 +150,27 @@ class ClinicService(db.Model):
                                        cascade='all, delete-orphan')
     disponibilidades = db.relationship('Disponibilidade', backref='anuncio', lazy='dynamic',
                                        cascade='all, delete-orphan')
+    reviews          = db.relationship('Review', backref='service', lazy='dynamic',
+                                       cascade='all, delete-orphan')
+
+    @property
+    def avg_rating(self):
+        """Average rating from reviews (None if no reviews)."""
+        result = (
+            db.session.query(sa_func.avg(Review.rating))
+            .filter(Review.service_id == self.id)
+            .scalar()
+        )
+        return round(result, 1) if result is not None else None
+
+    @property
+    def review_count(self):
+        """Number of reviews for this service."""
+        return (
+            db.session.query(sa_func.count(Review.id))
+            .filter(Review.service_id == self.id)
+            .scalar()
+        ) or 0
 
     def __repr__(self):
         return f'<ClinicService {self.title}>'
@@ -161,6 +203,7 @@ class Appointment(db.Model):
     STATUS_CONFIRMED   = 'confirmed'
     STATUS_IN_PROGRESS = 'in_progress'
     STATUS_COMPLETED   = 'completed'
+    STATUS_FINALIZED   = 'finalized'
     STATUS_CANCELLED   = 'cancelled'
 
     id         = db.Column(db.Integer,    primary_key=True)
@@ -287,3 +330,88 @@ class DocumentoPaciente(db.Model):
 
     def __repr__(self):
         return f'<DocumentoPaciente {self.titulo} paciente={self.paciente_id}>'
+
+
+class Review(db.Model):
+    """Patient rating (1–5) for a clinic service after a finalized appointment."""
+    __tablename__ = 'reviews'
+
+    id             = db.Column(db.Integer,  primary_key=True)
+    service_id     = db.Column(db.Integer,  db.ForeignKey('clinic_services.id'), nullable=False)
+    user_id        = db.Column(db.Integer,  db.ForeignKey('users.id'), nullable=False)
+    appointment_id = db.Column(db.Integer,  db.ForeignKey('appointments.id'), nullable=True, unique=True)
+    rating         = db.Column(db.Float,    nullable=False)
+    comentario     = db.Column(db.Text,     nullable=True)
+    created_at     = db.Column(db.DateTime, server_default=db.func.now())
+
+    user        = db.relationship('User',        foreign_keys=[user_id])
+    appointment = db.relationship('Appointment', foreign_keys=[appointment_id])
+
+    __table_args__ = (
+        db.UniqueConstraint('service_id', 'user_id', name='uq_review_service_user'),
+    )
+
+    def __repr__(self):
+        return f'<Review svc={self.service_id} user={self.user_id} rating={self.rating}>'
+
+
+class PostAtendimento(db.Model):
+    """Doctor's post-care instructions filled after finalizing an appointment."""
+    __tablename__ = 'post_atendimentos'
+
+    id                = db.Column(db.Integer, primary_key=True)
+    appointment_id    = db.Column(db.Integer, db.ForeignKey('appointments.id'), unique=True, nullable=False)
+    recomendacoes     = db.Column(db.Text,    nullable=True)   # post-visit guidance
+    proximos_passos   = db.Column(db.Text,    nullable=True)   # next steps / instructions
+    retorno_sugerido  = db.Column(db.Boolean, default=False, nullable=False)  # suggests a return
+    retorno_tipo      = db.Column(db.String(30), nullable=True)  # 'consulta' | 'exame'
+    retorno_meses     = db.Column(db.Integer, nullable=True)   # months until suggested return
+    notificacao_lida  = db.Column(db.Boolean, default=False, nullable=False)  # patient read the card
+    created_at        = db.Column(db.DateTime, server_default=db.func.now())
+
+    appointment = db.relationship('Appointment', foreign_keys=[appointment_id])
+
+    def __repr__(self):
+        return f'<PostAtendimento appt={self.appointment_id}>'
+
+
+class GlobalMensagem(db.Model):
+    """Persisted community chat message (replaces in-memory list)."""
+    __tablename__ = 'global_mensagens'
+
+    id        = db.Column(db.Integer,     primary_key=True)
+    user_id   = db.Column(db.Integer,     db.ForeignKey('users.id'), nullable=True)
+    user_name = db.Column(db.String(80),  nullable=False)
+    avatar    = db.Column(db.String(5),   nullable=False, default='?')
+    conteudo  = db.Column(db.Text,        nullable=False)
+    timestamp = db.Column(db.DateTime,    server_default=db.func.now())
+
+    user = db.relationship('User', foreign_keys=[user_id])
+
+    def __repr__(self):
+        return f'<GlobalMensagem {self.user_name}: {self.conteudo[:30]}>'
+
+
+# ── Specialty → complementary exam suggestions (used for UX hints on clinic page) ──
+SPECIALTY_EXAM_MAP: dict[str, list[str]] = {
+    "Cardiologia":         ["Eletrocardiograma", "Ecocardiograma", "Holter 24h", "MAPA", "Teste Ergométrico"],
+    "Clínica Geral":       ["Hemograma Completo", "Glicemia em Jejum", "Colesterol Total", "Urina Tipo I", "TGO/TGP"],
+    "Endocrinologia":      ["TSH", "T4 Livre", "Glicemia em Jejum", "HbA1c", "Insulina Basal", "Cortisol"],
+    "Neurologia":          ["EEG", "Ressonância Magnética de Crânio", "Eletroneuromiografia", "Potencial Evocado"],
+    "Ortopedia":           ["Raio-X", "Ressonância Magnética", "Tomografia Computadorizada", "Densitometria Óssea"],
+    "Oftalmologia":        ["Acuidade Visual", "Tonometria", "Fundo de Olho", "Campimetria"],
+    "Ginecologia":         ["Papanicolau", "Ultrassom Pélvico", "Mamografia", "Colposcopia", "HPV"],
+    "Urologia":            ["PSA Total", "Ultrassom de Próstata", "Urina Tipo I", "Urofluxometria"],
+    "Gastroenterologia":   ["Endoscopia Digestiva", "Colonoscopia", "H. Pylori", "Hepatite A/B/C", "Calprotectina Fecal"],
+    "Pneumologia":         ["Espirometria", "Raio-X de Tórax", "Tomografia de Tórax", "Oximetria"],
+    "Dermatologia":        ["Biópsia de Pele", "Dermatoscopia", "Patch Test", "Cultura de Fungos"],
+    "Reumatologia":        ["Fator Reumatoide", "PCR Ultrassensível", "VHS", "FAN", "Anti-CCP", "Ácido Úrico"],
+    "Pediatria":           ["Hemograma Completo", "Vitamina D", "Ferritina", "Urina Tipo I", "Glicemia"],
+    "Nefrologia":          ["Creatinina", "Ureia", "Proteinúria 24h", "Clearance de Creatinina", "Eletrólitos"],
+    "Hematologia":         ["Hemograma Completo", "Coagulograma", "Ferritina", "Eletroforese de Hemoglobina"],
+    "Infectologia":        ["HIV", "Hepatite B/C", "VDRL", "Toxoplasmose", "CMV", "EBV"],
+    "Oncologia":           ["PSA", "CA 125", "CEA", "AFP", "Beta-HCG", "CA 19-9"],
+    "Ortomolecular":       ["Vitamina D", "Vitamina B12", "Zinco", "Magnésio", "Ferritina", "Homocisteína"],
+    "Medicina do Trabalho":["Audiometria", "Espirometria", "Acuidade Visual", "Glicemia", "Hemograma Completo"],
+    "Laboratório":         ["Hemograma Completo", "Glicemia em Jejum", "Colesterol Total", "TSH", "Urina Tipo I"],
+}

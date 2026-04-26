@@ -1,12 +1,13 @@
-from flask import Blueprint, session, redirect, render_template, request
+from flask import Blueprint, session, redirect, render_template, request, jsonify
 from App.database import db
-from App.models import User, Appointment, ClinicService, DocumentoPaciente
+from App.models import User, Appointment, ClinicService, DocumentoPaciente, PostAtendimento, Review
 from App.utils.security import sanitize_cpf
 
 auth = Blueprint("auth", __name__)
 
 
-def _render_perfil(user, aviso, redirect_to, erro, appointments=None, documentos=None):
+def _render_perfil(user, aviso, redirect_to, erro, appointments=None, documentos=None,
+                   historico_saude=None, unread_cuidados=0):
     return render_template(
         "perfil.html",
         user={"email": user.email, "name": user.name,
@@ -16,6 +17,8 @@ def _render_perfil(user, aviso, redirect_to, erro, appointments=None, documentos
         erro=erro,
         appointments=appointments or [],
         documentos=documentos or [],
+        historico_saude=historico_saude or [],
+        unread_cuidados=unread_cuidados,
         chat_messages=[],
         query="",
         selected_category="",
@@ -83,4 +86,93 @@ def perfil():
         .order_by(DocumentoPaciente.data_upload.desc())
         .all()
     )
-    return _render_perfil(db_user, aviso, redirect_to, None, appointments, documentos)
+
+    # Build Histórico de Saúde: finalized appointments with post-care records
+    finalized_appts = (
+        Appointment.query
+        .filter_by(user_id=db_user.id, status=Appointment.STATUS_FINALIZED)
+        .order_by(Appointment.date.desc(), Appointment.time_slot.desc())
+        .all()
+    )
+    reviewed_appt_ids = {
+        r.appointment_id for r in Review.query.filter_by(user_id=db_user.id).all()
+        if r.appointment_id
+    }
+    historico_saude = []
+    for appt in finalized_appts:
+        post = PostAtendimento.query.filter_by(appointment_id=appt.id).first()
+        historico_saude.append({
+            "appt":     appt,
+            "post":     post,
+            "reviewed": appt.id in reviewed_appt_ids,
+        })
+
+    unread_cuidados = sum(
+        1 for h in historico_saude
+        if h["post"] and not h["post"].notificacao_lida
+    )
+
+    return _render_perfil(db_user, aviso, redirect_to, None, appointments, documentos,
+                          historico_saude, unread_cuidados)
+
+
+@auth.route("/avaliar/<int:appt_id>", methods=["POST"])
+def avaliar_atendimento(appt_id):
+    """Submit a star review for a finalized appointment."""
+    if not session.get("user"):
+        return jsonify({"ok": False, "msg": "Não autenticado."}), 401
+
+    uid    = session["user"]["id"]
+    appt   = Appointment.query.filter_by(id=appt_id, user_id=uid).first()
+    if not appt:
+        return jsonify({"ok": False, "msg": "Agendamento não encontrado."}), 404
+    if appt.status != Appointment.STATUS_FINALIZED:
+        return jsonify({"ok": False, "msg": "Só é possível avaliar após o atendimento ser finalizado."}), 400
+
+    # Prevent duplicate reviews per appointment
+    existing = Review.query.filter_by(appointment_id=appt_id, user_id=uid).first()
+    if existing:
+        return jsonify({"ok": False, "msg": "Você já avaliou este atendimento."}), 400
+
+    data = request.get_json(force=True, silent=True) or {}
+    try:
+        rating = float(data.get("rating", 0))
+    except (ValueError, TypeError):
+        rating = 0.0
+    if not (1 <= rating <= 5):
+        return jsonify({"ok": False, "msg": "Nota inválida. Use de 1 a 5."}), 400
+
+    comentario = (data.get("comentario") or "").strip() or None
+
+    review = Review(
+        service_id     = appt.service_id,
+        user_id        = uid,
+        appointment_id = appt_id,
+        rating         = rating,
+        comentario     = comentario,
+    )
+    db.session.add(review)
+
+    # Mark notification as read when the patient submits a review
+    post = PostAtendimento.query.filter_by(appointment_id=appt_id).first()
+    if post:
+        post.notificacao_lida = True
+
+    db.session.commit()
+    return jsonify({"ok": True, "msg": "Avaliação enviada com sucesso!"})
+
+
+@auth.route("/cuidados/<int:appt_id>/marcar-lido", methods=["POST"])
+def marcar_cuidado_lido(appt_id):
+    """Mark a PostAtendimento notification as read for the current patient."""
+    if not session.get("user"):
+        return jsonify({"ok": False}), 401
+    uid  = session["user"]["id"]
+    appt = Appointment.query.filter_by(id=appt_id, user_id=uid).first()
+    if not appt:
+        return jsonify({"ok": False}), 404
+    post = PostAtendimento.query.filter_by(appointment_id=appt_id).first()
+    if post and not post.notificacao_lida:
+        post.notificacao_lida = True
+        db.session.commit()
+    return jsonify({"ok": True})

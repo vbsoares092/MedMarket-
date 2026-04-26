@@ -86,6 +86,19 @@
 .dc-chip.sel { background: linear-gradient(135deg,#2563eb,#06b6d4); color: #fff; border-color: transparent; }
 .dc-chip:hover:not(.sel) { border-color: rgba(59,130,246,.5); color: #60a5fa; }
 
+/* ─── Taken / partially-taken chips ──────────────────────── */
+.dc-chip--taken {
+  opacity: .45; cursor: not-allowed;
+  background: rgba(239,68,68,.08); border-color: rgba(239,68,68,.3);
+  color: #f87171; text-decoration: line-through;
+}
+.dc-chip--taken-partial {
+  background: rgba(245,158,11,.08); border-color: rgba(245,158,11,.3); color: #fbbf24;
+}
+.dc-chip--taken-partial.sel {
+  background: linear-gradient(135deg,#d97706,#f59e0b); border-color: transparent; color: #fff;
+}
+
 /* ─── Pricing box ─────────────────────────────────────────── */
 .dc-price-box {
   border: 1px solid #1e2740; border-radius: .875rem; padding: 1.25rem 1.5rem;
@@ -105,6 +118,7 @@
 .dc-alert.show { display: flex; }
 .dc-alert.ok  { background: rgba(34,197,94,.1); border: 1px solid rgba(34,197,94,.3); color: #4ade80; }
 .dc-alert.err { background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.3); color: #f87171; }
+.dc-alert.warn { background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.3); color: #fbbf24; }
 
 /* ─── Submit row ──────────────────────────────────────────── */
 .cd-submit-row { display: flex; align-items: center; gap: 1rem; margin-top: 2rem; flex-wrap: wrap; }
@@ -297,6 +311,8 @@ var elDcAlert = g('dcAlert');
    STATE
 ══════════════════════════════════════════ */
 var _dcSelectedHours = new Set();
+var _takenAll  = new Set();   // taken in ALL selected dates → disable
+var _takenSome = new Set();   // taken in SOME (but not all) dates → warn only
 var _dcFP; // flatpickr instance
 
 /* ══════════════════════════════════════════
@@ -314,6 +330,7 @@ _dcFP = flatpickr('#dcDateInput', {
       return d.toISOString().slice(0, 10);
     }).join(',');
     syncDcSave();
+    fetchTakenHours();
   },
 });
 
@@ -368,15 +385,31 @@ function buildDcChips() {
       lbl.textContent = SHIFTS[sh].label;
       container.appendChild(lbl);
     }
+
+    var isTakenAll  = _takenAll.has(t);
+    var isTakenSome = _takenSome.has(t);
+
     var chip = document.createElement('span');
-    chip.className = 'dc-chip' + (_dcSelectedHours.has(t) ? ' sel' : '');
+    if (isTakenAll) {
+      chip.className = 'dc-chip dc-chip--taken';
+      chip.title = 'Já cadastrado em todas as datas selecionadas';
+    } else if (isTakenSome) {
+      chip.className = 'dc-chip dc-chip--taken-partial' + (_dcSelectedHours.has(t) ? ' sel' : '');
+      chip.title = 'Já cadastrado em parte das datas selecionadas';
+    } else {
+      chip.className = 'dc-chip' + (_dcSelectedHours.has(t) ? ' sel' : '');
+    }
     chip.textContent = t;
-    chip.addEventListener('click', function () {
-      if (_dcSelectedHours.has(t)) _dcSelectedHours.delete(t); else _dcSelectedHours.add(t);
-      buildDcChips(); syncDcSave();
-    });
+
+    if (!isTakenAll) {
+      chip.addEventListener('click', function () {
+        if (_dcSelectedHours.has(t)) _dcSelectedHours.delete(t); else _dcSelectedHours.add(t);
+        buildDcChips(); syncDcSave();
+      });
+    }
     container.appendChild(chip);
-    if (_dcSelectedHours.has(t)) {
+
+    if (!isTakenAll && _dcSelectedHours.has(t)) {
       var inp = document.createElement('input');
       inp.type = 'hidden'; inp.name = 'horarios'; inp.value = t;
       hiddenWrap.appendChild(inp);
@@ -404,6 +437,40 @@ g('dcQLimpar').addEventListener('click', function () {
 });
 
 /* ══════════════════════════════════════════
+   TAKEN-HOURS FETCH
+══════════════════════════════════════════ */
+function fetchTakenHours() {
+  var svc   = g('dcSvc').value;
+  var datas = g('dcDatasHidden').value;
+  _takenAll.clear(); _takenSome.clear();
+  if (!svc || !datas) { buildDcChips(); return; }
+  var url = '/clinica/agenda/horarios-ocupados'
+          + '?service_id=' + encodeURIComponent(svc)
+          + '&datas='      + encodeURIComponent(datas);
+  fetch(url)
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      var takenData   = d.taken || {};
+      var totalDates  = datas.split(',').filter(Boolean).length;
+      var counts = {};
+      Object.values(takenData).forEach(function (hours) {
+        hours.forEach(function (h) { counts[h] = (counts[h] || 0) + 1; });
+      });
+      Object.keys(counts).forEach(function (h) {
+        if (counts[h] >= totalDates) {
+          _takenAll.add(h);
+          _dcSelectedHours.delete(h);   // auto-deselect fully-taken slots
+        } else {
+          _takenSome.add(h);
+        }
+      });
+      buildDcChips();
+      syncDcSave();
+    })
+    .catch(function () { /* silent — UI still works without taken data */ });
+}
+
+/* ══════════════════════════════════════════
    PRICING TOGGLE
 ══════════════════════════════════════════ */
 document.querySelectorAll('#dcForm input[name="preco_tipo"]').forEach(function (r) {
@@ -422,7 +489,7 @@ function syncDcSave() {
   g('dcSave').disabled = !(hasSvc && hasDates && hasHours);
 }
 
-g('dcSvc').addEventListener('change', syncDcSave);
+g('dcSvc').addEventListener('change', function () { syncDcSave(); fetchTakenHours(); });
 
 /* ══════════════════════════════════════════
    FORM SUBMIT
@@ -437,19 +504,23 @@ g('dcForm').addEventListener('submit', function (e) {
     .then(function (r) { return r.json(); })
     .then(function (d) {
       if (d.ok) {
-        showDcAlert((d.salvos || 0) + ' horário(s) criado(s) com sucesso! Você pode continuar adicionando ou ir para a Agenda.', 'ok');
+        var alertType = (d.duplicados && d.duplicados > 0) ? 'warn' : 'ok';
+        showDcAlert(d.msg, alertType);
         /* Reset form for next batch */
         _dcSelectedHours.clear();
+        _takenAll.clear(); _takenSome.clear();
         buildDcChips();
         _dcFP.clear();
         g('dcDatasHidden').value = '';
         btn.disabled = false; btn.textContent = 'Salvar Disponibilidades';
         syncDcSave();
-        /* Scroll alert into view */
         elDcAlert.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        fetchTakenHours();
       } else {
-        showDcAlert(d.msg || 'Erro ao salvar.', 'err');
+        showDcAlert(d.msg || 'Este horário já está cadastrado em sua agenda.', 'err');
         btn.disabled = false; btn.textContent = 'Salvar Disponibilidades';
+        /* Re-highlight taken slots so user can see the conflict */
+        fetchTakenHours();
       }
     })
     .catch(function () {
@@ -462,7 +533,9 @@ function showDcAlert(msg, type) {
   if (!msg) { elDcAlert.className = 'dc-alert'; return; }
   elDcAlert.className = 'dc-alert show ' + type;
   elDcAlert.textContent = msg;
-  if (type === 'err') setTimeout(function () { elDcAlert.className = 'dc-alert'; }, 6000);
+  if (type === 'err' || type === 'warn') {
+    setTimeout(function () { elDcAlert.className = 'dc-alert'; }, 7000);
+  }
 }
 
 /* ── Initial chip build ── */

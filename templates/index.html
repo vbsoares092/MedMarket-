@@ -4,13 +4,161 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/vitrine.css') }}" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 {% endblock %}
 
 {% block content %}
+<!-- ── AIRBNB PILL SEARCH BAR ── -->
+<section class="sp-hero">
+  <div class="container">
+    <form class="search-pill" id="searchPill" action="/" method="get" autocomplete="off">
+
+      <!-- hidden GPS coordinate inputs -->
+      <input type="hidden" name="user_lat" id="spUserLat" value="{{ request.args.get('user_lat', '') }}" />
+      <input type="hidden" name="user_lng" id="spUserLng" value="{{ request.args.get('user_lng', '') }}" />
+
+      <!-- ① Onde — Location dropdown -->
+      <div class="sp-field sp-field--onde" data-popover="onde">
+        <label class="sp-label">
+          <i data-lucide="map-pin" class="sp-label-icon"></i>
+          Onde
+        </label>
+        <div class="sp-loc-display{% if request.args.get('user_lat') and request.args.get('user_lng') %} sp-loc-display--filled{% elif request.args.get('location') %} sp-loc-display--filled{% endif %}" id="spLocDisplay">
+          {%- if request.args.get('user_lat') and request.args.get('user_lng') -%}Minha Localização{%- else -%}{{ request.args.get('location') or 'Qualquer lugar' }}{%- endif -%}
+        </div>
+        <input type="hidden" name="location" id="spLocHidden" value="{{ request.args.get('location', '') }}" />
+        <!-- GPS crosshair button -->
+        <button type="button" class="sp-gps-btn{% if request.args.get('user_lat') and request.args.get('user_lng') %} sp-gps-btn--active{% endif %}" id="spGpsBtn" title="Usar minha localização" aria-label="Usar minha localização">
+          <i data-lucide="crosshair"></i>
+        </button>
+        <!-- Location popover -->
+        <div class="sp-popover sp-popover--loclist" id="popOnde">
+          <p class="sp-pop-title">Selecione a cidade</p>
+          <ul class="spl-list" id="splListUl">
+            <!-- GPS option -->
+            <li class="spl-item spl-item--geo{% if request.args.get('user_lat') and request.args.get('user_lng') %} spl-item--active{% endif %}" id="splGeoItem" data-loc="__geo__">
+              <i data-lucide="crosshair" class="spl-item-icon" style="color:#3b82f6;"></i>
+              <span>Minha Localização</span>
+              <span class="spl-geo-status" id="splGeoStatus"></span>
+            </li>
+            <li class="spl-item{% if not request.args.get('location') and not (request.args.get('user_lat') and request.args.get('user_lng')) %} spl-item--active{% endif %}" data-loc="">
+              <i data-lucide="globe" class="spl-item-icon"></i>
+              <span>Qualquer lugar</span>
+            </li>
+            {% for loc in locations %}
+            <li class="spl-item{% if request.args.get('location') == loc %} spl-item--active{% endif %}" data-loc="{{ loc }}">
+              <i data-lucide="map-pin" class="spl-item-icon"></i>
+              <span>{{ loc }}</span>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+
+      <span class="sp-sep" aria-hidden="true"></span>
+
+      <!-- ② Quando — Date range with dual calendar -->
+      <!-- SYNC: date_from / date_to filtram pela tabela disponibilidades (médicos) -->
+      <div class="sp-field sp-field--quando" data-popover="quando">
+        <label class="sp-label">
+          <i data-lucide="calendar-range" class="sp-label-icon"></i>
+          Quando
+        </label>
+        <div class="sp-date-display" id="spDateDisplay">Escolha as datas</div>
+        <input type="hidden" name="date_from" id="spDateFrom" value="{{ request.args.get('date_from', '') }}" />
+        <input type="hidden" name="date_to"   id="spDateTo"   value="{{ request.args.get('date_to', '') }}" />
+        <!-- Dual-calendar popover -->
+        <div class="sp-popover sp-popover--cal" id="popQuando">
+          <div class="spc-header">
+            <button type="button" class="spc-nav spc-nav--prev" id="calPrev" aria-label="Mês anterior"><i data-lucide="chevron-left"></i></button>
+            <div class="spc-months-title">
+              <span id="calTitle0"></span>
+              <span id="calTitle1"></span>
+            </div>
+            <button type="button" class="spc-nav spc-nav--next" id="calNext" aria-label="Próximo mês"><i data-lucide="chevron-right"></i></button>
+          </div>
+          <div class="spc-grid-wrap">
+            <div class="spc-month" id="calMonth0"></div>
+            <div class="spc-month" id="calMonth1"></div>
+          </div>
+          <div class="spc-footer">
+            <button type="button" class="spc-clear" id="calClear">Limpar datas</button>
+          </div>
+        </div>
+      </div>
+
+      <span class="sp-sep" aria-hidden="true"></span>
+
+      <!-- ③ Especialidade — styled list dropdown -->
+      <div class="sp-field sp-field--spec" data-popover="spec">
+        <label class="sp-label" for="spSpec">
+          <i data-lucide="stethoscope" class="sp-label-icon"></i>
+          Especialidade ou Exame
+        </label>
+        <input id="spSpec" type="text" name="q" class="sp-input"
+               placeholder="Ex: Cardiologista, Hemograma..."
+               value="{{ query }}" />
+        <input type="hidden" name="category" id="spCatHidden" value="{{ selected_category }}" />
+        <!-- Specialty dropdown -->
+        <div class="sp-popover sp-popover--speclist" id="popSpec">
+          <p class="sp-pop-title">Selecione uma especialidade</p>
+          <ul class="sps-list" id="spsListUl">
+            <li class="sps-item{% if not selected_category %} sps-item--active{% endif %}" data-cat="" data-icon="layout-grid">
+              <i data-lucide="layout-grid" class="sps-item-icon"></i>
+              <span>Todas as especialidades</span>
+            </li>
+            {% for cat in categories %}
+            <li class="sps-item{% if selected_category == cat.name %} sps-item--active{% endif %}" data-cat="{{ cat.name }}" data-icon="{{ cat.icon }}">
+              <i data-lucide="{{ cat.icon }}" class="sps-item-icon"></i>
+              <span>{{ cat.name }}</span>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+
+      <span class="sp-sep" aria-hidden="true"></span>
+
+      <!-- ④ Preço Justo — input + preset pills -->
+      <div class="sp-field sp-field--price" data-popover="price">
+        <label class="sp-label" for="spPrice">
+          <i data-lucide="badge-dollar-sign" class="sp-label-icon"></i>
+          Preço Justo
+          <span class="sp-optional-badge">(Opcional)</span>
+        </label>
+        <input id="spPrice" type="text" name="max_price" class="sp-input"
+               placeholder="Até R$ …"
+               inputmode="numeric"
+               value="{{ request.args.get('max_price', '') }}" />
+        <!-- Price popover -->
+        <div class="sp-popover sp-popover--pricebox" id="popPrice">
+          <p class="sp-pop-title">Faixa de preço</p>
+          <div class="spp-input-row">
+            <span class="spp-prefix">R$</span>
+            <input type="number" id="sppInput" class="spp-input" placeholder="0" min="0" step="10" />
+          </div>
+          <div class="spp-presets">
+            <button type="button" class="spp-pill" data-val="150">Até R$ 150</button>
+            <button type="button" class="spp-pill" data-val="300">Até R$ 300</button>
+            <button type="button" class="spp-pill" data-val="500">Até R$ 500</button>
+            <button type="button" class="spp-pill" data-val="1000">Até R$ 1.000</button>
+            <button type="button" class="spp-pill spp-pill--free" data-val="">Livre</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Circular search button — pink/magenta -->
+      <button type="submit" class="sp-btn" aria-label="Buscar">
+        <i data-lucide="search"></i>
+      </button>
+    </form>
+  </div>
+</section>
+
 <!-- ── CATEGORY BAR ── -->
 <nav class="category-bar">
   <div class="container category-inner">
-    <a href="/" class="category-item {% if not selected_category %}active{% endif %}">
+    <a href="/?home=1{% if query %}&q={{ query }}{% endif %}" class="category-item {% if not selected_category %}active{% endif %}">
       <i data-lucide="layout-grid"></i><span>Todos</span>
     </a>
     {% for cat in categories %}
@@ -70,7 +218,9 @@
 </section>
 {% endif %}
 
-<!-- ── VITRINE ── -->
+<!-- ── VITRINE + MAP LAYOUT ── -->
+<div class="vitrine-outer{% if not search_performed %} vitrine-outer--full{% endif %}">
+
 <div class="vitrine-wrap">
 
   <!-- Clínicas Parceiras strip -->
@@ -105,18 +255,69 @@
       <span id="resultsCount" class="vitrine-count">{{ listings | length }}</span>
       <span style="font-size:.83rem;color:var(--muted);">
         anúncio{{ 's' if listings|length != 1 else '' }}
-        {%- if selected_category %} em <strong style="color:var(--fg);">{{ selected_category }}</strong>
+        {%- if user_lat is not none and user_lng is not none %} próximos a <strong style="color:#3b82f6;"><i data-lucide="crosshair" style="width:.7rem;height:.7rem;vertical-align:middle;"></i> Minha Localização</strong>
+        {%- elif selected_category %} em <strong style="color:var(--fg);">{{ selected_category }}</strong>
         {%- elif query %} para <strong style="color:var(--fg);">"{{ query }}"</strong>
+        {%- elif request.args.get('location') %} em <strong style="color:var(--fg);">{{ request.args.get('location') }}</strong>
         {%- else %} em destaque{%- endif %}
       </span>
     </div>
     <select id="sortOrder" class="vsb-select" style="width:auto;padding:.32rem .7rem;font-size:.78rem;" onchange="sortCards()">
-      <option value="default">Mais recentes</option>
+      <option value="default">{% if user_lat is not none and user_lng is not none %}Mais próximo{% else %}Mais recentes{% endif %}</option>
       <option value="price-asc">Menor preço</option>
       <option value="price-desc">Maior preço</option>
       <option value="name-asc">A–Z</option>
     </select>
   </div>
+
+  <!-- Active filter chips -->
+  {%- set _loc  = request.args.get('location', '') -%}
+  {%- set _df   = request.args.get('date_from', '') -%}
+  {%- set _dt   = request.args.get('date_to', '') -%}
+  {%- set _mp   = request.args.get('max_price', '') -%}
+  {%- set _tipo = request.args.get('tipo', '') -%}
+  {%- if _loc or _df or selected_category or query or _mp or _tipo or (user_lat is not none and user_lng is not none) %}
+  <div class="sp-active-filters">
+    <span class="sp-filters-label">Filtros:</span>
+    {% if user_lat is not none and user_lng is not none %}
+    <span class="sp-filter-chip sp-filter-chip--gps">
+      <i data-lucide="crosshair" class="sp-fc-icon" style="color:#3b82f6;"></i>Minha Localização
+    </span>
+    {% endif %}
+    {% if _loc %}
+    <span class="sp-filter-chip">
+      <i data-lucide="map-pin" class="sp-fc-icon"></i>{{ _loc }}
+    </span>
+    {% endif %}
+    {% if _df or _dt %}
+    <span class="sp-filter-chip">
+      <i data-lucide="calendar-range" class="sp-fc-icon"></i>
+      {{ _df or '?' }} → {{ _dt or '?' }}
+    </span>
+    {% endif %}
+    {% if selected_category %}
+    <span class="sp-filter-chip">
+      <i data-lucide="stethoscope" class="sp-fc-icon"></i>{{ selected_category }}
+    </span>
+    {% elif query %}
+    <span class="sp-filter-chip">
+      <i data-lucide="search" class="sp-fc-icon"></i>"{{ query }}"
+    </span>
+    {% endif %}
+    {% if _tipo %}
+    {%- set _tipo_labels = {'consulta': 'Consulta', 'exame': 'Exame', 'pacote': 'Pacote'} -%}
+    <span class="sp-filter-chip">
+      <i data-lucide="tag" class="sp-fc-icon"></i>{{ _tipo_labels.get(_tipo, _tipo) }}
+    </span>
+    {% endif %}
+    {% if _mp %}
+    <span class="sp-filter-chip">
+      <i data-lucide="badge-dollar-sign" class="sp-fc-icon"></i>Até R$ {{ _mp }}
+    </span>
+    {% endif %}
+    <a href="/?home=1" class="sp-filter-clear">Limpar</a>
+  </div>
+  {%- endif %}
 
   <!-- Grid de Cards -->
   {% if listings %}
@@ -135,7 +336,20 @@
              src="{% if listing.imagem_url %}{{ url_for('static', filename=listing.imagem_url) }}{% else %}https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=480&h=320&fit=crop{% endif %}"
              alt="{{ listing.title | e }}" loading="lazy">
         <span class="vm-badge-cat">{{ listing.specialty or 'Serviço' }}</span>
-        {% if listing.active %}
+        {% if listing.service_category == 'exame' %}
+        <span class="vm-badge-tipo vm-badge-tipo--exame">Exame</span>
+        {% elif listing.service_category == 'pacote' %}
+        <span class="vm-badge-tipo vm-badge-tipo--pacote">Pacote</span>
+        {% else %}
+        <span class="vm-badge-tipo vm-badge-tipo--consulta">Consulta</span>
+        {% endif %}
+        {%- set _slots = listing.disponibilidades.filter_by(status=True).count() -%}
+        {% if _slots > 0 %}
+        <span class="vm-badge-status vm-badge-status--avail">
+          <span class="vm-badge-dot"></span>
+          {{ _slots }} vaga{{ 's' if _slots != 1 else '' }}
+        </span>
+        {% elif listing.active %}
         <span class="vm-badge-status">Ativo</span>
         {% endif %}
         <div class="vm-overlay">
@@ -173,12 +387,50 @@
   {% else %}
   <div class="vm-empty-state">
     <i data-lucide="search-x" style="width:2.5rem;height:2.5rem;opacity:.3;display:block;margin:0 auto .75rem;"></i>
-    <p style="font-size:.88rem;">Nenhum anúncio encontrado.</p>
-    <a href="/" class="btn btn-outline btn-sm mt-4">Ver todos</a>
+    <p style="font-size:.92rem;font-weight:600;margin-bottom:.35rem;">Nenhum resultado encontrado.</p>
+    {%- set _loc2 = request.args.get('location','') -%}
+    {%- set _q2   = query or selected_category -%}
+    {%- set _mp2  = request.args.get('max_price','') -%}
+    <p style="font-size:.78rem;color:var(--muted);margin-bottom:1rem;">
+      {%- if _q2 and _loc2 -%}
+        Não encontramos <strong>{{ _q2 }}</strong> em <strong>{{ _loc2 }}</strong>.
+      {%- elif _q2 -%}
+        Não encontramos <strong>{{ _q2 }}</strong>. Tente um termo diferente.
+      {%- elif _loc2 -%}
+        Nenhum serviço disponível em <strong>{{ _loc2 }}</strong>.
+      {%- elif _mp2 -%}
+        Nenhum serviço encontrado até R$ {{ _mp2 }}.
+      {%- else -%}
+        Tente ampliar os critérios de busca ou explore todas as especialidades.
+      {%- endif %}
+    </p>
+    <a href="/?home=1" class="btn btn-outline btn-sm mt-4">Ver todos os serviços</a>
   </div>
   {% endif %}
 
 </div><!-- /vitrine-wrap -->
+
+  <!-- ── MAP PANEL ~45% (only when search is active) ── -->
+  {% if search_performed %}
+  <div class="vm-map-col" id="vmMapCol">
+    <div class="vm-map-header">
+      <i data-lucide="map-pin" style="width:.9rem;height:.9rem;color:var(--primary);flex-shrink:0;"></i>
+      <span id="vmMapCount">{{ listings | length }}</span> local{{ 'ização' if listings|length == 1 else 'izações' }} no mapa
+      <button class="vm-map-toggle" id="vmMapToggle" type="button" title="Fechar mapa">
+        <i data-lucide="x" style="width:.85rem;height:.85rem;"></i>
+      </button>
+    </div>
+    <!-- loader overlays the map until tiles appear -->
+    <div class="vm-map-loader" id="vmMapLoader">
+      <div class="vm-map-spinner"></div>
+      <span>Carregando localizações…</span>
+    </div>
+    <!-- explicit height so Leaflet reads a non-zero offsetHeight -->
+    <div id="map" style="height:600px;width:100%;"></div>
+  </div>
+  {% endif %}
+
+</div><!-- /vitrine-outer -->
 
 <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
 <script>
@@ -220,6 +472,345 @@
 
   /* Re-init Lucide icons injected by Swiper slide clones */
   if (typeof lucide !== 'undefined') lucide.createIcons();
+
+  /* ══════════════════════════════════════════════════════════════
+     SEARCH PILL — Popover engine + Dual-calendar date picker
+     ══════════════════════════════════════════════════════════════ */
+  (function () {
+    var pill   = document.getElementById('searchPill');
+    if (!pill) return;
+    var fields = pill.querySelectorAll('.sp-field[data-popover]');
+    var active = null;
+
+    /* ── Popover toggle ── */
+    fields.forEach(function (f) {
+      f.addEventListener('click', function (e) {
+        if (e.target.closest('.sp-popover')) return;
+        var key = f.dataset.popover;
+        if (active === key) { closeAll(); return; }
+        closeAll();
+        f.classList.add('sp-field--open');
+        var pop = f.querySelector('.sp-popover');
+        if (pop) { pop.classList.add('sp-popover--show'); }
+        active = key;
+        if (key === 'quando') renderCalendars();
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+      });
+    });
+    function closeAll() {
+      fields.forEach(function (f) {
+        f.classList.remove('sp-field--open');
+        var p = f.querySelector('.sp-popover');
+        if (p) p.classList.remove('sp-popover--show');
+      });
+      active = null;
+    }
+    document.addEventListener('click', function (e) {
+      if (!e.target.closest('.search-pill')) closeAll();
+    });
+
+    /* ══════════════════════════════════════════════════════════════
+       DUAL CALENDAR – Airbnb-style date range picker
+       ══════════════════════════════════════════════════════════════ */
+    var hdFrom  = document.getElementById('spDateFrom');
+    var hdTo    = document.getElementById('spDateTo');
+    var display = document.getElementById('spDateDisplay');
+    var calM0   = document.getElementById('calMonth0');
+    var calM1   = document.getElementById('calMonth1');
+    var calT0   = document.getElementById('calTitle0');
+    var calT1   = document.getElementById('calTitle1');
+
+    var today   = new Date(); today.setHours(0,0,0,0);
+    var viewMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    var rangeStart = null, rangeEnd = null;
+
+    /*
+     * TODO: Preencher com datas reais vindas do back-end.
+     * Formato: Set de strings "YYYY-MM-DD" representando datas com
+     * disponibilidade de médicos (tabela disponibilidades).
+     * Datas ausentes serão renderizadas como desabilitadas.
+     * Exemplo:  var availableDates = new Set(["2026-04-16", "2026-04-17", ...]);
+     */
+    var availableDates = null; // null = tudo habilitado; Set = filtro ativo
+
+    /* Restore from URL */
+    if (hdFrom.value) rangeStart = parseISO(hdFrom.value);
+    if (hdTo.value)   rangeEnd   = parseISO(hdTo.value);
+
+    var MONTHS_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+                     'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+    var DAYS_PT   = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
+    function parseISO(s) { var p = s.split('-'); return new Date(+p[0], +p[1]-1, +p[2]); }
+    function toISO(d) {
+      return d.getFullYear() + '-' +
+        String(d.getMonth()+1).padStart(2,'0') + '-' +
+        String(d.getDate()).padStart(2,'0');
+    }
+    function sameDay(a, b) { return a && b && toISO(a) === toISO(b); }
+    function inRange(d) {
+      if (!rangeStart || !rangeEnd) return false;
+      return d > rangeStart && d < rangeEnd;
+    }
+    function isDisabled(d) {
+      if (d < today) return true;
+      if (availableDates !== null && !availableDates.has(toISO(d))) return true;
+      return false;
+    }
+
+    function renderCalendars() {
+      renderMonth(calM0, calT0, viewMonth);
+      var m1 = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 1);
+      renderMonth(calM1, calT1, m1);
+    }
+
+    function renderMonth(container, titleEl, monthDate) {
+      titleEl.textContent = MONTHS_PT[monthDate.getMonth()] + ' ' + monthDate.getFullYear();
+      var html = '<div class="spc-weekdays">';
+      DAYS_PT.forEach(function(d){ html += '<span>' + d + '</span>'; });
+      html += '</div><div class="spc-days">';
+
+      var first = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+      var startDay = first.getDay(); // 0=Sun
+      for (var i = 0; i < startDay; i++) html += '<span class="spc-day spc-day--empty"></span>';
+
+      var daysInMonth = new Date(monthDate.getFullYear(), monthDate.getMonth()+1, 0).getDate();
+      for (var d = 1; d <= daysInMonth; d++) {
+        var dt = new Date(monthDate.getFullYear(), monthDate.getMonth(), d);
+        var cls = 'spc-day';
+        var disabled = isDisabled(dt);
+        if (disabled) cls += ' spc-day--disabled';
+        if (sameDay(dt, rangeStart)) cls += ' spc-day--start';
+        if (sameDay(dt, rangeEnd))   cls += ' spc-day--end';
+        if (inRange(dt) && !disabled) cls += ' spc-day--inrange';
+        if (sameDay(dt, today))       cls += ' spc-day--today';
+        html += '<span class="' + cls + '" data-date="' + toISO(dt) + '">' + d + '</span>';
+      }
+      html += '</div>';
+      container.innerHTML = html;
+
+      /* Click handler for each day cell */
+      container.querySelectorAll('.spc-day[data-date]').forEach(function(el) {
+        if (el.classList.contains('spc-day--disabled')) return;
+        el.addEventListener('click', function(e) {
+          e.stopPropagation();
+          var clicked = parseISO(el.dataset.date);
+          if (!rangeStart || (rangeStart && rangeEnd)) {
+            rangeStart = clicked; rangeEnd = null;
+          } else {
+            if (clicked < rangeStart) { rangeEnd = rangeStart; rangeStart = clicked; }
+            else if (sameDay(clicked, rangeStart)) { rangeStart = null; }
+            else { rangeEnd = clicked; }
+          }
+          syncDisplay();
+          renderCalendars();
+        });
+      });
+    }
+
+    function syncDisplay() {
+      hdFrom.value = rangeStart ? toISO(rangeStart) : '';
+      hdTo.value   = rangeEnd   ? toISO(rangeEnd)   : '';
+      if (rangeStart && rangeEnd) {
+        display.textContent = 'De ' + fmtShort(rangeStart) + ' até ' + fmtShort(rangeEnd);
+        display.classList.add('sp-date-display--filled');
+      } else if (rangeStart) {
+        display.textContent = fmtShort(rangeStart) + ' — selecione o fim';
+        display.classList.add('sp-date-display--filled');
+      } else {
+        display.textContent = 'Escolha as datas';
+        display.classList.remove('sp-date-display--filled');
+      }
+    }
+    function fmtShort(d) {
+      return String(d.getDate()).padStart(2,'0') + ' ' +
+             MONTHS_PT[d.getMonth()].substring(0,3);
+    }
+
+    /* Nav buttons */
+    document.getElementById('calPrev').addEventListener('click', function(e) {
+      e.stopPropagation();
+      var minMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      if (viewMonth > minMonth) {
+        viewMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth() - 1, 1);
+        renderCalendars();
+      }
+    });
+    document.getElementById('calNext').addEventListener('click', function(e) {
+      e.stopPropagation();
+      viewMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 1);
+      renderCalendars();
+    });
+    document.getElementById('calClear').addEventListener('click', function(e) {
+      e.stopPropagation();
+      rangeStart = null; rangeEnd = null;
+      syncDisplay(); renderCalendars();
+    });
+
+    /* Restore display on load */
+    syncDisplay();
+
+    /* ══════════════════════════════════════════════════════════════
+       LOCATION DROPDOWN — "Onde" section (with GPS support)
+       ══════════════════════════════════════════════════════════════ */
+    var locHidden   = document.getElementById('spLocHidden');
+    var locDisplay  = document.getElementById('spLocDisplay');
+    var userLatInp  = document.getElementById('spUserLat');
+    var userLngInp  = document.getElementById('spUserLng');
+    var gpsBtnEl    = document.getElementById('spGpsBtn');
+
+    /* ── Geolocation helpers ── */
+    function showGeoToast(msg) {
+      var t = document.createElement('div');
+      t.className = 'sp-geo-toast';
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 4500);
+    }
+
+    function applyGpsCoords(lat, lng) {
+      if (userLatInp) userLatInp.value = lat;
+      if (userLngInp) userLngInp.value = lng;
+      locHidden.value = '';                         /* no text city filter */
+      locDisplay.textContent = 'Minha Localização';
+      locDisplay.classList.add('sp-loc-display--filled');
+      if (gpsBtnEl) gpsBtnEl.classList.add('sp-gps-btn--active');
+      /* also re-center the live map if it's already rendered */
+      if (window._medMarketRecenter) window._medMarketRecenter(lat, lng);
+    }
+
+    function requestGeolocation() {
+      if (!navigator.geolocation) {
+        showGeoToast('Geolocalização não é suportada pelo seu navegador.');
+        return;
+      }
+      var statusEl = document.getElementById('splGeoStatus');
+      if (gpsBtnEl)  gpsBtnEl.classList.add('sp-gps-btn--loading');
+      if (statusEl)  statusEl.textContent = 'Detectando…';
+      navigator.geolocation.getCurrentPosition(
+        function (pos) {
+          var lat = pos.coords.latitude;
+          var lng = pos.coords.longitude;
+          if (gpsBtnEl)  gpsBtnEl.classList.remove('sp-gps-btn--loading');
+          if (statusEl)  statusEl.textContent = '';
+          applyGpsCoords(lat, lng);
+          closeAll();
+          /* submit to reload results sorted by proximity */
+          var form = document.getElementById('searchPill');
+          if (form) form.submit();
+        },
+        function () {
+          if (gpsBtnEl)  gpsBtnEl.classList.remove('sp-gps-btn--loading');
+          if (statusEl)  statusEl.textContent = '';
+          closeAll();
+          showGeoToast('Não foi possível obter sua localização. Tente buscar por cidade.');
+        },
+        { timeout: 10000, maximumAge: 60000 }
+      );
+    }
+
+    /* GPS button (crosshair icon inside field) */
+    if (gpsBtnEl) {
+      gpsBtnEl.addEventListener('click', function (e) {
+        e.stopPropagation();
+        /* If GPS already active, just re-center the map */
+        if (window.USER_LOCATION && window._medMarketRecenter) {
+          window._medMarketRecenter(window.USER_LOCATION.lat, window.USER_LOCATION.lng);
+          return;
+        }
+        requestGeolocation();
+      });
+    }
+
+    /* Location list items */
+    document.querySelectorAll('#splListUl .spl-item').forEach(function(li) {
+      li.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var val = li.dataset.loc;
+
+        /* Special: GPS option */
+        if (val === '__geo__') { requestGeolocation(); return; }
+
+        /* Clear GPS coords when choosing a city */
+        if (userLatInp) userLatInp.value = '';
+        if (userLngInp) userLngInp.value = '';
+        if (gpsBtnEl)   gpsBtnEl.classList.remove('sp-gps-btn--active');
+
+        locHidden.value = val;
+        locDisplay.textContent = val || 'Qualquer lugar';
+        if (val) {
+          locDisplay.classList.add('sp-loc-display--filled');
+        } else {
+          locDisplay.classList.remove('sp-loc-display--filled');
+        }
+        document.querySelectorAll('#splListUl .spl-item').forEach(function(x) { x.classList.remove('spl-item--active'); });
+        li.classList.add('spl-item--active');
+        closeAll();
+      });
+    });
+
+    /* ══════════════════════════════════════════════════════════════
+       SPECIALTY DROPDOWN — styled list with hover
+       ══════════════════════════════════════════════════════════════ */
+    var specInput = document.getElementById('spSpec');
+    var catHidden = document.getElementById('spCatHidden');
+    document.querySelectorAll('#spsListUl .sps-item').forEach(function(li) {
+      li.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var val = li.dataset.cat;
+        specInput.value = val;
+        catHidden.value = val;
+        document.querySelectorAll('#spsListUl .sps-item').forEach(function(x) { x.classList.remove('sps-item--active'); });
+        li.classList.add('sps-item--active');
+        closeAll();
+        /* "Todas as especialidades" selected — navigate immediately to reset */
+        if (!val) {
+          var form = document.getElementById('searchPill');
+          if (form) form.submit();
+        }
+      });
+    });
+    /* Clear hidden category when user types freely */
+    specInput.addEventListener('input', function() { catHidden.value = ''; });
+
+    /* ══════════════════════════════════════════════════════════════
+       PRICE POPOVER — input + preset pills
+       ══════════════════════════════════════════════════════════════ */
+    var priceInput  = document.getElementById('spPrice');
+    var priceNumeric = document.getElementById('sppInput');
+
+    /* Sync numeric input ↔ form input */
+    if (priceNumeric) {
+      priceNumeric.value = priceInput.value || '';
+      priceNumeric.addEventListener('input', function() {
+        priceInput.value = priceNumeric.value;
+        document.querySelectorAll('.spp-pill').forEach(function(p) { p.classList.remove('spp-pill--active'); });
+      });
+    }
+    document.querySelectorAll('.spp-pill').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var v = btn.dataset.val;
+        priceInput.value = v;
+        if (priceNumeric) priceNumeric.value = v;
+        document.querySelectorAll('.spp-pill').forEach(function(p) { p.classList.remove('spp-pill--active'); });
+        btn.classList.add('spp-pill--active');
+        closeAll();
+      });
+    });
+  })();
 })();
 </script>
+
+<!-- ── LEAFLET MAP ──────────────────────────────────────────────── -->
+{% if search_performed %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  /* Data injected by Flask — accessed by map.js via window globals */
+  window.MAP_POINTS    = {{ map_points_json | safe }};
+  window.LOC_CENTER    = {{ location_center_json | safe }};
+  window.USER_LOCATION = {% if user_lat is not none and user_lng is not none %}{"lat": {{ user_lat }}, "lng": {{ user_lng }}}{% else %}null{% endif %};
+</script>
+<script src="{{ url_for('static', filename='js/map.js') }}"></script>
+{% endif %}
 {% endblock %}

@@ -447,6 +447,9 @@
   }
   .btn-encerrar:hover { background: rgba(239,68,68,0.2); border-color: #ef4444; }
 
+  /* ── Loading spinner for async buttons ── */
+  @keyframes spin { to { transform: rotate(360deg); } }
+
   .btn-ver-docs {
     font-size: .74rem; font-weight: 700; padding: .34rem .8rem; border-radius: .45rem;
     background: rgba(20,184,166,0.1); border: 1px solid rgba(20,184,166,0.38); color: #14b8a6;
@@ -878,7 +881,7 @@
             {% set appt_state.val = 'em_atendimento' %}
           {% elif _appt.status == 'confirmed' %}
             {% set appt_state.val = 'agendado' %}
-          {% elif _appt.status == 'completed' %}
+          {% elif _appt.status in ('completed', 'finalized') %}
             {% set appt_state.val = 'realizada' %}
           {% elif _appt.status == 'cancelled' %}
             {% set appt_state.val = 'cancelada' %}
@@ -1482,9 +1485,10 @@
               style="display:none;flex:1;justify-content:center;padding:.6rem 1rem;font-size:.82rem;">
         <i data-lucide="user-check"></i> Confirmar Chegada
       </button>
-      <button id="so-btn-encerrar" class="btn-encerrar"
-              style="display:none;flex:1;justify-content:center;padding:.6rem 1rem;font-size:.82rem;">
-        <i data-lucide="x-circle"></i> Encerrar Consulta
+      <button id="so-btn-finalizar" class="btn-encerrar"
+              style="display:none;flex:1;justify-content:center;padding:.6rem 1rem;font-size:.82rem;
+                     background:rgba(99,102,241,0.14);border-color:rgba(99,102,241,0.45);color:#818cf8;">
+        <i data-lucide="clipboard-check"></i> Finalizar Atendimento
       </button>
       <button onclick="closeSlideOver()" class="btn-sm">Fechar</button>
     </div>
@@ -2046,49 +2050,69 @@ document.getElementById('docsModalOverlay').addEventListener('click', function(e
 //  APPOINTMENT WORKFLOW — contextual actions
 // ═══════════════════════════════════════════════════════════════
 
-// ── Patient slide-over drawer ─────────────────────────────────
+// ── Slide-over state (view-only panel) ────────────────────────
 let _soSlotId = null;
 let _soApptId = null;
 
+// ── ⓘ button → unified 3-step consultation modal ─────────────
+// ALL states except 'realizada', 'cancelada', 'finalized' open
+// the consultation modal. The modal itself shows the right step.
 function openSlideOver(btn) {
-  const d = btn.dataset;
-  _soSlotId = d.slotId || null;
-  _soApptId = d.apptId || null;
-  const state     = d.state || '';
+  const d         = btn.dataset;
+  const slotId    = d.slotId    || null;
+  const apptId    = d.apptId    || null;
+  const state     = d.state     || '';
+  const nome      = d.nome      || '';
   const patientId = d.patientId || null;
 
-  // Header: state label + accent color
+  // View-only states → slide-over drawer
+  if (['realizada', 'cancelada', 'finalized'].includes(state)) {
+    _soSlotId = slotId;
+    _soApptId = apptId;
+    _openViewOnlySlideOver(d, state, nome, patientId);
+    return;
+  }
+
+  // All active states → open consultation modal at the right step
+  abrirConsultaModal({
+    apptId, slotId, state, nome,
+    servico:  d.servico  || '',
+    medico:   d.medico   || '',
+    data:     d.data     || '',
+    horario:  d.horario  || '',
+    email:    d.email    || '',
+    cpf:      d.cpf      || '',
+    telefone: d.telefone || '',
+    pagamento: d.pagamento || '',
+    patientId,
+  });
+}
+
+// ── View-only slide-over (completed / cancelled / finalized) ──
+function _openViewOnlySlideOver(d, state, nome, patientId) {
   const stateMap = {
-    reservado:      { label: 'Reserva Pendente',   color: '#f59e0b' },
-    agendado:       { label: 'Consulta Agendada',  color: '#60a5fa' },
-    em_atendimento: { label: 'Em Atendimento',     color: '#14b8a6' },
-    realizada:      { label: 'Consulta Realizada', color: '#4ade80' },
-    cancelada:      { label: 'Cancelada',          color: '#9ca3af' },
+    realizada:  { label: 'Consulta Realizada', color: '#4ade80' },
+    finalized:  { label: 'Finalizado',         color: '#a78bfa' },
+    cancelada:  { label: 'Cancelada',          color: '#9ca3af' },
   };
-  const si = stateMap[state] || { label: '—', color: '#9ca3af' };
+  const si      = stateMap[state] || { label: '—', color: '#9ca3af' };
   const stateEl = document.getElementById('so-state-label');
   stateEl.textContent = si.label;
   stateEl.style.color = si.color;
-  // Tint header subtly with state color
   document.querySelector('.slideover-header').style.background = si.color + '10';
 
-  // Avatar initials
-  const initials = (d.nome || '?').substring(0, 2).toUpperCase();
+  const initials = (nome || '?').substring(0, 2).toUpperCase();
   document.getElementById('so-avatar').textContent         = initials;
   document.getElementById('so-patient-avatar').textContent = initials;
-
-  // Patient fields
-  document.getElementById('so-nome').textContent      = d.nome     || '—';
-  document.getElementById('so-fullnome').textContent  = d.nome     || '—';
-  document.getElementById('so-email').textContent     = d.email    || '—';
-  document.getElementById('so-cpf').textContent       = d.cpf      || '—';
-  document.getElementById('so-telefone').textContent  = d.telefone || '—';
-
-  // Appointment fields
-  document.getElementById('so-servico').textContent   = d.servico  || '—';
-  document.getElementById('so-medico').textContent    = d.medico   || '—';
-  document.getElementById('so-data').textContent      = d.data     || '—';
-  document.getElementById('so-horario').textContent   = d.horario  || '—';
+  document.getElementById('so-nome').textContent      = nome          || '—';
+  document.getElementById('so-fullnome').textContent  = nome          || '—';
+  document.getElementById('so-email').textContent     = d.email       || '—';
+  document.getElementById('so-cpf').textContent       = d.cpf         || '—';
+  document.getElementById('so-telefone').textContent  = d.telefone    || '—';
+  document.getElementById('so-servico').textContent   = d.servico     || '—';
+  document.getElementById('so-medico').textContent    = d.medico      || '—';
+  document.getElementById('so-data').textContent      = d.data        || '—';
+  document.getElementById('so-horario').textContent   = d.horario     || '—';
 
   const pagLabels = { aprovado: 'Aprovado ✓', cancelado: 'Cancelado ✗', pendente: 'Pendente' };
   const pagColors = { aprovado: '#4ade80',    cancelado: '#f87171',      pendente: '#fbbf24' };
@@ -2096,42 +2120,21 @@ function openSlideOver(btn) {
   pagEl.textContent = pagLabels[d.pagamento] || 'Pendente';
   pagEl.style.color = pagColors[d.pagamento] || '#fbbf24';
 
-  // Chat button
   const chatBtn = document.getElementById('so-chat-btn');
   if (patientId) {
     chatBtn.style.display = 'inline-flex';
-    chatBtn.onclick = function() { closeSlideOver(); openChatModal(patientId, d.nome); };
+    chatBtn.onclick = function() { closeSlideOver(); openChatModal(patientId, nome); };
   } else {
     chatBtn.style.display = 'none';
+    chatBtn.onclick = null;
   }
 
-  // Log / Timeline
   document.getElementById('so-log').innerHTML = _buildLogHtml(state);
-
-  // Documents — only for em_atendimento state
-  const docsSection = document.getElementById('so-docs-section');
-  const docsBtn     = document.getElementById('so-docs-btn');
-  if (_soApptId && state === 'em_atendimento') {
-    docsSection.style.display = 'block';
-    docsBtn.onclick = function() {
-      closeSlideOver();
-      openDocsModal(_soApptId, d.nome, d.servico, d.data, d.horario);
-    };
-  } else {
-    docsSection.style.display = 'none';
-    docsBtn.onclick = null;
-  }
-
-  // Footer: show only the relevant action button
-  const btnAceitar   = document.getElementById('so-btn-aceitar');
-  const btnConfirmar = document.getElementById('so-btn-confirmar');
-  const btnEncerrar  = document.getElementById('so-btn-encerrar');
-  btnAceitar.style.display   = state === 'reservado'      ? 'inline-flex' : 'none';
-  btnConfirmar.style.display = state === 'agendado'       ? 'inline-flex' : 'none';
-  btnEncerrar.style.display  = state === 'em_atendimento' ? 'inline-flex' : 'none';
-  btnAceitar.onclick   = () => aceitarAgendamento(_soSlotId);
-  btnConfirmar.onclick = () => confirmarChegada(_soApptId);
-  btnEncerrar.onclick  = () => encerrarConsulta(_soApptId);
+  document.getElementById('so-docs-section').style.display   = 'none';
+  document.getElementById('so-docs-btn').onclick              = null;
+  document.getElementById('so-btn-aceitar').style.display     = 'none';
+  document.getElementById('so-btn-confirmar').style.display   = 'none';
+  document.getElementById('so-btn-finalizar').style.display   = 'none';
 
   document.getElementById('slideOverlay').classList.add('open');
   lucide.createIcons({ attrs: { 'stroke-width': 2 } });
@@ -2142,14 +2145,17 @@ function _buildLogHtml(state) {
   if (state && state !== 'disponivel') {
     steps.push({ color: '#f59e0b', label: 'Reserva registrada pelo paciente' });
   }
-  if (state === 'agendado' || state === 'em_atendimento' || state === 'realizada') {
+  if (['agendado', 'em_atendimento', 'realizada', 'finalized'].includes(state)) {
     steps.push({ color: '#60a5fa', label: 'Reserva aceita pela clínica' });
   }
-  if (state === 'em_atendimento' || state === 'realizada') {
-    steps.push({ color: '#14b8a6', label: 'Chegada confirmada — em atendimento' });
+  if (['em_atendimento', 'realizada', 'finalized'].includes(state)) {
+    steps.push({ color: '#14b8a6', label: 'Consulta iniciada' });
   }
-  if (state === 'realizada') {
-    steps.push({ color: '#4ade80', label: 'Consulta encerrada e concluída' });
+  if (['realizada', 'finalized'].includes(state)) {
+    steps.push({ color: '#4ade80', label: 'Consulta encerrada' });
+  }
+  if (state === 'finalized') {
+    steps.push({ color: '#a78bfa', label: 'Orientações pós-consulta registradas' });
   }
   if (state === 'cancelada') {
     steps.push({ color: '#f87171', label: 'Consulta cancelada' });
@@ -2175,34 +2181,655 @@ function closeSlideOverOnBg(event) {
   if (event.target === document.getElementById('slideOverlay')) closeSlideOver();
 }
 
-// ── Workflow action helpers ───────────────────────────────────
-async function aceitarAgendamento(slotId) {
-  try {
-    const res  = await fetch('/clinica/agenda/slot/' + slotId + '/aceitar', { method: 'POST' });
-    const data = await res.json();
-    if (data.ok) { location.reload(); }
-    else { alert(data.msg || 'Erro ao aceitar agendamento.'); }
-  } catch (_) { alert('Erro de conexão.'); }
+// ══════════════════════════════════════════════════════════════
+//  3-STEP CONSULTATION MODAL
+// ══════════════════════════════════════════════════════════════
+// Step 1 — "Visualização"  : reservado / agendado
+// Step 2 — "Em Atendimento": em_atendimento  (persists on re-open)
+// Step 3 — encerrar → POST /finalizar → close + toast
+// ──────────────────────────────────────────────────────────────
+
+let _cm = {          // consultation modal state
+  apptId: null,
+  slotId: null,
+  state:  null,
+  nome:   '',
+  data:   '',
+  horario: '',
+  servico: '',
+};
+
+// Builds the consultation timeline HTML for the modal
+function _cmBuildTimeline(state) {
+  const steps = [];
+  if (state && state !== 'disponivel') {
+    steps.push({ color: '#f59e0b', label: 'Reserva registrada pelo paciente' });
+  }
+  if (['agendado', 'em_atendimento', 'realizada', 'finalized'].includes(state)) {
+    steps.push({ color: '#60a5fa', label: 'Reserva aceita pela clínica' });
+  }
+  if (['em_atendimento', 'realizada', 'finalized'].includes(state)) {
+    steps.push({ color: '#14b8a6', label: 'Consulta iniciada' });
+  }
+  if (['realizada', 'finalized'].includes(state)) {
+    steps.push({ color: '#4ade80', label: 'Consulta encerrada' });
+  }
+  if (state === 'cancelada') {
+    steps.push({ color: '#f87171', label: 'Consulta cancelada' });
+  }
+  if (!steps.length) return '<p style="font-size:.85rem;color:var(--muted);margin:0;">Nenhum histórico ainda.</p>';
+  return steps.map((s, i) => {
+    const hasLine = i < steps.length - 1;
+    return `<div style="display:flex;align-items:flex-start;gap:.8rem;${hasLine ? 'padding-bottom:.5rem;' : ''}">`
+      + `<div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;width:.8rem;">`
+        + `<div style="width:.72rem;height:.72rem;border-radius:50%;background:${s.color};"
+                    + "box-shadow:0 0 5px ${s.color}88;margin-top:.25rem;"></div>`
+        + (hasLine ? `<div style="width:1px;flex:1;min-height:.9rem;background:rgba(255,255,255,.1);margin:.22rem 0;"></div>` : '')
+      + '</div>'
+      + `<span style="font-size:.88rem;font-weight:600;color:var(--fg);line-height:1.4;padding-top:.15rem;">${s.label}</span>`
+      + '</div>';
+  }).join('');
 }
 
+function abrirConsultaModal(info) {
+  _cm = Object.assign({}, _cm, info);
+
+  // Avatar initials (up to 2 words)
+  const initials = (info.nome || '?').trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+  const avatarEl = document.getElementById('cm-avatar');
+  if (avatarEl) avatarEl.textContent = initials || '?';
+
+  // Header + patient card
+  document.getElementById('cm-header-nome').textContent = info.nome     || '—';
+  document.getElementById('cm-email').textContent       = info.email    || '—';
+  document.getElementById('cm-cpf').textContent         = info.cpf      || '—';
+  document.getElementById('cm-telefone').textContent    = info.telefone || '—';
+
+  // Consultation details
+  document.getElementById('cm-servico').textContent = info.servico || '—';
+  document.getElementById('cm-medico').textContent  = info.medico  || '—';
+  document.getElementById('cm-data').textContent    = info.data    || '—';
+  document.getElementById('cm-horario').textContent = info.horario || '—';
+
+  const pagLabels = { aprovado: 'Aprovado ✓', cancelado: 'Cancelado ✗', pendente: 'Pendente' };
+  const pagColors = { aprovado: '#4ade80',    cancelado: '#f87171',      pendente: '#fbbf24' };
+  const pagEl = document.getElementById('cm-pagamento');
+  if (pagEl) {
+    pagEl.textContent = pagLabels[info.pagamento] || 'Pendente';
+    pagEl.style.color = pagColors[info.pagamento] || '#fbbf24';
+  }
+
+  // Timeline
+  const tlEl = document.getElementById('cm-timeline');
+  if (tlEl) tlEl.innerHTML = _cmBuildTimeline(info.state);
+
+  // Button label: reservado → "Confirmar e Iniciar", outros → "Iniciar Consulta"
+  const btnInic = document.getElementById('cm-btn-iniciar');
+  if (btnInic) {
+    if (info.state === 'reservado') {
+      btnInic.innerHTML = '<i data-lucide="check-circle" style="width:.92rem;height:.92rem;"></i> Confirmar e Iniciar';
+    } else {
+      btnInic.innerHTML = '<i data-lucide="play-circle" style="width:.92rem;height:.92rem;"></i> Iniciar Consulta';
+    }
+  }
+
+  // Persistence: em_atendimento → open directly in step 2
+  const step = (info.state === 'em_atendimento') ? 2 : 1;
+  _cmSetStep(step, false);
+
+  document.getElementById('consultaOverlay').classList.add('open');
+  lucide.createIcons({ attrs: { 'stroke-width': 2 } });
+}
+
+// ── localStorage draft persistence ─────────────────────────
+// Key: cm_draft_<apptId>  — per-appointment so drafts never collide
+function _cmSaveDraft() {
+  if (!_cm.apptId) return;
+  const rec = document.getElementById('cm-recomendacoes');
+  if (!rec) return;  // step-2 body not yet in DOM — nothing to save
+  try {
+    localStorage.setItem('cm_draft_' + _cm.apptId, JSON.stringify({
+      recomendacoes: rec.value,
+      proximos:      document.getElementById('cm-proximos').value,
+      retornoCheck:  document.getElementById('cm-retorno-check').checked,
+      retornoTipo:   document.getElementById('cm-retorno-tipo').value,
+      retornoMeses:  document.getElementById('cm-retorno-meses').value,
+    }));
+  } catch (_e) {}
+}
+
+function _cmRestoreDraft() {
+  if (!_cm.apptId) return;
+  let draft;
+  try {
+    const raw = localStorage.getItem('cm_draft_' + _cm.apptId);
+    if (!raw) return;
+    draft = JSON.parse(raw);
+  } catch (_e) { return; }
+  if (!draft) return;
+  const rec = document.getElementById('cm-recomendacoes');
+  if (!rec) return;
+  rec.value = draft.recomendacoes || '';
+  document.getElementById('cm-proximos').value      = draft.proximos     || '';
+  document.getElementById('cm-retorno-tipo').value  = draft.retornoTipo  || 'consulta';
+  document.getElementById('cm-retorno-meses').value = draft.retornoMeses || '3';
+  const chk = document.getElementById('cm-retorno-check');
+  if (chk) {
+    chk.checked = !!draft.retornoCheck;
+    document.getElementById('cm-retorno-fields').style.display = chk.checked ? 'grid' : 'none';
+  }
+}
+
+// skipSave=true when we've already cleared or don't want to persist
+function fecharConsultaModal(skipSave) {
+  if (!skipSave) _cmSaveDraft();
+  document.getElementById('consultaOverlay').classList.remove('open');
+}
+
+// Switch between step 1 (Visualização) and step 2 (Em Atendimento)
+function _cmSetStep(step, animate) {
+  const viewBody = document.getElementById('cm-view-body');
+  const s2Body   = document.getElementById('cm-step2-body');
+  const btnInic  = document.getElementById('cm-btn-iniciar');
+  const btnEnc   = document.getElementById('cm-btn-encerrar');
+  const badge    = document.getElementById('cm-status-badge');
+
+  if (step === 1) {
+    if (viewBody) viewBody.style.display = 'block';
+    s2Body.style.display  = 'none';
+    btnInic.style.display = 'inline-flex';
+    btnEnc.style.display  = 'none';
+    badge.textContent      = (_cm.state === 'reservado') ? 'Pendente' : 'Agendado';
+    badge.style.background = 'rgba(96,165,250,.14)';
+    badge.style.color      = '#60a5fa';
+    // Voltar button: only visible in step 2
+    const bv1 = document.getElementById('cm-btn-voltar');
+    if (bv1) bv1.style.display = 'none';
+  } else {
+    if (viewBody) viewBody.style.display = 'none';
+    s2Body.style.display  = 'flex';
+    btnInic.style.display = 'none';
+    btnEnc.style.display  = 'inline-flex';
+    badge.textContent     = 'Em Atendimento';
+    badge.style.background = 'rgba(20,184,166,.14)';
+    badge.style.color      = '#14b8a6';
+
+    if (animate) {
+      s2Body.style.opacity   = '0';
+      s2Body.style.transform = 'translateY(8px)';
+      requestAnimationFrame(() => {
+        s2Body.style.transition = 'opacity .25s,transform .25s';
+        s2Body.style.opacity    = '1';
+        s2Body.style.transform  = 'translateY(0)';
+      });
+    } else {
+      s2Body.style.opacity   = '1';
+      s2Body.style.transform = 'translateY(0)';
+      s2Body.style.transition = '';
+    }
+
+    // Wire checkbox — clear first, then restore any persisted draft
+    const chk    = document.getElementById('cm-retorno-check');
+    chk.checked  = false;
+    document.getElementById('cm-retorno-fields').style.display = 'none';
+    chk.onchange = function() {
+      document.getElementById('cm-retorno-fields').style.display = this.checked ? 'grid' : 'none';
+    };
+    document.getElementById('cm-recomendacoes').value = '';
+    document.getElementById('cm-proximos').value      = '';
+    document.getElementById('cm-retorno-tipo').value  = 'consulta';
+    document.getElementById('cm-retorno-meses').value = '3';
+    _cmRestoreDraft();  // overwrites blanks with saved values if a draft exists
+    // Show the discrete "Voltar para Dados do Paciente" button
+    const bv2 = document.getElementById('cm-btn-voltar');
+    if (bv2) bv2.style.display = 'inline-flex';
+  }
+}
+
+// ── "Voltar para Dados do Paciente" (step 2 → step 1 view) ──────────────
+// Saves the draft first so text is not lost, then shows the patient info.
+// A teal "Retomar Atendimento" button replaces "Iniciar Consulta".
+function cmVoltarDadosPaciente() {
+  _cmSaveDraft();
+
+  // Swap visible sections
+  const viewBody = document.getElementById('cm-view-body');
+  const s2Body   = document.getElementById('cm-step2-body');
+  if (viewBody) viewBody.style.display = 'block';
+  s2Body.style.display = 'none';
+
+  // Footer: hide Encerrar + Voltar, repurpose Iniciar as "Retomar"
+  document.getElementById('cm-btn-encerrar').style.display = 'none';
+  document.getElementById('cm-btn-voltar').style.display   = 'none';
+  const btnInic = document.getElementById('cm-btn-iniciar');
+  btnInic.style.display    = 'inline-flex';
+  btnInic.style.background = 'rgba(20,184,166,.85)';
+  btnInic.innerHTML = '<i data-lucide="rotate-ccw" style="width:.92rem;height:.92rem;"></i> Retomar Atendimento';
+  btnInic.onclick = function () {
+    // Restore green before re-entering step 2
+    btnInic.style.background = 'rgba(34,197,94,.85)';
+    btnInic.innerHTML = '<i data-lucide="play-circle" style="width:.92rem;height:.92rem;"></i> Iniciar Consulta';
+    btnInic.onclick = cmIniciarConsulta;
+    _cmSetStep(2, true);
+    lucide.createIcons({ attrs: { 'stroke-width': 2 } });
+  };
+
+  // Badge reflects actual DB status
+  const badge = document.getElementById('cm-status-badge');
+  badge.textContent      = 'Em Atendimento';
+  badge.style.background = 'rgba(20,184,166,.14)';
+  badge.style.color      = '#14b8a6';
+  lucide.createIcons({ attrs: { 'stroke-width': 2 } });
+}
+
+// Step 1 footer button: Iniciar Consulta
+async function cmIniciarConsulta() {
+  const btn = document.getElementById('cm-btn-iniciar');
+  btn.disabled  = true;
+  btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Iniciando…';
+
+  try {
+    let ok   = false;
+    let msg  = '';
+
+    if (_cm.apptId) {
+      // appointment already exists: pending/confirmed → in_progress
+      const res  = await fetch('/clinica/agenda/appointment/' + _cm.apptId + '/iniciar', { method: 'POST' });
+      const data = await res.json();
+      ok  = data.ok;
+      msg = data.msg || '';
+    } else {
+      // no appointment yet: accept slot first → creates confirmed appt
+      const res1  = await fetch('/clinica/agenda/slot/' + _cm.slotId + '/aceitar', { method: 'POST' });
+      const data1 = await res1.json();
+      if (!data1.ok) {
+        showDashToast(data1.msg || 'Erro ao aceitar reserva.', 'error');
+        btn.disabled  = false;
+        btn.innerHTML = '<i data-lucide="play-circle" style="width:.9rem;height:.9rem;"></i> Iniciar Consulta';
+        lucide.createIcons({ attrs: { 'stroke-width': 2 } });
+        return;
+      }
+      // Reload to get fresh apptId, then user clicks ⓘ again
+      showDashToast('Reserva aceita. Clique ⓘ novamente para iniciar a consulta.', 'success');
+      setTimeout(() => location.reload(), 1800);
+      return;
+    }
+
+    if (ok) {
+      _cm.state = 'em_atendimento';
+      _cmSetStep(2, true);
+      lucide.createIcons({ attrs: { 'stroke-width': 2 } });
+    } else {
+      showDashToast(msg || 'Erro ao iniciar consulta.', 'error');
+      btn.disabled  = false;
+      btn.innerHTML = '<i data-lucide="play-circle" style="width:.9rem;height:.9rem;"></i> Iniciar Consulta';
+      lucide.createIcons({ attrs: { 'stroke-width': 2 } });
+    }
+  } catch (err) {
+    console.error('cmIniciarConsulta:', err);
+    showDashToast('Erro de conexão.', 'error');
+    btn.disabled  = false;
+    btn.innerHTML = '<i data-lucide="play-circle" style="width:.9rem;height:.9rem;"></i> Iniciar Consulta';
+    lucide.createIcons({ attrs: { 'stroke-width': 2 } });
+  }
+}
+
+// Step 2 footer button: Encerrar e Enviar Instruções
+async function cmEncerrarConsulta() {
+  const apptId = _cm.apptId;
+  if (!apptId) { console.error('cmEncerrarConsulta: apptId null'); return; }
+
+  const retornoChecked = document.getElementById('cm-retorno-check').checked;
+  const payload = {
+    recomendacoes:    document.getElementById('cm-recomendacoes').value.trim(),
+    proximos_passos:  document.getElementById('cm-proximos').value.trim(),
+    retorno_sugerido: retornoChecked,
+    retorno_tipo:     retornoChecked ? document.getElementById('cm-retorno-tipo').value          : null,
+    retorno_meses:    retornoChecked ? parseInt(document.getElementById('cm-retorno-meses').value, 10) || null : null,
+  };
+
+  const btn    = document.getElementById('cm-btn-encerrar');
+  btn.disabled = true;
+  btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Salvando…';
+
+  try {
+    const res  = await fetch('/clinica/agenda/appointment/' + apptId + '/finalizar', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      // Clear the draft — appointment is now finalized, nothing to resume
+      try { localStorage.removeItem('cm_draft_' + _cm.apptId); } catch (_e) {}
+      fecharConsultaModal(true);  // skipSave — draft already cleared
+      showDashToast('Consulta encerrada! As orientações foram enviadas ao paciente.', 'success');
+      setTimeout(() => location.reload(), 1800);
+    } else {
+      showDashToast(data.msg || 'Erro ao encerrar consulta.', 'error');
+      btn.disabled  = false;
+      btn.innerHTML = '<i data-lucide="send" style="width:.9rem;height:.9rem;"></i> Encerrar e Enviar Instruções';
+      lucide.createIcons({ attrs: { 'stroke-width': 2 } });
+    }
+  } catch (err) {
+    console.error('cmEncerrarConsulta:', err);
+    showDashToast('Erro de conexão.', 'error');
+    btn.disabled  = false;
+    btn.innerHTML = '<i data-lucide="send" style="width:.9rem;height:.9rem;"></i> Encerrar e Enviar Instruções';
+    lucide.createIcons({ attrs: { 'stroke-width': 2 } });
+  }
+}
+
+// ── Toast notification ────────────────────────────────────────
+function showDashToast(msg, type) {
+  let el = document.getElementById('_dashToast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = '_dashToast';
+    el.style.cssText = 'position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;'
+      + 'padding:.75rem 1.25rem;border-radius:.75rem;font-size:.85rem;font-weight:700;'
+      + 'max-width:340px;box-shadow:0 8px 32px rgba(0,0,0,.45);'
+      + 'display:flex;align-items:center;gap:.55rem;transition:opacity .3s,transform .3s;'
+      + 'opacity:0;transform:translateY(8px);pointer-events:none;';
+    document.body.appendChild(el);
+  }
+  const isOk = (type !== 'error');
+  el.style.background = isOk ? 'rgba(34,197,94,.18)'  : 'rgba(239,68,68,.18)';
+  el.style.border     = isOk ? '1px solid rgba(34,197,94,.45)' : '1px solid rgba(239,68,68,.45)';
+  el.style.color      = isOk ? '#4ade80' : '#f87171';
+  el.innerHTML = (isOk
+    ? '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>'
+    : '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>'
+  ) + msg;
+  el.style.opacity   = '1';
+  el.style.transform = 'translateY(0)';
+  clearTimeout(el._timer);
+  el._timer = setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translateY(8px)'; }, 3200);
+}
+
+// ── Legacy stubs (kept for slide-over backward compat) ────────
 async function confirmarChegada(apptId) {
   try {
     const res  = await fetch('/clinica/agenda/appointment/' + apptId + '/confirmar-chegada', { method: 'POST' });
     const data = await res.json();
     if (data.ok) { location.reload(); }
-    else { alert(data.msg || 'Erro ao confirmar chegada.'); }
-  } catch (_) { alert('Erro de conexão.'); }
-}
-
-async function encerrarConsulta(apptId) {
-  const ok = confirm('Deseja encerrar esta consulta?\nO status será alterado para Realizada.');
-  if (!ok) return;
-  try {
-    const res  = await fetch('/clinica/agenda/appointment/' + apptId + '/encerrar', { method: 'POST' });
-    const data = await res.json();
-    if (data.ok) { location.reload(); }
-    else { alert(data.msg || 'Erro ao encerrar consulta.'); }
-  } catch (_) { alert('Erro de conexão.'); }
+    else { showDashToast(data.msg || 'Erro ao confirmar chegada.', 'error'); }
+  } catch (_) { showDashToast('Erro de conexão.', 'error'); }
 }
 </script>
+
+<!-- ── Consulta Modal — Dados do Paciente + Detalhes + Histórico ─────────── -->
+<div id="consultaOverlay" class="chat-modal-overlay" onclick="if(event.target===this)fecharConsultaModal()">
+  <div class="chat-modal" style="max-width:560px;">
+
+    <!-- ── Header: Avatar + Nome + Status ── -->
+    <div class="chat-modal-header" style="padding:1.1rem 1.25rem;gap:.9rem;align-items:flex-start;">
+      <div id="cm-avatar"
+           style="width:3rem;height:3rem;border-radius:50%;flex-shrink:0;
+                  background:linear-gradient(135deg,rgba(99,102,241,.55),rgba(168,85,247,.55));
+                  display:flex;align-items:center;justify-content:center;
+                  font-size:1.1rem;font-weight:800;color:#fff;letter-spacing:.02em;
+                  text-shadow:0 1px 4px rgba(0,0,0,.4);">?
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div id="cm-header-nome"
+             style="font-size:1.05rem;font-weight:800;color:var(--fg);line-height:1.2;
+                    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">—</div>
+        <span id="cm-status-badge"
+              style="display:inline-block;font-size:.7rem;font-weight:700;padding:.18rem .65rem;
+                     border-radius:99px;margin-top:.28rem;letter-spacing:.04em;
+                     background:rgba(96,165,250,.14);color:#60a5fa;">Agendado</span>
+      </div>
+      <button onclick="fecharConsultaModal()" class="btn-sm"
+              style="flex-shrink:0;padding:.3rem .55rem;margin-top:.05rem;">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+
+    <!-- ── Scrollable body ── -->
+    <div class="chat-modal-body" style="padding:0;gap:0;">
+
+      <!-- VIEW BODY (Step 1): Patient data + Consultation details + History -->
+      <div id="cm-view-body">
+
+        <!-- Dados do Paciente -->
+        <div style="padding:1rem 1.25rem;border-bottom:1px solid rgba(255,255,255,.07);">
+          <div style="font-size:.6rem;font-weight:800;text-transform:uppercase;
+                      letter-spacing:.12em;color:var(--muted);margin-bottom:.8rem;
+                      display:flex;align-items:center;gap:.4rem;">
+            <i data-lucide="user" style="width:.72rem;height:.72rem;"></i> Dados do Paciente
+          </div>
+          <div style="display:flex;flex-direction:column;gap:.65rem;">
+            <div style="display:flex;align-items:center;gap:.8rem;">
+              <div style="width:1.75rem;height:1.75rem;border-radius:.45rem;flex-shrink:0;
+                          background:rgba(99,102,241,.12);
+                          display:flex;align-items:center;justify-content:center;">
+                <i data-lucide="mail" style="width:.85rem;height:.85rem;color:#818cf8;"></i>
+              </div>
+              <div>
+                <div style="font-size:.62rem;color:var(--muted);font-weight:600;
+                            text-transform:uppercase;letter-spacing:.06em;margin-bottom:.08rem;">E-mail</div>
+                <div id="cm-email" style="font-size:.92rem;font-weight:600;color:var(--fg);">—</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:.8rem;">
+              <div style="width:1.75rem;height:1.75rem;border-radius:.45rem;flex-shrink:0;
+                          background:rgba(99,102,241,.12);
+                          display:flex;align-items:center;justify-content:center;">
+                <i data-lucide="credit-card" style="width:.85rem;height:.85rem;color:#818cf8;"></i>
+              </div>
+              <div>
+                <div style="font-size:.62rem;color:var(--muted);font-weight:600;
+                            text-transform:uppercase;letter-spacing:.06em;margin-bottom:.08rem;">CPF</div>
+                <div id="cm-cpf" style="font-size:.92rem;font-weight:600;color:var(--fg);">—</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:.8rem;">
+              <div style="width:1.75rem;height:1.75rem;border-radius:.45rem;flex-shrink:0;
+                          background:rgba(99,102,241,.12);
+                          display:flex;align-items:center;justify-content:center;">
+                <i data-lucide="phone" style="width:.85rem;height:.85rem;color:#818cf8;"></i>
+              </div>
+              <div>
+                <div style="font-size:.62rem;color:var(--muted);font-weight:600;
+                            text-transform:uppercase;letter-spacing:.06em;margin-bottom:.08rem;">Telefone</div>
+                <div id="cm-telefone" style="font-size:.92rem;font-weight:600;color:var(--fg);">—</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Detalhes da Consulta -->
+        <div style="padding:1rem 1.25rem;border-bottom:1px solid rgba(255,255,255,.07);">
+          <div style="font-size:.6rem;font-weight:800;text-transform:uppercase;
+                      letter-spacing:.12em;color:var(--muted);margin-bottom:.8rem;
+                      display:flex;align-items:center;gap:.4rem;">
+            <i data-lucide="stethoscope" style="width:.72rem;height:.72rem;"></i> Detalhes da Consulta
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.7rem 1.1rem;">
+            <div>
+              <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;
+                          letter-spacing:.07em;color:var(--muted);margin-bottom:.2rem;">Serviço</div>
+              <div id="cm-servico" style="font-size:.92rem;font-weight:700;color:var(--fg);">—</div>
+            </div>
+            <div>
+              <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;
+                          letter-spacing:.07em;color:var(--muted);margin-bottom:.2rem;">Médico</div>
+              <div id="cm-medico" style="font-size:.92rem;font-weight:700;color:var(--fg);">—</div>
+            </div>
+            <div>
+              <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;
+                          letter-spacing:.07em;color:var(--muted);margin-bottom:.2rem;">Data</div>
+              <div id="cm-data" style="font-size:.92rem;font-weight:700;color:var(--fg);">—</div>
+            </div>
+            <div>
+              <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;
+                          letter-spacing:.07em;color:var(--muted);margin-bottom:.2rem;">Horário</div>
+              <div id="cm-horario" style="font-size:.92rem;font-weight:700;color:var(--fg);">—</div>
+            </div>
+            <div style="grid-column:1/-1;">
+              <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;
+                          letter-spacing:.07em;color:var(--muted);margin-bottom:.2rem;">Pagamento</div>
+              <div id="cm-pagamento" style="font-size:.92rem;font-weight:700;">—</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Histórico -->
+        <div style="padding:1rem 1.25rem 1.1rem;">
+          <div style="font-size:.6rem;font-weight:800;text-transform:uppercase;
+                      letter-spacing:.12em;color:var(--muted);margin-bottom:.8rem;
+                      display:flex;align-items:center;gap:.4rem;">
+            <i data-lucide="clock" style="width:.72rem;height:.72rem;"></i> Histórico
+          </div>
+          <div id="cm-timeline" style="display:flex;flex-direction:column;gap:0;"></div>
+        </div>
+
+      </div><!-- /cm-view-body -->
+
+      <!-- STEP 2 BODY: Instruções pós-consulta (Em Atendimento) -->
+      <div id="cm-step2-body"
+           style="display:none;flex-direction:column;gap:.9rem;padding:1rem 1.25rem 1.1rem;">
+
+        <div style="display:flex;align-items:center;gap:.45rem;
+                    padding:.6rem .9rem;border-radius:.6rem;
+                    background:rgba(20,184,166,.08);border:1px solid rgba(20,184,166,.25);">
+          <i data-lucide="circle-dot" style="width:.9rem;height:.9rem;color:#14b8a6;flex-shrink:0;"></i>
+          <span style="font-size:.83rem;font-weight:700;color:#14b8a6;">
+            Consulta em andamento — preencha as instruções para o paciente
+          </span>
+        </div>
+
+        <!-- Recomendações -->
+        <div>
+          <label style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;
+                         color:var(--muted);display:flex;align-items:center;gap:.35rem;margin-bottom:.5rem;">
+            <i data-lucide="file-heart" style="width:.8rem;height:.8rem;"></i>
+            Recomendações Pós-Consulta
+          </label>
+          <textarea id="cm-recomendacoes" rows="3"
+                    placeholder="Ex: Evitar esforço físico por 48h, retornar em caso de febre…"
+                    style="width:100%;padding:.65rem .8rem;font-size:.92rem;line-height:1.6;
+                           background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);
+                           border-radius:.65rem;color:var(--fg);outline:none;resize:vertical;
+                           box-sizing:border-box;font-family:inherit;"
+                    onfocus="this.style.borderColor='var(--primary)'"
+                    onblur="this.style.borderColor='rgba(255,255,255,.1)'"></textarea>
+        </div>
+
+        <!-- Próximos passos -->
+        <div>
+          <label style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;
+                         color:var(--muted);display:flex;align-items:center;gap:.35rem;margin-bottom:.5rem;">
+            <i data-lucide="list-checks" style="width:.8rem;height:.8rem;"></i>
+            Sugestão de Exame / Medicamento
+          </label>
+          <textarea id="cm-proximos" rows="2"
+                    placeholder="Ex: Hemograma em 30 dias. Amoxicilina 500mg 3x/dia por 7 dias."
+                    style="width:100%;padding:.65rem .8rem;font-size:.92rem;line-height:1.6;
+                           background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);
+                           border-radius:.65rem;color:var(--fg);outline:none;resize:vertical;
+                           box-sizing:border-box;font-family:inherit;"
+                    onfocus="this.style.borderColor='var(--primary)'"
+                    onblur="this.style.borderColor='rgba(255,255,255,.1)'"></textarea>
+        </div>
+
+        <!-- Retorno sugerido -->
+        <div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.08);
+                    border-radius:.8rem;padding:.8rem 1rem;">
+          <label style="display:flex;align-items:center;gap:.65rem;cursor:pointer;user-select:none;">
+            <input type="checkbox" id="cm-retorno-check"
+                   style="width:1rem;height:1rem;accent-color:var(--primary);cursor:pointer;" />
+            <span style="font-size:.9rem;font-weight:700;">
+              <i data-lucide="calendar-plus" style="width:.88rem;height:.88rem;
+                 vertical-align:middle;margin-right:.2rem;"></i>
+              Sugerir Agendamento de Retorno
+            </span>
+          </label>
+          <div id="cm-retorno-fields"
+               style="display:none;grid-template-columns:1fr 1fr;gap:.7rem;margin-top:.8rem;">
+            <div>
+              <label style="font-size:.68rem;font-weight:700;text-transform:uppercase;
+                             letter-spacing:.06em;color:var(--muted);display:block;margin-bottom:.3rem;">
+                Tipo de Retorno
+              </label>
+              <select id="cm-retorno-tipo"
+                      style="width:100%;padding:.45rem .7rem;font-size:.88rem;
+                             background:var(--secondary);border:1px solid var(--border);
+                             border-radius:.5rem;color:var(--fg);outline:none;">
+                <option value="consulta">Nova Consulta</option>
+                <option value="exame">Exame de Retorno</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:.68rem;font-weight:700;text-transform:uppercase;
+                             letter-spacing:.06em;color:var(--muted);display:block;margin-bottom:.3rem;">
+                Prazo
+              </label>
+              <select id="cm-retorno-meses"
+                      style="width:100%;padding:.45rem .7rem;font-size:.88rem;
+                             background:var(--secondary);border:1px solid var(--border);
+                             border-radius:.5rem;color:var(--fg);outline:none;">
+                <option value="1">1 mês</option>
+                <option value="2">2 meses</option>
+                <option value="3" selected>3 meses</option>
+                <option value="6">6 meses</option>
+                <option value="12">12 meses</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /cm-step2-body -->
+
+    </div><!-- /chat-modal-body -->
+
+    <!-- ── Footer ── -->
+    <div class="chat-modal-footer"
+         style="justify-content:space-between;align-items:center;gap:.65rem;flex-wrap:wrap;">
+
+      <!-- Left: Fechar (always visible, no side-effects) -->
+      <button onclick="fecharConsultaModal()" class="btn-sm">Fechar</button>
+
+      <!-- Right group: context-sensitive action buttons -->
+      <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;justify-content:flex-end;">
+
+        <!-- Voltar: step-2 only — lets doctor check patient data mid-filling -->
+        <button id="cm-btn-voltar" onclick="cmVoltarDadosPaciente()"
+                style="display:none;font-size:.82rem;font-weight:600;padding:.4rem .9rem;
+                       border-radius:.55rem;background:transparent;color:var(--muted);
+                       border:1px solid rgba(255,255,255,.13);cursor:pointer;
+                       align-items:center;gap:.38rem;transition:color .15s,border-color .15s;"
+                onmouseover="this.style.color='var(--fg)';this.style.borderColor='rgba(255,255,255,.32)'"
+                onmouseout="this.style.color='var(--muted)';this.style.borderColor='rgba(255,255,255,.13)'">
+          <i data-lucide="arrow-left" style="width:.8rem;height:.8rem;"></i>
+          Dados do Paciente
+        </button>
+
+        <!-- Etapa 1: verde — label changes per state (Iniciar / Confirmar e Iniciar) -->
+        <button id="cm-btn-iniciar" onclick="cmIniciarConsulta()"
+                style="font-size:.88rem;font-weight:700;padding:.55rem 1.4rem;border-radius:.6rem;
+                       background:rgba(34,197,94,.85);color:#fff;border:none;cursor:pointer;
+                       display:inline-flex;align-items:center;gap:.45rem;transition:opacity .15s;"
+                onmouseover="this.style.opacity='.82'" onmouseout="this.style.opacity='1'">
+          <i data-lucide="play-circle" style="width:.92rem;height:.92rem;"></i>
+          Iniciar Consulta
+        </button>
+
+        <!-- Etapa 2: roxo -->
+        <button id="cm-btn-encerrar" onclick="cmEncerrarConsulta()"
+                style="display:none;font-size:.88rem;font-weight:700;padding:.55rem 1.4rem;
+                       border-radius:.6rem;background:rgba(99,102,241,.9);color:#fff;border:none;
+                       cursor:pointer;align-items:center;gap:.45rem;transition:opacity .15s;"
+                onmouseover="this.style.opacity='.82'" onmouseout="this.style.opacity='1'">
+          <i data-lucide="send" style="width:.92rem;height:.92rem;"></i>
+          Encerrar e Enviar Instruções
+        </button>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
 {% endblock %}

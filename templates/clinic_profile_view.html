@@ -281,18 +281,92 @@
 .cpv-fab-btn {
   display:flex; align-items:center; gap:.55rem;
   padding:.72rem 1.2rem; border-radius:99px; border:none; cursor:pointer;
-  font-size:.83rem; font-weight:700; text-decoration:none; white-space:nowrap;
+  font-size:.9rem; font-weight:700; text-decoration:none; white-space:nowrap;
   box-shadow:0 4px 20px rgba(0,0,0,.38);
   transition:transform .18s, box-shadow .18s;
 }
 .cpv-fab-btn:hover { transform:translateY(-3px); box-shadow:0 8px 30px rgba(0,0,0,.45); }
-.cpv-fab-btn svg { width:.95rem; height:.95rem; flex-shrink:0; }
+.cpv-fab-btn svg,.cpv-fab-btn i { width:.95rem; height:.95rem; flex-shrink:0; }
 .cpv-fab-wa   { background:#15803d; color:#fff; }
 .cpv-fab-chat { background:linear-gradient(135deg,#1d4ed8,#4338ca); color:#fff; }
 @media (max-width:480px) {
   .cpv-fab-label { display:none; }
   .cpv-fab-btn   { padding:.8rem; border-radius:50%; }
 }
+
+/* ══ TAB NAVIGATION ══════════════════════════════════════════════════════════ */
+.cpv-tabs-nav {
+  display:flex; gap:.45rem; margin-bottom:1.5rem;
+  border-bottom:1px solid rgba(255,255,255,.08); padding-bottom:.75rem; flex-wrap:wrap;
+}
+.cpv-tab-btn {
+  display:inline-flex; align-items:center; gap:.45rem;
+  padding:.6rem 1.3rem; border-radius:.75rem; border:none;
+  font-size:1rem; font-weight:700; cursor:pointer; line-height:1.2;
+  background:rgba(255,255,255,.04); color:var(--muted);
+  transition:background .18s, color .18s; position:relative; white-space:nowrap;
+}
+.cpv-tab-btn i { width:1rem; height:1rem; }
+.cpv-tab-btn--active { background:rgba(59,130,246,.15); color:#93c5fd; }
+.cpv-tab-btn--active::after {
+  content:''; position:absolute; bottom:-.77rem; left:.5rem; right:.5rem;
+  height:2.5px; background:#3b82f6; border-radius:99px;
+}
+.cpv-tab-count {
+  font-size:.7rem; font-weight:700; padding:.12rem .45rem; border-radius:99px;
+  background:rgba(255,255,255,.07); color:var(--muted);
+}
+.cpv-tab-btn--active .cpv-tab-count { background:rgba(59,130,246,.22); color:#93c5fd; }
+.cpv-tab-panel--hidden { display:none !important; }
+
+/* ══ EXAM GRID ═══════════════════════════════════════════════════════════════ */
+.cpv-exam-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:.9rem; }
+.cpv-exam-card {
+  background:rgba(4,120,87,.07); border:1px solid rgba(16,185,129,.18);
+  border-radius:1.15rem; padding:1.3rem 1.2rem;
+  display:flex; flex-direction:column; gap:.5rem;
+  transition:transform .2s,border-color .2s,box-shadow .2s;
+}
+.cpv-exam-card:hover { transform:translateY(-4px); border-color:rgba(16,185,129,.45); box-shadow:0 12px 36px rgba(16,185,129,.12); }
+.cpv-exam-icon { width:2.8rem; height:2.8rem; border-radius:.65rem; display:flex; align-items:center; justify-content:center; background:rgba(16,185,129,.12); color:#34d399; flex-shrink:0; }
+.cpv-exam-icon i { width:1.25rem; height:1.25rem; }
+.cpv-exam-name { font-size:1rem; font-weight:700; line-height:1.4; color:var(--fg); }
+.cpv-exam-meta { font-size:.8rem; color:var(--muted); display:flex; align-items:center; gap:.3rem; flex-wrap:wrap; line-height:1.7; }
+.cpv-exam-meta i { width:.75rem; height:.75rem; flex-shrink:0; }
+.cpv-exam-spec { font-size:.68rem; font-weight:700; padding:.09rem .42rem; border-radius:99px; background:rgba(16,185,129,.1); color:#34d399; border:1px solid rgba(16,185,129,.22); }
+.cpv-exam-price { font-size:1.3rem; font-weight:900; color:#10b981; margin-top:auto; padding-top:.4rem; letter-spacing:-.01em; }
+.cpv-exam-foot { margin-top:.65rem; display:flex; gap:.4rem; }
+
+/* ══ SUGGESTED EXAMS PILLS ══════════════════════════════════════════════════ */
+.cpv-suggested-label { font-size:.65rem; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); margin-bottom:.65rem; display:flex; align-items:center; gap:.4rem; }
+.cpv-suggested-label::after { content:''; flex:1; height:1px; background:rgba(255,255,255,.06); }
+.cpv-suggested-grid { display:flex; flex-wrap:wrap; gap:.45rem; }
+.cpv-suggested-pill {
+  display:inline-flex; align-items:center; gap:.38rem;
+  background:rgba(16,185,129,.07); border:1px solid rgba(16,185,129,.18);
+  border-radius:99px; padding:.42rem .9rem;
+  font-size:.88rem; font-weight:600; color:#6ee7b7; line-height:1.5;
+}
+.cpv-suggested-pill i { width:.78rem; height:.78rem; flex-shrink:0; }
+
+/* ══ CART BUTTONS ══════════════════════════════════════════════════════════ */
+.btn-add-cart {
+  display:inline-flex; align-items:center; justify-content:center; gap:.4rem;
+  padding:.62rem 1rem; border-radius:.75rem;
+  border:1.5px solid rgba(16,185,129,.35); background:rgba(16,185,129,.08);
+  color:#34d399; font-size:.88rem; font-weight:700; cursor:pointer; flex:1;
+  transition:background .18s,border-color .18s; white-space:nowrap;
+}
+.btn-add-cart:hover { background:rgba(16,185,129,.2); border-color:rgba(16,185,129,.55); }
+.btn-add-cart i { width:.88rem; height:.88rem; flex-shrink:0; }
+.btn-add-cart--added { background:rgba(16,185,129,.25) !important; border-color:#10b981 !important; color:#6ee7b7 !important; }
+
+/* ══ ACCESSIBILITY ENHANCEMENTS ════════════════════════════════════════════ */
+.cpv-svc-title  { font-size:1rem !important; }
+.cpv-svc-meta   { font-size:.82rem !important; line-height:1.75 !important; }
+.cpv-svc-price  { font-size:1.2rem !important; }
+.cpv-svc-foot .btn { font-size:.88rem !important; padding:.68rem 1rem !important; }
+.cpv-btn-cta { font-size:.9rem !important; padding:.75rem 1.1rem !important; }
 </style>
 {% endblock %}
 
@@ -371,7 +445,7 @@
         <span class="cpv-hstat-lbl">Serviços</span>
       </div>
       <div class="cpv-hstat">
-        <span class="cpv-hstat-val" style="font-size:.92rem;">5.0&thinsp;★</span>
+        <span class="cpv-hstat-val" style="font-size:.92rem;">{% if clinic.clinic_profile and clinic.clinic_profile.avg_rating is not none %}{{ clinic.clinic_profile.avg_rating }}&thinsp;★{% else %}Novo{% endif %}</span>
         <span class="cpv-hstat-lbl">Avaliação</span>
       </div>
       {% if specialties %}
@@ -393,7 +467,7 @@
     </div>
     <div class="cpv-sstat">
       <div class="cpv-sstat-icon" style="background:rgba(251,191,36,.1);color:#fbbf24;"><i data-lucide="star"></i></div>
-      <div><div class="cpv-sstat-val" style="color:#fbbf24;">5.0</div><div class="cpv-sstat-lbl">Avaliação Média</div></div>
+      <div><div class="cpv-sstat-val" style="color:#fbbf24;">{% if clinic.clinic_profile and clinic.clinic_profile.avg_rating is not none %}{{ clinic.clinic_profile.avg_rating }}{% else %}Novo{% endif %}</div><div class="cpv-sstat-lbl">Avaliação Média</div></div>
     </div>
     <div class="cpv-sstat">
       <div class="cpv-sstat-icon" style="background:rgba(34,197,94,.1);color:#4ade80;"><i data-lucide="shield-check"></i></div>
@@ -561,50 +635,187 @@
     </div>
     {% endif %}
 
-    <!-- Serviços -->
-    <div class="cpv-section">
-      <div class="cpv-sec-hd"><i data-lucide="stethoscope"></i> Serviços Disponíveis<div class="cpv-sec-hd-line"></div><span class="cpv-sec-hd-count">{{ services | length }}</span></div>
-      {% if services %}
-      <div class="cpv-svc-grid">
-        {% for svc in services %}
-        <div class="cpv-svc-card fade-in">
-          <div class="cpv-svc-img">
-            {% if svc.imagem_url %}
-            <img src="{{ url_for('static', filename=svc.imagem_url) }}" alt="{{ svc.title | e }}" loading="lazy" />
-            {% else %}
-            <i data-lucide="stethoscope" class="cpv-svc-img-icon"></i>
-            {% endif %}
+    <!-- ══ SERVICES: CONSULTAS | EXAMES TABS ══ -->
+    <div class="cpv-section" style="padding-bottom:1.8rem;">
+
+      {# ── Tab nav ── #}
+      <div class="cpv-tabs-nav" role="tablist">
+        <button class="cpv-tab-btn cpv-tab-btn--active" role="tab"
+                aria-selected="true" data-tab="consultas" id="tab-btn-consultas">
+          <i data-lucide="stethoscope"></i> Consultas
+          <span class="cpv-tab-count">{{ consultas | length }}</span>
+        </button>
+        <button class="cpv-tab-btn" role="tab"
+                aria-selected="false" data-tab="exames" id="tab-btn-exames">
+          <i data-lucide="microscope"></i> Exames
+          <span class="cpv-tab-count">{{ exames | length }}</span>
+        </button>
+      </div>
+
+      {# ══════════════ CONSULTAS PANEL ══════════════ #}
+      <div class="cpv-tab-panel" id="tab-panel-consultas" role="tabpanel" aria-labelledby="tab-btn-consultas">
+        {% if consultas %}
+        <div class="cpv-svc-grid">
+          {% for svc in consultas %}
+          <div class="cpv-svc-card fade-in">
+            <div class="cpv-svc-img">
+              {% if svc.imagem_url %}
+              <img src="{{ url_for('static', filename=svc.imagem_url) }}" alt="{{ svc.title | e }}" loading="lazy" />
+              {% else %}
+              <i data-lucide="stethoscope" class="cpv-svc-img-icon"></i>
+              {% endif %}
+            </div>
+            <div class="cpv-svc-body">
+              <div class="cpv-svc-title">{{ svc.title }}</div>
+              <div class="cpv-svc-meta">
+                <i data-lucide="user"></i>{{ svc.doctor_name }}
+                <span class="cpv-svc-spec">{{ svc.specialty }}</span>
+              </div>
+              {% if svc.logradouro %}
+              <div style="font-size:.8rem;color:var(--muted);display:flex;align-items:center;gap:.25rem;margin-top:.1rem;line-height:1.7;">
+                <i data-lucide="map-pin" style="width:.7rem;height:.7rem;flex-shrink:0;"></i>
+                {{ svc.logradouro }}{% if svc.numero %}, {{ svc.numero }}{% endif %}{% if svc.cidade %} — {{ svc.cidade }}{% endif %}
+              </div>
+              {% endif %}
+              <div class="cpv-svc-price">R$ {{ "{:,.0f}".format(svc.price).replace(",", ".") }}</div>
+            </div>
+            <div class="cpv-svc-foot" style="display:flex;flex-direction:column;gap:.4rem;">
+              <a href="{{ url_for('listing_detail', listing_id=svc.id) }}"
+                 class="btn btn-primary btn-sm w-full" style="justify-content:center;">
+                <i data-lucide="calendar-check" style="width:.88rem;height:.88rem;"></i> Ver e Agendar
+              </a>
+              <button class="btn-add-cart"
+                      data-id="{{ svc.id }}"
+                      data-title="{{ svc.title | e }}"
+                      data-tipo="consulta"
+                      data-price="{{ svc.price | int }}"
+                      data-specialty="{{ svc.specialty | e }}"
+                      data-clinic-id="{{ clinic.id }}"
+                      data-clinic-name="{{ cname | e }}"
+                      onclick="MedCart.add(this)">
+                <i data-lucide="shopping-bag"></i> Adicionar ao Carrinho
+              </button>
+            </div>
           </div>
-          <div class="cpv-svc-body">
-            <div class="cpv-svc-title">{{ svc.title }}</div>
-            <div class="cpv-svc-meta">
+          {% endfor %}
+        </div>
+        {% else %}
+        <div style="text-align:center;padding:2.5rem 1rem;color:var(--muted);">
+          <i data-lucide="stethoscope" style="display:block;margin:0 auto .75rem;width:2.5rem;height:2.5rem;opacity:.25;"></i>
+          <p style="font-size:1rem;margin:0;line-height:1.7;">Esta clínica ainda não possui consultas cadastradas.</p>
+        </div>
+        {% endif %}
+      </div>{# /tab-panel-consultas #}
+
+      {# ══════════════ EXAMES PANEL ══════════════ #}
+      <div class="cpv-tab-panel cpv-tab-panel--hidden" id="tab-panel-exames" role="tabpanel" aria-labelledby="tab-btn-exames">
+
+        {# ── Exames cadastrados ── #}
+        {% if exames %}
+        <div class="cpv-sec-hd" style="margin-bottom:1rem;">
+          <i data-lucide="flask-conical"></i> Exames Disponíveis nesta Clínica
+          <div class="cpv-sec-hd-line"></div>
+          <span class="cpv-sec-hd-count">{{ exames | length }}</span>
+        </div>
+        <div class="cpv-exam-grid" style="margin-bottom:1.75rem;">
+          {% set exam_icons = ['flask-conical','activity','scan-line','microscope','heart-pulse','thermometer','syringe','droplets','dna','zap','radio','brain'] %}
+          {% for svc in exames %}
+          {% set _ei = loop.index0 % 12 %}
+          <div class="cpv-exam-card">
+            <div class="cpv-exam-icon">
+              <i data-lucide="{{ exam_icons[_ei] }}"></i>
+            </div>
+            <div class="cpv-exam-name">{{ svc.title }}</div>
+            <div class="cpv-exam-meta">
+              {% if svc.exam_type %}
+              <span class="cpv-exam-spec">{{ svc.exam_type | capitalize }}</span>
+              {% endif %}
               <i data-lucide="user"></i>{{ svc.doctor_name }}
-              <span class="cpv-svc-spec">{{ svc.specialty }}</span>
             </div>
             {% if svc.logradouro %}
-            <div style="font-size:.7rem;color:var(--muted);display:flex;align-items:center;gap:.25rem;margin-top:.1rem;">
-              <i data-lucide="map-pin" style="width:.6rem;height:.6rem;flex-shrink:0;"></i>
-              {{ svc.logradouro }}{% if svc.numero %}, {{ svc.numero }}{% endif %}{% if svc.cidade %} — {{ svc.cidade }}{% endif %}
+            <div style="font-size:.8rem;color:var(--muted);display:flex;align-items:center;gap:.25rem;line-height:1.7;">
+              <i data-lucide="map-pin" style="width:.7rem;height:.7rem;flex-shrink:0;"></i>
+              {{ svc.logradouro }}{% if svc.numero %}, {{ svc.numero }}{% endif %}
             </div>
             {% endif %}
-            <div class="cpv-svc-price">R$ {{ "{:,.0f}".format(svc.price).replace(",", ".") }}</div>
+            <div class="cpv-exam-price">R$ {{ "{:,.0f}".format(svc.price).replace(",", ".") }}</div>
+            <div class="cpv-exam-foot">
+              <a href="{{ url_for('listing_detail', listing_id=svc.id) }}"
+                 class="btn btn-primary btn-sm" style="flex:1;justify-content:center;font-size:.88rem;">
+                <i data-lucide="calendar-check" style="width:.85rem;height:.85rem;"></i> Agendar
+              </a>
+              <button class="btn-add-cart"
+                      data-id="{{ svc.id }}"
+                      data-title="{{ svc.title | e }}"
+                      data-tipo="exame"
+                      data-price="{{ svc.price | int }}"
+                      data-specialty="{{ svc.specialty | e }}"
+                      data-clinic-id="{{ clinic.id }}"
+                      data-clinic-name="{{ cname | e }}"
+                      onclick="MedCart.add(this)"
+                      style="flex:0 0 auto;padding:.62rem .9rem;">
+                <i data-lucide="shopping-bag"></i>
+              </button>
+            </div>
           </div>
-          <div class="cpv-svc-foot">
-            <a href="{{ url_for('listing_detail', listing_id=svc.id) }}"
-               class="btn btn-primary btn-sm w-full" style="font-size:.78rem;justify-content:center;">
-              <i data-lucide="calendar-check" style="width:.8rem;height:.8rem;"></i> Ver e Agendar
-            </a>
-          </div>
+          {% endfor %}
         </div>
-        {% endfor %}
-      </div>
-      {% else %}
-      <div style="text-align:center;padding:2.5rem 1rem;color:var(--muted);">
-        <i data-lucide="stethoscope" style="display:block;margin:0 auto .75rem;width:2.5rem;height:2.5rem;opacity:.25;"></i>
-        <p style="font-size:.86rem;margin:0;">Esta clínica ainda não possui serviços ativos.</p>
-      </div>
-      {% endif %}
-    </div>
+        {% endif %}
+
+        {# ── Exames sugeridos com base nas especialidades ── #}
+        {% if suggested_exams %}
+        <div class="cpv-suggested-label">
+          <i data-lucide="lightbulb" style="width:.72rem;height:.72rem;color:#fbbf24;"></i>
+          Exames Complementares Sugeridos para {% if specialties %}{{ specialties | join(', ') }}{% else %}estas especialidades{% endif %}
+        </div>
+        <div class="cpv-suggested-grid">
+          {% for exam in suggested_exams %}
+          <span class="cpv-suggested-pill">
+            <i data-lucide="flask-conical"></i>{{ exam }}
+          </span>
+          {% endfor %}
+        </div>
+        <p style="font-size:.82rem;color:var(--muted);margin-top:.85rem;line-height:1.75;">
+          <i data-lucide="info" style="width:.78rem;height:.78rem;vertical-align:middle;margin-right:.25rem;"></i>
+          Esses exames podem ser solicitados durante sua consulta nesta clínica. Entre em contato para confirmar disponibilidade.
+        </p>
+        {% endif %}
+
+        {% if not exames and not suggested_exams %}
+        <div style="text-align:center;padding:2.5rem 1rem;color:var(--muted);">
+          <i data-lucide="microscope" style="display:block;margin:0 auto .75rem;width:2.5rem;height:2.5rem;opacity:.25;"></i>
+          <p style="font-size:1rem;margin:0;line-height:1.7;">Esta clínica ainda não possui exames cadastrados.</p>
+        </div>
+        {% endif %}
+
+      </div>{# /tab-panel-exames #}
+
+    </div>{# /cpv-section tabs #}
+
+    <script>
+    /* ── Tab switching ── */
+    (function () {
+      var btns   = document.querySelectorAll('.cpv-tab-btn');
+      var panels = document.querySelectorAll('.cpv-tab-panel');
+      btns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var tab = btn.dataset.tab;
+          btns.forEach(function (b) {
+            b.classList.remove('cpv-tab-btn--active');
+            b.setAttribute('aria-selected', 'false');
+          });
+          panels.forEach(function (p) { p.classList.add('cpv-tab-panel--hidden'); });
+          btn.classList.add('cpv-tab-btn--active');
+          btn.setAttribute('aria-selected', 'true');
+          var panel = document.getElementById('tab-panel-' + tab);
+          if (panel) {
+            panel.classList.remove('cpv-tab-panel--hidden');
+            lucide.createIcons();
+          }
+        });
+      });
+    })();
+    </script>
 
   </div><!-- /right -->
 </div><!-- /cpv-layout -->

@@ -265,6 +265,17 @@
         <i data-lucide="clock"></i> Histórico de Consultas
         {% if appointments %}<span class="pp-tab-count">{{ appointments | length }}</span>{% endif %}
       </button>
+      <button class="pp-tab-btn" id="tab-btn-saude" onclick="ppTab('saude', this)">
+        <i data-lucide="heart-pulse"></i> Histórico de Saúde
+        {% if historico_saude %}<span class="pp-tab-count">{{ historico_saude | length }}</span>{% endif %}
+        {% if unread_cuidados %}
+        <span style="display:inline-flex;align-items:center;justify-content:center;
+                     min-width:1.1rem;height:1.1rem;padding:0 .28rem;border-radius:99px;
+                     background:#ef4444;color:#fff;font-size:.58rem;font-weight:800;">
+          {{ unread_cuidados }}
+        </span>
+        {% endif %}
+      </button>
     </div>
 
     <!-- ═══════════════════════════════════════════════ -->
@@ -475,6 +486,180 @@
 
     </div><!-- /tab historico -->
 
+    <!-- ═══════════════════════════════════════════════ -->
+    <!--  TAB 4 — Meu Histórico de Saúde                -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <div id="ppTab-saude" class="pp-tab-panel" hidden>
+
+      {% if historico_saude %}
+      <div style="display:flex;flex-direction:column;gap:1.5rem;">
+        {% for item in historico_saude %}
+        {% set appt = item.appt %}
+        {% set post = item.post %}
+        {% set svc  = appt.service %}
+        {% set clinic_name = svc.clinic.clinic_profile.razao_social if svc and svc.clinic and svc.clinic.clinic_profile else (svc.clinic.name if svc and svc.clinic else '—') %}
+
+        <div class="pp-glass" style="border:1px solid rgba(99,102,241,0.2);border-radius:1.1rem;overflow:hidden;"
+             id="saude-card-{{ appt.id }}">
+
+          <!-- Card header -->
+          <div style="background:linear-gradient(135deg,rgba(99,102,241,0.08),rgba(139,92,246,0.05));
+                      padding:.9rem 1.25rem;border-bottom:1px solid rgba(99,102,241,0.12);
+                      display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;">
+            <div style="width:2.4rem;height:2.4rem;border-radius:.6rem;flex-shrink:0;
+                        background:rgba(99,102,241,0.12);color:#818cf8;
+                        display:flex;align-items:center;justify-content:center;">
+              <i data-lucide="heart-pulse" style="width:1.1rem;height:1.1rem;"></i>
+            </div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:.95rem;font-weight:800;line-height:1.25;">{{ clinic_name }}</div>
+              <div style="font-size:.75rem;color:var(--muted);margin-top:.08rem;">
+                {{ svc.title if svc else '—' }}
+                &nbsp;·&nbsp; {{ appt.date[8:10] }}/{{ appt.date[5:7] }}/{{ appt.date[:4] }}
+                {% if svc %}&nbsp;·&nbsp; {{ appt.time_slot }}{% endif %}
+              </div>
+            </div>
+            <span style="font-size:.7rem;font-weight:800;padding:.22rem .65rem;border-radius:99px;
+                         background:rgba(99,102,241,.12);color:#818cf8;border:1px solid rgba(99,102,241,.25);
+                         white-space:nowrap;display:inline-flex;align-items:center;gap:.3rem;">
+              <i data-lucide="check-circle" style="width:.65rem;height:.65rem;"></i> Finalizado
+            </span>
+            {% if post and not post.notificacao_lida %}
+            <span style="font-size:.65rem;font-weight:800;padding:.15rem .5rem;border-radius:99px;
+                         background:#ef4444;color:#fff;white-space:nowrap;
+                         display:inline-flex;align-items:center;gap:.22rem;">
+              <i data-lucide="bell" style="width:.6rem;height:.6rem;"></i> Novo
+            </span>
+            {% endif %}
+          </div>
+
+          <div style="padding:1.1rem 1.25rem;display:flex;flex-direction:column;gap:1.1rem;">
+
+            {% if post %}
+            <!-- Orientações do Médico -->
+            {% if post.recomendacoes or post.proximos_passos %}
+            <div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);
+                        border-radius:.85rem;padding:1rem 1.1rem;">
+              <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;
+                           color:var(--muted);display:flex;align-items:center;gap:.3rem;margin-bottom:.85rem;">
+                <i data-lucide="file-heart" style="width:.75rem;height:.75rem;"></i>
+                Orientações do Médico
+              </div>
+              {% if post.recomendacoes %}
+              <div style="margin-bottom:.75rem;">
+                <div style="font-size:.72rem;font-weight:700;color:#818cf8;text-transform:uppercase;
+                             letter-spacing:.05em;margin-bottom:.35rem;">Recomendações</div>
+                <p style="font-size:1rem;line-height:1.7;color:var(--fg);margin:0;white-space:pre-wrap;">{{ post.recomendacoes }}</p>
+              </div>
+              {% endif %}
+              {% if post.proximos_passos %}
+              <div>
+                <div style="font-size:.72rem;font-weight:700;color:#14b8a6;text-transform:uppercase;
+                             letter-spacing:.05em;margin-bottom:.35rem;">Próximos Passos</div>
+                <p style="font-size:1rem;line-height:1.7;color:var(--fg);margin:0;white-space:pre-wrap;">{{ post.proximos_passos }}</p>
+              </div>
+              {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Sugestão de Retorno -->
+            {% if post.retorno_sugerido %}
+            <div style="background:rgba(20,184,166,.06);border:1px solid rgba(20,184,166,.22);
+                        border-radius:.85rem;padding:.9rem 1.1rem;
+                        display:flex;align-items:center;gap:.85rem;flex-wrap:wrap;">
+              <div style="width:2.1rem;height:2.1rem;border-radius:.55rem;flex-shrink:0;
+                          background:rgba(20,184,166,.12);color:#14b8a6;
+                          display:flex;align-items:center;justify-content:center;">
+                <i data-lucide="calendar-plus" style="width:1rem;height:1rem;"></i>
+              </div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:.85rem;font-weight:800;color:#14b8a6;">Retorno Sugerido pelo Médico</div>
+                <div style="font-size:.78rem;color:var(--muted);margin-top:.12rem;">
+                  {% if post.retorno_tipo == 'exame' %}Exame de Retorno{% else %}Nova Consulta{% endif %}
+                  {% if post.retorno_meses %} em {{ post.retorno_meses }} mês{{ 'es' if post.retorno_meses != 1 else '' }}{% endif %}
+                </div>
+              </div>
+              {% if svc %}
+              <a href="/listing/{{ svc.id }}"
+                 style="font-size:.8rem;font-weight:700;padding:.42rem 1.1rem;border-radius:.5rem;
+                        background:rgba(20,184,166,.14);border:1px solid rgba(20,184,166,.35);
+                        color:#14b8a6;text-decoration:none;display:inline-flex;align-items:center;gap:.35rem;
+                        white-space:nowrap;transition:background .15s;"
+                 onmouseover="this.style.background='rgba(20,184,166,.25)'"
+                 onmouseout="this.style.background='rgba(20,184,166,.14)'">
+                <i data-lucide="calendar-plus" style="width:.82rem;height:.82rem;"></i>
+                Agendar Retorno
+              </a>
+              {% endif %}
+            </div>
+            {% endif %}
+            {% endif %}{# /post #}
+
+            <!-- Pesquisa de Satisfação -->
+            {% if not item.reviewed %}
+            <div class="pp-glass" id="review-box-{{ appt.id }}"
+                 style="background:rgba(245,158,11,.04);border:1px solid rgba(245,158,11,.2);
+                        border-radius:.85rem;padding:1rem 1.1rem;">
+              <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;
+                           color:#f59e0b;display:flex;align-items:center;gap:.3rem;margin-bottom:.75rem;">
+                <i data-lucide="star" style="width:.75rem;height:.75rem;"></i>
+                Como foi o seu Atendimento?
+              </div>
+              <!-- Star rating -->
+              <div style="display:flex;gap:.35rem;margin-bottom:.75rem;" id="stars-{{ appt.id }}">
+                {% for i in range(1, 6) %}
+                <button onclick="setStar({{ appt.id }}, {{ i }})"
+                        id="star-{{ appt.id }}-{{ i }}"
+                        style="background:none;border:none;cursor:pointer;padding:.1rem;
+                               font-size:1.6rem;line-height:1;color:#374151;transition:color .12s,transform .1s;"
+                        title="{{ i }} estrela{{ 's' if i != 1 else '' }}">&#9733;</button>
+                {% endfor %}
+              </div>
+              <textarea id="comment-{{ appt.id }}" rows="2"
+                        placeholder="Compartilhe sua experiência (opcional)…"
+                        style="width:100%;padding:.45rem .7rem;font-size:.9rem;line-height:1.55;
+                               background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);
+                               border-radius:.6rem;color:var(--fg);outline:none;resize:none;
+                               box-sizing:border-box;font-family:inherit;margin-bottom:.65rem;"
+                        onfocus="this.style.borderColor='#f59e0b'"
+                        onblur="this.style.borderColor='rgba(255,255,255,.1)'"></textarea>
+              <div style="display:flex;align-items:center;gap:.6rem;">
+                <button onclick="submitReview({{ appt.id }}, {{ appt.service_id }})"
+                        id="review-btn-{{ appt.id }}"
+                        style="font-size:.82rem;font-weight:700;padding:.42rem 1.1rem;border-radius:.5rem;
+                               background:rgba(245,158,11,.14);border:1px solid rgba(245,158,11,.35);
+                               color:#f59e0b;cursor:pointer;display:inline-flex;align-items:center;gap:.35rem;
+                               transition:background .15s;"
+                        onmouseover="this.style.background='rgba(245,158,11,.25)'"
+                        onmouseout="this.style.background='rgba(245,158,11,.14)'">
+                  <i data-lucide="send" style="width:.78rem;height:.78rem;"></i> Enviar Avaliação
+                </button>
+                <span id="review-msg-{{ appt.id }}" style="font-size:.78rem;color:var(--muted);"></span>
+              </div>
+            </div>
+            {% else %}
+            <div style="font-size:.82rem;color:var(--muted);display:flex;align-items:center;gap:.4rem;
+                        padding:.6rem .9rem;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.18);
+                        border-radius:.65rem;">
+              <i data-lucide="check-circle" style="width:.82rem;height:.82rem;color:#4ade80;"></i>
+              Você já avaliou este atendimento. Obrigado!
+            </div>
+            {% endif %}
+
+          </div>{# /card body #}
+        </div>{# /saude-card #}
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="pp-empty">
+        <i data-lucide="heart-pulse"></i>
+        <p>Nenhum atendimento finalizado ainda.</p>
+        <p style="font-size:.78rem;">Quando a clínica finalizar uma consulta, as orientações do médico aparecerão aqui.</p>
+      </div>
+      {% endif %}
+
+    </div><!-- /tab saude -->
+
   </div><!-- /pp-glass -->
 </div><!-- /pp-page -->
 
@@ -485,7 +670,67 @@ function ppTab(name, btn) {
   document.querySelectorAll('.pp-tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('ppTab-' + name).hidden = false;
   btn.classList.add('active');
+  // Mark notifications read when opening health history
+  if (name === 'saude') {
+    document.querySelectorAll('[id^="saude-card-"]').forEach(card => {
+      const apptId = card.id.replace('saude-card-', '');
+      fetch('/cuidados/' + apptId + '/marcar-lido', { method: 'POST' }).catch(() => {});
+    });
+  }
 }
+
+/* ── Star rating ── */
+const _starSelections = {};
+function setStar(apptId, val) {
+  _starSelections[apptId] = val;
+  for (let i = 1; i <= 5; i++) {
+    const s = document.getElementById('star-' + apptId + '-' + i);
+    if (!s) continue;
+    s.style.color     = i <= val ? '#f59e0b' : '#374151';
+    s.style.transform = i <= val ? 'scale(1.15)' : 'scale(1)';
+  }
+}
+
+async function submitReview(apptId, serviceId) {
+  const rating = _starSelections[apptId];
+  if (!rating) {
+    document.getElementById('review-msg-' + apptId).textContent = 'Selecione uma nota de 1 a 5 estrelas.';
+    return;
+  }
+  const comentario = (document.getElementById('comment-' + apptId) || {}).value || '';
+  const btn = document.getElementById('review-btn-' + apptId);
+  const msg = document.getElementById('review-msg-' + apptId);
+  btn.disabled = true;
+  msg.textContent = 'Enviando…';
+  try {
+    const res  = await fetch('/avaliar/' + apptId, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rating, comentario }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      const box = document.getElementById('review-box-' + apptId);
+      if (box) {
+        box.innerHTML = '<div style="font-size:.82rem;color:var(--muted);display:flex;align-items:center;gap:.4rem;padding:.6rem .9rem;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.18);border-radius:.65rem;"><svg xmlns=\'http://www.w3.org/2000/svg\' width=\'14\' height=\'14\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'#4ade80\' stroke-width=\'2.5\' stroke-linecap=\'round\' stroke-linejoin=\'round\'><path d=\'M22 11.08V12a10 10 0 1 1-5.93-9.14\'/><path d=\'m9 11 3 3L22 4\'/></svg> Avaliação enviada com sucesso! Obrigado.</div>';
+      }
+    } else {
+      msg.textContent = data.msg || 'Erro ao enviar.';
+      btn.disabled = false;
+    }
+  } catch (_) {
+    msg.textContent = 'Erro de conexão.';
+    btn.disabled = false;
+  }
+}
+
+/* ── Auto-open Histórico de Saúde tab if there are unread care records ── */
+{% if unread_cuidados %}
+document.addEventListener('DOMContentLoaded', function() {
+  const btn = document.getElementById('tab-btn-saude');
+  if (btn) ppTab('saude', btn);
+});
+{% endif %}
 
 /* ── CPF + Phone masks ── */
 function formatCPF(input) {

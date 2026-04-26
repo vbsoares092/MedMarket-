@@ -1,16 +1,545 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 /* ================================================================
    VITRINE — MedMarket Commercial Showcase
    Clean Modern Dark, CS-Marketplace inspired
    ================================================================ */
 
+/* ── AIRBNB PILL SEARCH BAR ────────────────────────────────────── */
+.sp-hero {
+  position: relative;
+  z-index: 40;
+  padding: 1.6rem 0 .65rem;
+}
+
+/* ─ The pill ─ */
+.search-pill {
+  display: flex;
+  align-items: center;
+  max-width: 920px;
+  margin: 0 auto;
+  background: #161b27;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 50px;
+  padding: 0;
+  box-shadow: 0 2px 16px rgba(0,0,0,.40);
+  transition: border-color .25s ease;
+  position: relative;
+}
+.search-pill:hover {
+  border-color: rgba(255,255,255,0.18);
+}
+
+/* ─ Field sections ─ */
+.sp-field {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  min-width: 0;
+  flex: 1;
+  padding: .62rem 1.15rem;
+  border-radius: 50px;
+  transition: background .16s;
+  cursor: pointer;
+  user-select: none;
+}
+.sp-field:hover { background: #1e2a3b; }
+.sp-field:focus-within,
+.sp-field.sp-field--open { background: #1e2a3b; }
+.sp-field--onde   { flex: .95; }
+.sp-field--quando { flex: 1.1; }
+.sp-field--spec   { flex: 1.4; }
+.sp-field--price  { flex: .85; }
+
+/* ─ Labels ─ */
+.sp-label {
+  display: flex;
+  align-items: center;
+  gap: .28rem;
+  font-size: .62rem;
+  font-weight: 600;
+  letter-spacing: .04em;
+  color: #f1f5f9;
+  line-height: 1;
+  pointer-events: none;
+  margin-bottom: .14rem;
+}
+
+/* "(Opcional)" badge inside price label */
+.sp-optional-badge {
+  font-size: .58rem;
+  font-weight: 500;
+  color: #94a3b8;
+  margin-left: .22rem;
+  letter-spacing: 0;
+}
+
+/* Price field label is visually lighter to reinforce the optional nature */
+.sp-field--price .sp-label {
+  font-weight: 400;
+  color: #94a3b8;
+}
+.sp-label-icon {
+  width: .65rem;
+  height: .65rem;
+  flex-shrink: 0;
+  color: #3b82f6;
+}
+
+/* ─ Inputs ─ */
+.sp-input {
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: inherit;
+  font-size: .84rem;
+  color: #f1f5f9;
+  padding: 0;
+  width: 100%;
+  line-height: 1.4;
+}
+.sp-input::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+/* Date display */
+.sp-date-display {
+  font-size: .84rem;
+  color: #94a3b8;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sp-date-display--filled { color: #f1f5f9; font-weight: 500; }
+
+/* ─ Separator ─ */
+.sp-sep {
+  width: 1px;
+  align-self: stretch;
+  margin: .65rem 0;
+  background: rgba(255,255,255,0.10);
+  flex-shrink: 0;
+}
+
+/* ─ Circular search button — blue gradient ─ */
+.sp-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  color: #fff;
+  cursor: pointer;
+  margin: .25rem .35rem .25rem .1rem;
+  transition: transform .18s ease, box-shadow .18s ease;
+  box-shadow: 0 2px 12px rgba(59, 130, 246, .40);
+}
+.sp-btn:hover {
+  transform: scale(1.06);
+  box-shadow: 0 4px 24px rgba(59, 130, 246, .60);
+}
+.sp-btn:active { transform: scale(.94); }
+.sp-btn svg,
+.sp-btn i {
+  width: 1.1rem;
+  height: 1.1rem;
+  stroke-width: 2.5;
+}
+
+/* ───────────────────────────────────────────────────────────────
+   POPOVERS — shared base
+   ─────────────────────────────────────────────────────────────── */
+.sp-popover {
+  display: none;
+  position: absolute;
+  top: calc(100% + .55rem);
+  left: 0;
+  min-width: 260px;
+  background: #161b27;
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 1.1rem;
+  padding: 1rem 1.15rem;
+  box-shadow:
+    0 8px 24px rgba(0,0,0,.50),
+    0 16px 48px rgba(0,0,0,.30);
+  z-index: 50;
+  animation: spPopIn .18s ease;
+}
+.sp-popover--show { display: block; }
+@keyframes spPopIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.sp-pop-title {
+  font-size: .68rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin: 0 0 .7rem;
+}
+
+/* ───────────────────────────────────────────────────────────────
+   DUAL CALENDAR POPOVER — Airbnb-style date range
+   ─────────────────────────────────────────────────────────────── */
+.sp-popover--cal {
+  min-width: 600px;
+  padding: .9rem 1.1rem .7rem;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.spc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: .55rem;
+}
+.spc-months-title {
+  display: flex;
+  gap: 4rem;
+  font-weight: 700;
+  font-size: .88rem;
+  color: #f1f5f9;
+}
+.spc-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px; height: 30px;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #f1f5f9;
+  transition: background .15s;
+}
+.spc-nav:hover { background: #1e2a3b; }
+.spc-nav svg, .spc-nav i { width: 1rem; height: 1rem; }
+
+.spc-grid-wrap {
+  display: flex;
+  gap: 1.5rem;
+}
+.spc-month {
+  flex: 1;
+  min-width: 0;
+}
+.spc-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  font-size: .6rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  margin-bottom: .2rem;
+}
+.spc-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px 0;
+}
+.spc-day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  font-size: .8rem;
+  color: #f1f5f9;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background .12s, color .12s;
+  position: relative;
+}
+.spc-day:hover:not(.spc-day--disabled):not(.spc-day--empty) {
+  background: #1e2a3b;
+}
+.spc-day--empty { cursor: default; }
+.spc-day--disabled {
+  color: #334155;
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
+.spc-day--today {
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1.5px #3b82f6;
+}
+/* Selected endpoints */
+.spc-day--start,
+.spc-day--end {
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6) !important;
+  color: #fff !important;
+  font-weight: 700;
+}
+/* Range between start & end */
+.spc-day--inrange {
+  background: rgba(59,130,246,0.15);
+  border-radius: 0;
+  color: #93c5fd;
+}
+.spc-day--start { border-radius: 50% 0 0 50%; }
+.spc-day--end   { border-radius: 0 50% 50% 0; }
+.spc-day--start.spc-day--end { border-radius: 50%; }
+
+.spc-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: .55rem;
+  padding-top: .5rem;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+.spc-clear {
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: .78rem;
+  font-weight: 600;
+  color: #3b82f6;
+  cursor: pointer;
+  padding: .25rem .5rem;
+  border-radius: .4rem;
+  transition: background .15s;
+}
+.spc-clear:hover { background: #1e2a3b; }
+
+/* ───────────────────────────────────────────────────────────────
+   LOCATION LIST POPOVER — "Onde"
+   ─────────────────────────────────────────────────────────────── */
+/* Location display text */
+.sp-loc-display {
+  font-size: .84rem;
+  color: #94a3b8;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sp-loc-display--filled { color: #f1f5f9; font-weight: 500; }
+
+.sp-popover--loclist {
+  min-width: 260px;
+  max-height: 300px;
+  overflow-y: auto;
+  padding: .7rem 0;
+}
+.sp-popover--loclist .sp-pop-title { padding: 0 1rem; }
+.spl-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.spl-item {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  padding: .55rem 1.1rem;
+  font-size: .84rem;
+  color: #cbd5e1;
+  cursor: pointer;
+  transition: background .12s, color .12s;
+  border-left: 3px solid transparent;
+}
+.spl-item:hover {
+  background: #1e2a3b;
+  border-left-color: #3b82f6;
+  color: #f1f5f9;
+}
+.spl-item--active {
+  background: rgba(59,130,246,0.12);
+  border-left-color: #3b82f6;
+  color: #93c5fd;
+  font-weight: 600;
+}
+.spl-item-icon {
+  width: .95rem;
+  height: .95rem;
+  flex-shrink: 0;
+  color: inherit;
+}
+
+/* ───────────────────────────────────────────────────────────────
+   SPECIALTY LIST POPOVER
+   ─────────────────────────────────────────────────────────────── */
+.sp-popover--speclist {
+  min-width: 280px;
+  max-height: 340px;
+  overflow-y: auto;
+  padding: .7rem 0;
+}
+.sp-popover--speclist .sp-pop-title { padding: 0 1rem; }
+.sps-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.sps-item {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  padding: .55rem 1.1rem;
+  font-size: .84rem;
+  color: #cbd5e1;
+  cursor: pointer;
+  transition: background .12s, color .12s;
+  border-left: 3px solid transparent;
+}
+.sps-item:hover {
+  background: #1e2a3b;
+  border-left-color: #3b82f6;
+  color: #f1f5f9;
+}
+.sps-item--active {
+  background: rgba(59,130,246,0.12);
+  border-left-color: #3b82f6;
+  color: #93c5fd;
+  font-weight: 600;
+}
+.sps-item-icon {
+  width: .95rem;
+  height: .95rem;
+  flex-shrink: 0;
+  color: inherit;
+}
+
+/* ───────────────────────────────────────────────────────────────
+   PRICE POPOVER
+   ─────────────────────────────────────────────────────────────── */
+.sp-popover--pricebox {
+  min-width: 240px;
+  padding: 1rem 1.15rem;
+}
+.spp-input-row {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  margin-bottom: .7rem;
+}
+.spp-prefix {
+  font-size: .82rem;
+  font-weight: 700;
+  color: #64748b;
+}
+.spp-input {
+  flex: 1;
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: .55rem;
+  padding: .42rem .6rem;
+  font-size: .84rem;
+  font-family: inherit;
+  color: #f1f5f9;
+  background: #1a2035;
+  outline: none;
+  transition: border-color .15s;
+}
+.spp-input:focus { border-color: #3b82f6; }
+.spp-input::placeholder { color: #475569; }
+.spp-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .35rem;
+}
+.spp-pill {
+  display: inline-flex;
+  align-items: center;
+  background: #1a2035;
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 99px;
+  padding: .3rem .7rem;
+  font-size: .74rem;
+  font-weight: 600;
+  color: #94a3b8;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background .15s, border-color .15s, color .15s;
+}
+.spp-pill:hover {
+  background: #1e2a3b;
+  border-color: rgba(255,255,255,0.20);
+  color: #f1f5f9;
+}
+.spp-pill--active,
+.spp-pill--active:hover {
+  background: rgba(59,130,246,0.15);
+  border-color: #3b82f6;
+  color: #93c5fd;
+}
+.spp-pill--free {
+  background: rgba(16,185,129,0.10);
+  border-color: rgba(16,185,129,0.30);
+  color: #10b981;
+}
+.spp-pill--free:hover {
+  background: rgba(16,185,129,0.18);
+}
+.spp-pill--free.spp-pill--active {
+  background: rgba(16,185,129,0.22);
+  border-color: #10b981;
+  color: #6ee7b7;
+}
+
+/* ─ Responsive ─ */
+@media (max-width: 700px) {
+  .search-pill {
+    flex-direction: column;
+    border-radius: 1.25rem;
+    max-width: 100%;
+    align-items: stretch;
+  }
+  .sp-field {
+    flex: unset;
+    width: 100%;
+    border-radius: .8rem;
+    padding: .55rem 1rem;
+  }
+  .sp-sep {
+    width: calc(100% - 2rem);
+    height: 1px;
+    margin: 0 auto;
+    align-self: center;
+  }
+  .sp-btn {
+    width: calc(100% - 1rem);
+    border-radius: .8rem;
+    height: 44px;
+    margin: .25rem .5rem .5rem;
+  }
+  .sp-popover {
+    left: 0; right: 0;
+    min-width: unset;
+  }
+  /* Calendar collapses to single month on mobile */
+  .sp-popover--cal {
+    min-width: unset;
+    transform: none;
+    left: 0;
+  }
+  .spc-grid-wrap {
+    flex-direction: column;
+    gap: .8rem;
+  }
+  .spc-months-title { gap: 1.5rem; }
+}
+/* Mobile collapse: pill becomes search icon */
+@media (max-width: 480px) {
+  .sp-hero { padding: 1rem 0 .35rem; }
+  .search-pill { border-radius: 1rem; }
+}
+
 /* ── OUTER LAYOUT ──────────────────────────────────────────────── */
+/* vitrine-wrap is now the left column inside .vitrine-outer */
 .vitrine-wrap {
   display: flex;
   flex-direction: column;
   gap: .9rem;
-  max-width: 1440px;
-  margin: 0 auto;
-  padding: 1rem 1rem 5rem;
+  /* max-width / margin / padding owned by .vitrine-outer */
 }
 
 /* ── HERO CAROUSEL ─────────────────────────────────────────────── */
@@ -313,6 +842,32 @@
   max-width: 112px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+/* ── Type badges (Consulta / Exame / Pacote) ── */
+.vm-badge-tipo {
+  position: absolute;
+  bottom: .5rem; left: .5rem;
+  font-size: .6rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: .06em;
+  padding: .18rem .52rem;
+  border-radius: .3rem;
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+}
+.vm-badge-tipo--consulta {
+  background: rgba(59,130,246,.18);
+  border: 1px solid rgba(59,130,246,.35);
+  color: #93c5fd;
+}
+.vm-badge-tipo--exame {
+  background: rgba(16,185,129,.18);
+  border: 1px solid rgba(16,185,129,.35);
+  color: #6ee7b7;
+}
+.vm-badge-tipo--pacote {
+  background: rgba(168,85,247,.18);
+  border: 1px solid rgba(168,85,247,.35);
+  color: #d8b4fe;
+}
 .vm-badge-status {
   position: absolute;
   top: .5rem; right: .5rem;
@@ -323,6 +878,29 @@
   text-transform: uppercase; letter-spacing: .05em;
   padding: .18rem .44rem;
   border-radius: .3rem;
+  display: flex;
+  align-items: center;
+  gap: .28rem;
+}
+/* Variant with pulse dot when slots are available */
+.vm-badge-status--avail {
+  background: rgba(16,185,129,.22);
+  border-color: rgba(16,185,129,.60);
+  color: #6ee7b7;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: .6rem;
+}
+.vm-badge-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+  flex-shrink: 0;
+  animation: vmPulse 1.8s ease-in-out infinite;
+}
+@keyframes vmPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: .4; transform: scale(.65); }
 }
 
 /* Hover overlay with action button */
@@ -426,9 +1004,595 @@
   border-color: rgba(59,130,246,.45);
 }
 
+/* ── ACTIVE FILTER CHIPS ─────────────────────────────────────── */
+.sp-active-filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .4rem;
+  padding: .1rem 0 .25rem;
+}
+.sp-filters-label {
+  font-size: .68rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  margin-right: .15rem;
+}
+.sp-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .28rem;
+  background: rgba(59,130,246,.10);
+  border: 1px solid rgba(59,130,246,.25);
+  color: #93c5fd;
+  border-radius: 99px;
+  padding: .25rem .65rem;
+  font-size: .72rem;
+  font-weight: 600;
+}
+.sp-fc-icon {
+  width: .62rem;
+  height: .62rem;
+  flex-shrink: 0;
+}
+.sp-filter-clear {
+  font-size: .72rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  transition: color .15s;
+  margin-left: .2rem;
+}
+.sp-filter-clear:hover { color: var(--fg); }
+
 /* Empty state */
 .vm-empty-state {
   text-align: center;
   padding: 4rem 1rem;
   color: var(--muted);
+}
+
+/* ── VITRINE + MAP TWO-COLUMN LAYOUT ────────────────────────────── */
+.vitrine-outer {
+  display: flex;
+  gap: 1rem;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 0 1rem 5rem;
+  align-items: flex-start;
+}
+
+/* Full-width mode: no map, grid takes entire width */
+.vitrine-outer--full {
+  display: block;
+  max-width: 1600px;
+}
+.vitrine-outer--full .vitrine-wrap {
+  max-width: 1600px;
+  margin: 0 auto;
+}
+.vitrine-outer--full .vm-grid {
+  grid-template-columns: repeat(2, 1fr);
+}
+@media (min-width: 640px)  { .vitrine-outer--full .vm-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 1024px) { .vitrine-outer--full .vm-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (min-width: 1280px) { .vitrine-outer--full .vm-grid { grid-template-columns: repeat(5, 1fr); } }
+
+/* Split-view mode (with map): fewer columns to leave room */
+.vitrine-outer:not(.vitrine-outer--full) .vm-grid {
+  grid-template-columns: repeat(1, 1fr);
+}
+@media (min-width: 640px)  { .vitrine-outer:not(.vitrine-outer--full) .vm-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1280px) { .vitrine-outer:not(.vitrine-outer--full) .vm-grid { grid-template-columns: repeat(3, 1fr); } }
+
+/* Main listings column — takes available space */
+.vitrine-wrap {
+  flex: 1;
+  min-width: 0;
+  max-width: none;   /* override old max-width */
+  margin: 0;
+  padding: 1rem 0 0;
+}
+
+/* Map column — sticky, 44% width */
+.vm-map-col {
+  flex: 0 0 44%;
+  width: 44%;
+  position: sticky;
+  top: 72px;
+  max-height: calc(100vh - 84px);
+  display: flex;
+  flex-direction: column;
+  border-radius: 1rem;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--bg2);
+  z-index: 10;
+}
+
+.vm-map-header {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  padding: .55rem .9rem;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  font-size: .75rem;
+  font-weight: 600;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.vm-map-toggle {
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: .35rem;
+  color: var(--muted);
+  cursor: pointer;
+  padding: .15rem .3rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s, color .15s;
+}
+.vm-map-toggle:hover { background: var(--secondary); color: var(--fg); }
+
+#map {
+  /* Explicit height so the map reads a non-zero offsetHeight at init time.
+   * overflow:visible allows markers/popups to extend slightly beyond the pane. */
+  height: 600px;
+  width: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Map loader / spinner ──
+   The loader is a SIBLING of #vmMap inside .vm-map-col (position:relative).
+   It overlays the entire map column body area.
+*/
+.vm-map-loader {
+  position: absolute;
+  /* sit below the header (header is ~2.2rem); cover the rest */
+  top: 2.2rem;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 600;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .75rem;
+  background: var(--bg2);
+  color: var(--muted);
+  font-size: .8rem;
+  font-weight: 500;
+  pointer-events: none;
+}
+.vm-map-spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid rgba(255,255,255,.1);
+  border-top-color: #10b981;
+  border-radius: 50%;
+  animation: vm-spin .75s linear infinite;
+}
+@keyframes vm-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Leaflet popup — glassmorphism card, no arrow, smooth entrance ── */
+@keyframes mm-popup-in {
+  from { opacity: 0; transform: translateY(16px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+.mm-leaflet-popup .leaflet-popup-content-wrapper {
+  padding: 0;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #10141d;
+  border: 1px solid rgba(94, 92, 230, 0.22);
+  box-shadow:
+    0 20px 40px -8px rgba(0,0,0,.55),
+    0  6px 14px -4px rgba(0,0,0,.35),
+    inset 0 0 0 1px rgba(94, 92, 230, 0.10),
+    0 0 24px -4px rgba(94, 92, 230, 0.15);
+  animation: mm-popup-in .3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.mm-leaflet-popup .leaflet-popup-content {
+  margin: 0;
+  width: auto !important;
+}
+/* Remove arrow tip entirely */
+.mm-leaflet-popup .leaflet-popup-tip-container { display: none; }
+.mm-leaflet-popup .leaflet-popup-close-button {
+  top: 8px !important;
+  right: 8px !important;
+  width: 32px !important;
+  height: 32px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  /* Low-opacity white — revealed fully on hover */
+  color: rgba(255,255,255,0.30) !important;
+  font-size: 1.1rem !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  background: transparent !important;
+  transition: color .18s ease, background .18s ease, transform .15s !important;
+  touch-action: manipulation !important;
+  position: absolute !important;
+}
+.mm-leaflet-popup .leaflet-popup-close-button::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+}
+.mm-leaflet-popup .leaflet-popup-close-button:hover {
+  color: rgba(255,255,255,1) !important;
+  background: rgba(255,255,255,.08) !important;
+  transform: scale(1.1) !important;
+}
+
+/* ── Leaflet divIcon wrapper — no default background/shadow ── */
+.mm-leaflet-icon-wrap {
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  width: auto !important;
+  height: auto !important;
+  pointer-events: auto;
+}
+
+/* ── MedMarket InfoWindow popup — compact dark card ──────────────── */
+.mm-infowin {
+  width: 190px;
+  background: transparent;
+  border-radius: 16px;
+  overflow: hidden;
+  font-family: inherit;
+}
+
+/* Image floats inside with padding so it looks embedded */
+.mm-iw-img-wrap {
+  position: relative;
+  padding: 8px 8px 0;
+}
+.mm-iw-img {
+  width: 100%;
+  height: 100px;
+  object-fit: cover;
+  display: block;
+  border-radius: 12px;
+}
+
+/* Category badge — ghost style over image, top-left */
+.mm-iw-badge {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  font-size: .58rem;
+  font-weight: 800;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  padding: .22rem .5rem;
+  border-radius: 9999px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  background: transparent;
+  line-height: 1;
+}
+.mm-iw-badge--exame {
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.70);
+  text-shadow: 0 0 10px rgba(16, 185, 129, .5);
+}
+.mm-iw-badge--consulta {
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.70);
+  text-shadow: 0 0 10px rgba(96, 165, 250, .5);
+}
+.mm-iw-body {
+  padding: .55rem .7rem .65rem;
+  display: flex;
+  flex-direction: column;
+  gap: .16rem;
+}
+.mm-iw-spec {
+  font-size: .6rem;
+  font-weight: 600;
+  color: #10b981;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  margin: 0;
+}
+/* Clinic name — light on dark */
+.mm-iw-name {
+  font-size: .95rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin: 0;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Price — prominent light text */
+.mm-iw-price {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #e0e0e0;
+  margin: .08rem 0 0;
+  letter-spacing: -.01em;
+}
+/* CTA — purple matching site's --gradient-cta anchor */
+.mm-iw-btn {
+  display: block;
+  width: 100%;
+  margin-top: .5rem;
+  padding: .45rem .75rem;
+  background: #5e5ce6;
+  color: #ffffff;
+  font-size: .78rem;
+  font-weight: 700;
+  border-radius: .6rem;
+  text-decoration: none;
+  text-align: center;
+  box-shadow: 0 4px 14px rgba(94, 92, 230, .40);
+  transition: transform .2s ease, box-shadow .2s ease, background .15s;
+  letter-spacing: .01em;
+}
+.mm-iw-btn:hover {
+  color: #fff;
+  background: #4b48d6;
+  transform: scale(1.05);
+  box-shadow: 0 8px 20px rgba(94, 92, 230, .55);
+}
+
+/* Hide map when toggled */
+.vm-map-col.vm-map--hidden { display: none; }
+
+/* ── Responsive: stack map below grid on small screens ─────────── */
+@media (max-width: 900px) {
+  .vitrine-outer {
+    flex-direction: column;
+  }
+  .vitrine-outer--full {
+    display: block;
+  }
+  .vm-map-col {
+    flex: none;
+    width: 100%;
+    position: static;
+    max-height: none;
+  }
+  #map {
+    height: 300px;
+  }
+}
+
+/* ── Airbnb 2.0 price badge — pill branca, micro-interações suaves ── */
+@keyframes mm-badge-fadein {
+  from { opacity: 0; transform: translateY(4px) scale(0.8); }
+  to   { opacity: 1; transform: translateY(0)   scale(1);   }
+}
+.mm-price-badge {
+  display: inline-block;
+  position: relative;          /* centred on coordinate by Leaflet divIcon */
+  background: #ffffff;
+  color: #111827;
+  font-size: .8rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 6px 12px;
+  border-radius: 9999px;        /* fully rounded — pill shape */
+  border: 1.5px solid rgba(0, 0, 0, 0.08);
+  white-space: nowrap;
+  /* shadow-md equivalent */
+  box-shadow:
+    0 4px 6px -1px rgb(0 0 0 / 0.10),
+    0 2px 4px -2px rgb(0 0 0 / 0.10);
+  cursor: pointer;
+  user-select: none;
+  /* animation-delay set per-badge in JS for stagger */
+  animation: mm-badge-fadein 0.3s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+  /* 0.2s smooth transitions for all state changes */
+  transition:
+    transform      0.2s cubic-bezier(0.34, 1.4, 0.64, 1),
+    box-shadow     0.2s ease,
+    background     0.2s ease,
+    color          0.2s ease,
+    border-color   0.2s ease;
+  z-index: 2;
+}
+/* Hover: lift 2px + shadow-lg — badge still white */
+.mm-price-badge:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 10px 15px -3px rgb(0 0 0 / 0.12),
+    0  4px  6px -4px rgb(0 0 0 / 0.08);
+  border-color: rgba(0, 0, 0, 0.14);
+}
+/* Active (clicked): dark background, white text — clearly selected */
+.mm-price-badge--active {
+  transform: translateY(-2px);
+  background: #111827;
+  color: #ffffff;
+  border-color: #111827;
+  box-shadow:
+    0 10px 20px -4px rgba(17, 24, 39, 0.35),
+    0  4px  6px -4px rgba(17, 24, 39, 0.20);
+}
+/* Exam badge variant — emerald tinted */
+.mm-price-badge--exame {
+  background: #ecfdf5;
+  color: #065f46;
+  border-color: rgba(16, 185, 129, 0.38);
+  box-shadow:
+    0 4px 6px -1px rgba(16, 185, 129, 0.18),
+    0 2px 4px -2px rgba(16, 185, 129, 0.10);
+}
+.mm-price-badge--exame:hover {
+  background: #d1fae5;
+  border-color: rgba(16, 185, 129, 0.6);
+}
+.mm-price-badge--exame.mm-price-badge--active {
+  background: #065f46;
+  color: #ecfdf5;
+  border-color: #065f46;
+}
+.mm-pin-tipo {
+  display: block;
+  font-size: .52rem; font-weight: 800;
+  letter-spacing: .07em; text-transform: uppercase;
+  opacity: .8; margin-bottom: 2px; line-height: 1;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   GPS / GEOLOCATION — Search pill + Map markers
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── Crosshair GPS button inside "Onde" field ─────────────────── */
+.sp-gps-btn {
+  position: absolute;
+  right: .65rem;
+  bottom: .55rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #64748b;
+  padding: .22rem;
+  border-radius: .3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color .15s, background .15s;
+  line-height: 1;
+  z-index: 2;
+  flex-shrink: 0;
+}
+.sp-gps-btn svg { width: .88rem; height: .88rem; }
+.sp-gps-btn:hover { color: #3b82f6; background: rgba(59,130,246,.10); }
+.sp-gps-btn--active { color: #3b82f6; }
+.sp-gps-btn--loading { color: #3b82f6; animation: sp-gps-spin .75s linear infinite; }
+@keyframes sp-gps-spin { to { transform: rotate(360deg); } }
+
+/* ── GPS "Minha Localização" dropdown item ────────────────────── */
+.spl-item--geo {
+  border-bottom: 1px solid rgba(255,255,255,.07);
+  margin-bottom: .25rem;
+  padding-bottom: .4rem;
+}
+.spl-geo-status {
+  font-size: .68rem;
+  color: #3b82f6;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* ── GPS filter chip ──────────────────────────────────────────── */
+.sp-filter-chip--gps {
+  border-color: rgba(59,130,246,.35);
+  color: #3b82f6;
+}
+
+/* ── Toast notification for geolocation errors ────────────────── */
+.sp-geo-toast {
+  position: fixed;
+  bottom: 1.6rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1e293b;
+  color: #f1f5f9;
+  font-size: .82rem;
+  font-family: 'Inter', -apple-system, sans-serif;
+  padding: .65rem 1.25rem;
+  border-radius: .55rem;
+  box-shadow: 0 4px 16px rgba(0,0,0,.35);
+  z-index: 9999;
+  white-space: nowrap;
+  animation: sp-toast-in .2s ease;
+}
+@keyframes sp-toast-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0);   }
+}
+
+/* ── Pulsing user location marker on the Leaflet map ──────────── */
+.mm-user-location-wrap {
+  background: transparent !important;
+  border: none !important;
+}
+.mm-user-location-marker {
+  position: relative;
+  width: 20px;
+  height: 20px;
+}
+.mm-user-location-dot {
+  position: absolute;
+  inset: 4px;
+  background: #3b82f6;
+  border-radius: 50%;
+  border: 2.5px solid #ffffff;
+  box-shadow: 0 1px 6px rgba(59,130,246,.65);
+  z-index: 2;
+}
+.mm-user-location-pulse {
+  position: absolute;
+  inset: 0;
+  background: rgba(59,130,246,.28);
+  border-radius: 50%;
+  animation: mm-gps-pulse 1.8s ease-out infinite;
+  z-index: 1;
+}
+@keyframes mm-gps-pulse {
+  0%   { transform: scale(.5);  opacity: 1; }
+  100% { transform: scale(2.8); opacity: 0; }
+}
+
+/* ── Recenter map button (Leaflet control) ────────────────────── */
+.mm-recenter-btn {
+  background: #ffffff;
+  border: 2px solid rgba(0,0,0,.15) !important;
+  border-radius: .4rem !important;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 1px 5px rgba(0,0,0,.18);
+  transition: background .15s, box-shadow .15s;
+  padding: 0;
+  color: #374151;
+  margin-top: .4rem;
+}
+.mm-recenter-btn:hover {
+  background: #eff6ff;
+  color: #3b82f6;
+  box-shadow: 0 2px 8px rgba(59,130,246,.25);
+}
+
+/* ── User location tooltip ────────────────────────────────────── */
+.mm-user-tooltip.leaflet-tooltip {
+  background: #1e293b;
+  color: #f1f5f9;
+  border: none;
+  border-radius: .4rem;
+  font-size: .72rem;
+  font-weight: 600;
+  padding: .25rem .55rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,.3);
+  white-space: nowrap;
+}
+.mm-user-tooltip.leaflet-tooltip::before {
+  border-top-color: #1e293b;
 }

@@ -6,6 +6,91 @@
   <title>{% block title %}MedMarket{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <style>
+  /* ── Cart drawer ─────────────────────────────── */
+  .cart-drawer {
+    position:fixed; top:0; right:0; height:100vh; width:min(380px,100vw);
+    background:rgba(10,14,26,.97); backdrop-filter:blur(22px);
+    border-left:1px solid rgba(255,255,255,.09);
+    box-shadow:-8px 0 40px rgba(0,0,0,.5);
+    z-index:200; display:flex; flex-direction:column;
+    transform:translateX(105%); transition:transform .32s cubic-bezier(.4,0,.2,1);
+  }
+  .cart-drawer.cart-open { transform:translateX(0); }
+  .cart-overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,.55);
+    z-index:199; opacity:0; pointer-events:none;
+    transition:opacity .32s;
+  }
+  .cart-overlay.cart-open { opacity:1; pointer-events:all; }
+  .cart-hdr {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:1.2rem 1.4rem; border-bottom:1px solid rgba(255,255,255,.07);
+    flex-shrink:0;
+  }
+  .cart-hdr-title { font-size:1.05rem; font-weight:800; display:flex; align-items:center; gap:.5rem; }
+  .cart-hdr-title i { width:1.1rem; height:1.1rem; color:#3b82f6; }
+  .cart-close { background:rgba(255,255,255,.06); border:none; cursor:pointer; border-radius:.5rem; padding:.4rem; color:var(--fg); display:flex; align-items:center; }
+  .cart-close:hover { background:rgba(255,255,255,.12); }
+  .cart-close i { width:1rem; height:1rem; }
+  .cart-body { flex:1; overflow-y:auto; padding:1.1rem 1.4rem; display:flex; flex-direction:column; gap:.75rem; }
+  .cart-empty { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.6rem; color:var(--muted); padding:2rem; }
+  .cart-empty i { width:2.8rem; height:2.8rem; opacity:.22; }
+  .cart-empty p { font-size:.9rem; text-align:center; line-height:1.75; }
+  .cart-item {
+    display:flex; align-items:flex-start; gap:.85rem;
+    background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.07);
+    border-radius:1rem; padding:.85rem 1rem;
+  }
+  .cart-item-icon {
+    width:2.6rem; height:2.6rem; border-radius:.65rem; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .cart-item-icon i { width:1.15rem; height:1.15rem; }
+  .cart-item-icon--consulta { background:rgba(59,130,246,.12); color:#60a5fa; }
+  .cart-item-icon--exame    { background:rgba(16,185,129,.12);  color:#34d399; }
+  .cart-item-info { flex:1; min-width:0; }
+  .cart-item-name { font-size:.92rem; font-weight:700; line-height:1.35; word-break:break-word; }
+  .cart-item-meta { font-size:.75rem; color:var(--muted); margin-top:.18rem; display:flex; align-items:center; gap:.35rem; flex-wrap:wrap; line-height:1.6; }
+  .cart-item-tipo {
+    font-size:.65rem; font-weight:700; padding:.1rem .4rem; border-radius:99px; text-transform:capitalize;
+  }
+  .cart-item-tipo--consulta { background:rgba(59,130,246,.12); color:#93c5fd; border:1px solid rgba(59,130,246,.2); }
+  .cart-item-tipo--exame    { background:rgba(16,185,129,.12);  color:#6ee7b7; border:1px solid rgba(16,185,129,.2); }
+  .cart-item-price { font-size:1rem; font-weight:900; color:#4ade80; flex-shrink:0; align-self:center; }
+  .cart-item-remove { background:none; border:none; cursor:pointer; color:var(--muted); padding:.25rem; border-radius:.4rem; display:flex; align-items:center; flex-shrink:0; }
+  .cart-item-remove:hover { color:#f87171; background:rgba(248,113,113,.08); }
+  .cart-item-remove i { width:.85rem; height:.85rem; }
+  .cart-clinic-label {
+    font-size:.65rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em;
+    color:var(--muted); display:flex; align-items:center; gap:.35rem; padding:.1rem 0;
+  }
+  .cart-clinic-label::after { content:''; flex:1; height:1px; background:rgba(255,255,255,.06); }
+  .cart-ftr { padding:1.1rem 1.4rem; border-top:1px solid rgba(255,255,255,.07); flex-shrink:0; display:flex; flex-direction:column; gap:.65rem; }
+  .cart-total { display:flex; justify-content:space-between; align-items:center; font-size:.88rem; color:var(--muted); }
+  .cart-total-val { font-size:1.3rem; font-weight:900; color:#fff; }
+  .cart-cta {
+    display:flex; align-items:center; justify-content:center; gap:.5rem;
+    padding:.82rem 1.2rem; border-radius:.85rem; border:none; cursor:pointer;
+    font-size:1rem; font-weight:800; background:linear-gradient(135deg,#1d4ed8,#4338ca);
+    color:#fff; box-shadow:0 4px 20px rgba(59,130,246,.4); transition:opacity .18s,transform .15s;
+  }
+  .cart-cta:hover { opacity:.9; transform:translateY(-2px); }
+  .cart-cta i { width:1rem; height:1rem; }
+  .cart-clear { background:none; border:none; cursor:pointer; font-size:.78rem; color:var(--muted); text-decoration:underline; text-align:center; padding:.2rem; }
+  .cart-clear:hover { color:#f87171; }
+  /* Badge on cart button */
+  .cart-badge-btn { position:relative; }
+  .cart-badge {
+    position:absolute; top:-6px; right:-6px;
+    background:#ef4444; color:#fff; border-radius:99px;
+    font-size:.62rem; font-weight:800; padding:.08rem .38rem;
+    min-width:1.1rem; text-align:center; line-height:1.5;
+    display:none; border:2px solid var(--bg, #080c14);
+    animation:badge-pop .22s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes badge-pop { from{transform:scale(0)} to{transform:scale(1)} }
+  </style>
   {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -18,24 +103,15 @@
         <span class="logo-text">Med<span class="logo-accent">Market</span></span>
       </a>
 
-      <!-- Search -->
-      <form class="search-form" action="/" method="get" id="searchForm">
-        {% if selected_category %}<input type="hidden" name="category" value="{{ selected_category }}" />{% endif %}
-        <i data-lucide="search" class="search-icon"></i>
-        <input
-          type="text"
-          name="q"
-          class="search-input"
-          placeholder="Buscar equipamentos, serviços..."
-          value="{{ query }}"
-          oninput="debounceSearch(this)"
-        />
-      </form>
-
       <!-- Actions -->
       <div class="header-actions">
         <button class="btn-icon" title="Notificações"><i data-lucide="bell"></i></button>
         <button class="btn-icon" id="chatToggle" title="Chat"><i data-lucide="message-circle"></i></button>
+        <!-- Cart button -->
+        <button class="btn-icon cart-badge-btn" id="cartToggle" title="Carrinho de Agendamento" onclick="MedCart.open()">
+          <i data-lucide="shopping-bag"></i>
+          <span class="cart-badge" id="cartBadge"></span>
+        </button>
         {% if is_logged_in %}
           {% if session.get('user') and session['user'].get('user_type') == 'CLINICA' %}
             <a href="/clinica/dashboard" class="btn btn-ghost btn-sm gap-2"><i data-lucide="layout-dashboard"></i> Dashboard</a>
@@ -114,5 +190,30 @@
   </aside>
 
   <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+  <!-- ══ CART OVERLAY + DRAWER ══ -->
+  <div class="cart-overlay" id="cartOverlay" onclick="MedCart.close()"></div>
+  <aside class="cart-drawer" id="cartDrawer" aria-label="Carrinho de Agendamento">
+    <div class="cart-hdr">
+      <div class="cart-hdr-title"><i data-lucide="shopping-bag"></i> Carrinho de Agendamento</div>
+      <button class="cart-close" onclick="MedCart.close()" aria-label="Fechar carrinho"><i data-lucide="x"></i></button>
+    </div>
+    <div class="cart-body" id="cartBody">
+      <div class="cart-empty" id="cartEmpty">
+        <i data-lucide="shopping-bag"></i>
+        <p>Seu carrinho está vazio.<br>Adicione uma consulta ou exame para agendar.</p>
+      </div>
+    </div>
+    <div class="cart-ftr" id="cartFtr" style="display:none;">
+      <div class="cart-total">
+        <span>Total estimado</span>
+        <span class="cart-total-val" id="cartTotal">R$ 0</span>
+      </div>
+      <button class="cart-cta" id="cartCtaBtn" onclick="MedCart.checkout()">
+        <i data-lucide="calendar-check"></i> Confirmar Agendamento
+      </button>
+      <button class="cart-clear" onclick="MedCart.clear()">Limpar carrinho</button>
+    </div>
+  </aside>
 </body>
 </html>

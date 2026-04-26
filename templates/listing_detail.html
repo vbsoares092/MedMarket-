@@ -2,10 +2,32 @@
 {% block title %}{{ listing.title }} — MedMarket{% endblock %}
 
 {% block content %}
+<style>
+  .exam-orientation-box {
+    margin-top: 1rem;
+    background: rgba(16,185,129,.07);
+    border: 1px solid rgba(16,185,129,.22);
+    border-left: 3px solid #10b981;
+    border-radius: .65rem;
+    padding: .9rem 1.1rem;
+  }
+  .exam-orientation-title {
+    display: flex; align-items: center; gap: .4rem;
+    font-size: .78rem; font-weight: 800; color: #34d399;
+    text-transform: uppercase; letter-spacing: .06em;
+    margin-bottom: .45rem;
+  }
+  .exam-orientation-text {
+    font-size: .88rem; color: var(--fg); line-height: 1.7; margin: 0;
+    white-space: pre-wrap;
+  }
+</style>
 <!-- BREADCRUMB BAR -->
 <div class="breadcrumb-bar">
   <div class="container breadcrumb-inner">
-    <a href="/" class="btn-icon"><i data-lucide="arrow-left"></i></a>
+    <a href="{{ back_url }}" class="btn-icon" title="Voltar para resultados"><i data-lucide="arrow-left"></i></a>
+    <span class="text-muted">{% if back_url != '/' %}Resultados da busca{% else %}Início{% endif %}</span>
+    <i data-lucide="chevron-right" class="icon-xs text-muted"></i>
     <span class="text-muted">{{ listing.specialty }}</span>
     <i data-lucide="chevron-right" class="icon-xs text-muted"></i>
     <span class="breadcrumb-title">{{ listing.title }}</span>
@@ -25,6 +47,19 @@
       <div class="detail-image-badges">
         <span class="badge badge-accent">Serviço</span>
         <span class="badge badge-outline">{{ listing.specialty }}</span>
+        {% if listing.service_category == 'exame' %}
+        <span class="badge" style="background:rgba(16,185,129,.18);border:1px solid rgba(16,185,129,.35);color:#6ee7b7;font-weight:800;">
+          <i data-lucide="microscope" style="width:.65rem;height:.65rem;"></i> Exame
+        </span>
+        {% elif listing.service_category == 'pacote' %}
+        <span class="badge" style="background:rgba(168,85,247,.18);border:1px solid rgba(168,85,247,.35);color:#d8b4fe;font-weight:800;">
+          <i data-lucide="package-check" style="width:.65rem;height:.65rem;"></i> Pacote Híbrido
+        </span>
+        {% else %}
+        <span class="badge" style="background:rgba(59,130,246,.18);border:1px solid rgba(59,130,246,.35);color:#93c5fd;font-weight:800;">
+          <i data-lucide="stethoscope" style="width:.65rem;height:.65rem;"></i> Consulta
+        </span>
+        {% endif %}
       </div>
     </div>
 
@@ -36,18 +71,151 @@
         <span><i data-lucide="stethoscope" class="icon-xs"></i> {{ listing.specialty }}</span>
       </div>
       <p class="detail-desc">{{ listing.description }}</p>
+
+      {% if listing.exam_orientations %}
+      <div class="exam-orientation-box">
+        <div class="exam-orientation-title">
+          <i data-lucide="clipboard-list" style="width:.85rem;height:.85rem;flex-shrink:0;"></i>
+          Orientações para o Paciente
+        </div>
+        <p class="exam-orientation-text">{{ listing.exam_orientations }}</p>
+      </div>
+      {% endif %}
     </div>
 
     <!-- Reviews -->
     <div class="detail-reviews card">
       <h3 class="card-section-title">Avaliações</h3>
+
+      {% set _avg = listing.avg_rating %}
+      {% set _cnt = listing.review_count %}
+
+      {% if _avg is not none %}
       <div class="stars-row">
-        {% for i in range(5) %}
-        <i data-lucide="star" class="star filled"></i>
+        {% for i in range(1, 6) %}
+          {% if _avg >= i %}
+            <i data-lucide="star" class="star filled"></i>
+          {% elif _avg >= i - 0.5 %}
+            <i data-lucide="star-half" class="star filled"></i>
+          {% else %}
+            <i data-lucide="star" class="star"></i>
+          {% endif %}
         {% endfor %}
-        <span class="text-muted ml-2">5.0 / 5</span>
+        <span class="text-muted ml-2">{{ _avg }} / 5</span>
+        <span class="text-muted text-sm" style="margin-left:.4rem;">({{ _cnt }} avaliação{{ 'ões' if _cnt != 1 else '' }})</span>
       </div>
-      <p class="text-muted text-sm">Nenhuma avaliação detalhada ainda.</p>
+      {% else %}
+      <div class="stars-row">
+        <span style="background:rgba(251,191,36,0.12);color:#fbbf24;font-size:.75rem;font-weight:700;padding:.2rem .65rem;border-radius:99px;">Novo</span>
+        <span class="text-muted text-sm" style="margin-left:.4rem;">Sem avaliações ainda</span>
+      </div>
+      {% endif %}
+
+      <!-- Existing reviews -->
+      {% set _reviews = listing.reviews.order_by(none).all() if listing.reviews else [] %}
+      {% if _reviews %}
+      <div style="margin-top:1rem;display:flex;flex-direction:column;gap:.85rem;">
+        {% for rev in _reviews %}
+        <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:.85rem;padding:.85rem 1rem;">
+          <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.35rem;">
+            <div style="width:1.75rem;height:1.75rem;border-radius:50%;background:linear-gradient(135deg,#1e3a5f,#312e81);display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:800;color:#93c5fd;">{{ rev.user.name[0] | upper if rev.user else '?' }}</div>
+            <span style="font-size:.82rem;font-weight:700;">{{ rev.user.name if rev.user else 'Anônimo' }}</span>
+            <span style="margin-left:auto;font-size:.68rem;color:var(--muted);">{{ rev.created_at.strftime('%d/%m/%Y') if rev.created_at else '' }}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:.15rem;margin-bottom:.3rem;">
+            {% for i in range(1, 6) %}
+              {% if rev.rating >= i %}
+                <i data-lucide="star" style="width:.8rem;height:.8rem;fill:#fbbf24;color:#fbbf24;"></i>
+              {% elif rev.rating >= i - 0.5 %}
+                <i data-lucide="star-half" style="width:.8rem;height:.8rem;fill:#fbbf24;color:#fbbf24;"></i>
+              {% else %}
+                <i data-lucide="star" style="width:.8rem;height:.8rem;color:rgba(255,255,255,.15);"></i>
+              {% endif %}
+            {% endfor %}
+          </div>
+          {% if rev.comentario %}
+          <p style="font-size:.82rem;color:var(--fg);line-height:1.6;margin:0;">{{ rev.comentario }}</p>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% elif _avg is none %}
+      <p class="text-muted text-sm" style="margin-top:.5rem;">Seja o primeiro a avaliar este serviço!</p>
+      {% endif %}
+
+      <!-- Review submission form (patients only) -->
+      {% if is_logged_in and current_user_type == 'CLIENTE' %}
+      <div id="review-form-wrap" style="margin-top:1.25rem;padding-top:1rem;border-top:1px solid rgba(255,255,255,.07);">
+        <h4 style="font-size:.88rem;font-weight:700;margin-bottom:.65rem;">Deixe sua avaliação</h4>
+        <div id="review-stars" style="display:flex;gap:.25rem;cursor:pointer;margin-bottom:.6rem;">
+          {% for i in range(1, 6) %}
+          <i data-lucide="star" data-value="{{ i }}" class="review-star" style="width:1.4rem;height:1.4rem;color:rgba(255,255,255,.2);transition:color .15s;"></i>
+          {% endfor %}
+        </div>
+        <textarea id="review-comment" rows="3" placeholder="Comentário (opcional)" maxlength="500"
+          style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:.65rem;padding:.65rem .85rem;font-size:.82rem;color:var(--fg);resize:vertical;font-family:inherit;"></textarea>
+        <button id="review-submit" class="btn btn-accent btn-sm" style="margin-top:.5rem;" disabled>
+          <i data-lucide="send" style="width:.8rem;height:.8rem;"></i> Enviar Avaliação
+        </button>
+        <p id="review-msg" style="font-size:.78rem;margin-top:.4rem;display:none;"></p>
+      </div>
+      <script>
+      (function(){
+        let selectedRating = 0;
+        const stars = document.querySelectorAll('#review-stars .review-star');
+        const submitBtn = document.getElementById('review-submit');
+        const msgEl = document.getElementById('review-msg');
+
+        function paintStars(n) {
+          stars.forEach((s, i) => {
+            s.style.color = i < n ? '#fbbf24' : 'rgba(255,255,255,.2)';
+            s.style.fill = i < n ? '#fbbf24' : 'none';
+          });
+        }
+        stars.forEach(s => {
+          s.addEventListener('mouseenter', () => paintStars(+s.dataset.value));
+          s.addEventListener('click', () => {
+            selectedRating = +s.dataset.value;
+            paintStars(selectedRating);
+            submitBtn.disabled = false;
+          });
+        });
+        document.getElementById('review-stars').addEventListener('mouseleave', () => paintStars(selectedRating));
+
+        submitBtn.addEventListener('click', async () => {
+          submitBtn.disabled = true;
+          msgEl.style.display = 'none';
+          try {
+            const res = await fetch('/api/review', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({
+                service_id: {{ listing.id }},
+                rating: selectedRating,
+                comentario: document.getElementById('review-comment').value.trim()
+              })
+            });
+            const j = await res.json();
+            msgEl.style.display = 'block';
+            if (j.ok) {
+              msgEl.style.color = '#4ade80';
+              msgEl.textContent = 'Avaliação enviada! Recarregando…';
+              setTimeout(() => location.reload(), 1200);
+            } else {
+              msgEl.style.color = '#f87171';
+              msgEl.textContent = j.msg || 'Erro ao enviar.';
+              submitBtn.disabled = false;
+            }
+          } catch(e) {
+            msgEl.style.display = 'block';
+            msgEl.style.color = '#f87171';
+            msgEl.textContent = 'Erro de rede.';
+            submitBtn.disabled = false;
+          }
+        });
+      })();
+      </script>
+      {% endif %}
     </div>
   </div>
 

@@ -89,4 +89,46 @@ with app.app_context():
             else:
                 print(f"  · clinic_services.{col_name} already exists, skipping.")
 
+        # ── 6. Add appointment_id FK to reviews (post-care integrity) ─────
+        if not column_exists(conn, "reviews", "appointment_id"):
+            print("Adding reviews.appointment_id ...")
+            conn.execute(text(
+                "ALTER TABLE reviews ADD COLUMN appointment_id INTEGER REFERENCES appointments(id)"
+            ))
+            conn.commit()
+            print("  ✓ reviews.appointment_id added.")
+        else:
+            print("  · reviews.appointment_id already exists, skipping.")
+
+        # ── 7. Create post_atendimentos table (new) via SQLAlchemy ─────────
+        print("Creating post_atendimentos table (if not exists) ...")
+        db.create_all()
+        conn.commit()
+        print("  ✓ post_atendimentos table up to date.")
+
     print("\nMigration complete. You can now start the app normally.")
+
+
+# ── 6. Unique index on disponibilidades(service_id, data, horario) ────────────
+with app.app_context():
+    with db.engine.connect() as conn:
+        idx_name = "uq_disp_service_data_hora"
+        idx_exists = conn.execute(
+            text("SELECT name FROM sqlite_master WHERE type='index' AND name=:n"),
+            {"n": idx_name}
+        ).fetchone()
+        if not idx_exists:
+            print("Creating unique index on disponibilidades(service_id, data, horario) ...")
+            try:
+                conn.execute(text(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS uq_disp_service_data_hora "
+                    "ON disponibilidades(service_id, data, horario)"
+                ))
+                conn.commit()
+                print("  ✓ Unique index created.")
+            except Exception as exc:
+                conn.rollback()
+                print(f"  ! Could not create index (duplicate data exists?): {exc}")
+                print("    Run cleanup_duplicates.py first, then re-run migrate_db.py.")
+        else:
+            print("  · Unique index uq_disp_service_data_hora already exists, skipping.")
