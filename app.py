@@ -1,6 +1,7 @@
 import os
 import json
 import math
+from urllib.parse import quote_plus
 from dotenv import load_dotenv
 load_dotenv()  # Load .env before any os.environ.get calls
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
@@ -678,6 +679,65 @@ def auth():
 def logout():
     session.pop("user", None)
     return redirect("/")
+
+
+@app.route("/minha-saude")
+def minha_saude():
+    """Patient's health hub: past appointments + post-care instructions + personal info."""
+    if not session.get("user"):
+        return redirect("/auth?redirect=/minha-saude")
+
+    user_id = session["user"]["id"]
+    db_user = User.query.get(user_id)
+    if not db_user:
+        session.pop("user", None)
+        return redirect("/auth?redirect=/minha-saude")
+
+    # All appointments for this patient (all statuses), newest first
+    try:
+        all_appts = (
+            Appointment.query
+            .filter(Appointment.user_id == db_user.id)
+            .order_by(Appointment.date.desc(), Appointment.time_slot.desc())
+            .all()
+        )
+        historico = []
+        for appt in all_appts:
+            post = PostAtendimento.query.filter_by(appointment_id=appt.id).first()
+
+            # Clinic contact + address data for this appointment
+            clinica: dict = {}
+            if appt.clinic_id:
+                clinic_user = User.query.get(appt.clinic_id)
+                if clinic_user:
+                    cp = clinic_user.clinic_profile
+                    clinica["nome"]     = (cp.razao_social if cp else None) or clinic_user.name
+                    clinica["telefone"] = clinic_user.telefone or ""
+                    clinica["email"]    = clinic_user.email or ""
+            if appt.service:
+                clinica["endereco"] = appt.service.endereco_formatado
+                gml = appt.service.google_maps_link or ""
+                if not gml and clinica.get("endereco"):
+                    gml = (
+                        "https://www.google.com/maps/search/?api=1&query="
+                        + quote_plus(clinica["endereco"])
+                    )
+                clinica["maps_link"] = gml
+
+            historico.append({"appt": appt, "post": post, "clinica": clinica})
+    except Exception:
+        historico = []
+
+    return render_template(
+        "minha_saude.html",
+        user={"name": db_user.name, "email": db_user.email,
+              "cpf": db_user.cpf or "", "telefone": db_user.telefone or ""},
+        historico=historico,
+        is_logged_in=True,
+        query="",
+        selected_category="",
+        chat_messages=[],
+    )
 
 
 @app.route("/api/chat", methods=["POST"])

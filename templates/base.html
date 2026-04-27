@@ -90,6 +90,24 @@
     animation:badge-pop .22s cubic-bezier(.34,1.56,.64,1);
   }
   @keyframes badge-pop { from{transform:scale(0)} to{transform:scale(1)} }
+
+  /* ── Nav user identity button ─────────────────── */
+  .nav-user-btn {
+    display: inline-flex; align-items: center; gap: .5rem;
+    padding: .32rem .75rem .32rem .38rem;
+    background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.09);
+    border-radius: 99px; cursor: pointer; text-decoration: none;
+    color: var(--fg); font-size: .85rem; font-weight: 600;
+    transition: background .18s, border-color .18s;
+  }
+  .nav-user-btn:hover { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.18); }
+  .nav-user-avatar {
+    width: 1.75rem; height: 1.75rem; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg,#3b82f6,#8b5cf6);
+    display: flex; align-items: center; justify-content: center;
+    font-size: .72rem; font-weight: 900; color: #fff;
+  }
+  .nav-user-name { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   </style>
   {% block extra_css %}{% endblock %}
 </head>
@@ -106,17 +124,16 @@
       <!-- Actions -->
       <div class="header-actions">
         <button class="btn-icon" title="Notificações"><i data-lucide="bell"></i></button>
-        <button class="btn-icon" id="chatToggle" title="Chat"><i data-lucide="message-circle"></i></button>
-        <!-- Cart button -->
-        <button class="btn-icon cart-badge-btn" id="cartToggle" title="Carrinho de Agendamento" onclick="MedCart.open()">
-          <i data-lucide="shopping-bag"></i>
-          <span class="cart-badge" id="cartBadge"></span>
-        </button>
         {% if is_logged_in %}
+          {% set _uname = session.get('user', {}).get('name', '') %}
           {% if session.get('user') and session['user'].get('user_type') == 'CLINICA' %}
             <a href="/clinica/dashboard" class="btn btn-ghost btn-sm gap-2"><i data-lucide="layout-dashboard"></i> Dashboard</a>
           {% else %}
-            <a href="/perfil" class="btn btn-ghost btn-sm gap-2"><i data-lucide="user"></i> Perfil</a>
+            <a href="/minha-saude" class="btn btn-ghost btn-sm gap-2" title="Meus Atendimentos"><i data-lucide="heart-pulse"></i> Meus Atendimentos</a>
+            <a href="/perfil" class="nav-user-btn" title="Meu Perfil">
+              <span class="nav-user-avatar">{{ (_uname[0] | upper) if _uname else '?' }}</span>
+              <span class="nav-user-name">Olá, {{ _uname.split()[0] if _uname else 'Usuário' }}</span>
+            </a>
           {% endif %}
           <a href="/logout" class="btn btn-ghost btn-sm gap-2"><i data-lucide="log-out"></i> Sair</a>
         {% else %}
@@ -141,12 +158,16 @@
         </form>
         <div class="mobile-actions">
           <button class="btn-icon"><i data-lucide="bell"></i></button>
-          <button class="btn-icon" id="chatToggleMobile"><i data-lucide="message-circle"></i></button>
           {% if is_logged_in %}
+            {% set _uname = session.get('user', {}).get('name', '') %}
             {% if session.get('user') and session['user'].get('user_type') == 'CLINICA' %}
               <a href="/clinica/dashboard" class="btn btn-ghost btn-sm gap-2 ml-auto"><i data-lucide="layout-dashboard"></i> Dashboard</a>
             {% else %}
-              <a href="/perfil" class="btn btn-ghost btn-sm gap-2 ml-auto"><i data-lucide="user"></i> Perfil</a>
+              <a href="/minha-saude" class="btn btn-ghost btn-sm gap-2 ml-auto"><i data-lucide="heart-pulse"></i> Meus Atendimentos</a>
+              <a href="/perfil" class="nav-user-btn">
+                <span class="nav-user-avatar">{{ (_uname[0] | upper) if _uname else '?' }}</span>
+                <span class="nav-user-name">{{ _uname.split()[0] if _uname else 'Usuário' }}</span>
+              </a>
             {% endif %}
             <a href="/logout" class="btn btn-ghost btn-sm gap-2"><i data-lucide="log-out"></i> Sair</a>
           {% else %}
@@ -163,57 +184,6 @@
     {% block content %}{% endblock %}
   </main>
 
-  <!-- CHAT PANEL -->
-  <aside class="chat-panel" id="chatPanel">
-    <div class="chat-header">
-      <span class="chat-title">Chat Global</span>
-      <button class="btn-icon" id="chatClose"><i data-lucide="x"></i></button>
-    </div>
-    <div class="chat-messages" id="chatMessages">
-      {% for m in chat_messages %}
-      <div class="chat-msg">
-        <div class="chat-avatar">{{ m.avatar }}</div>
-        <div class="chat-content">
-          <div class="chat-meta">
-            <span class="chat-user">{{ m.user }}</span>
-            <span class="chat-time">{{ m.time }}</span>
-          </div>
-          <p class="chat-text">{{ m.message }}</p>
-        </div>
-      </div>
-      {% endfor %}
-    </div>
-    <div class="chat-input-row">
-      <input type="text" id="chatInput" class="input" placeholder="Mensagem..." />
-      <button class="btn btn-primary btn-icon-sm" id="chatSend"><i data-lucide="send"></i></button>
-    </div>
-  </aside>
-
   <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-
-  <!-- ══ CART OVERLAY + DRAWER ══ -->
-  <div class="cart-overlay" id="cartOverlay" onclick="MedCart.close()"></div>
-  <aside class="cart-drawer" id="cartDrawer" aria-label="Carrinho de Agendamento">
-    <div class="cart-hdr">
-      <div class="cart-hdr-title"><i data-lucide="shopping-bag"></i> Carrinho de Agendamento</div>
-      <button class="cart-close" onclick="MedCart.close()" aria-label="Fechar carrinho"><i data-lucide="x"></i></button>
-    </div>
-    <div class="cart-body" id="cartBody">
-      <div class="cart-empty" id="cartEmpty">
-        <i data-lucide="shopping-bag"></i>
-        <p>Seu carrinho está vazio.<br>Adicione uma consulta ou exame para agendar.</p>
-      </div>
-    </div>
-    <div class="cart-ftr" id="cartFtr" style="display:none;">
-      <div class="cart-total">
-        <span>Total estimado</span>
-        <span class="cart-total-val" id="cartTotal">R$ 0</span>
-      </div>
-      <button class="cart-cta" id="cartCtaBtn" onclick="MedCart.checkout()">
-        <i data-lucide="calendar-check"></i> Confirmar Agendamento
-      </button>
-      <button class="cart-clear" onclick="MedCart.clear()">Limpar carrinho</button>
-    </div>
-  </aside>
 </body>
 </html>

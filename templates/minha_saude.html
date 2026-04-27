@@ -1,0 +1,445 @@
+{% extends "base.html" %}
+{% block title %}Meus Atendimentos — MedMarket{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ── Layout ── */
+  .ms-page { max-width: 820px; margin: 0 auto; padding: 2rem 1rem 4rem; }
+
+  /* ── Glass surface ── */
+  .ms-glass {
+    background: rgba(17,24,39,.55);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: 1.25rem;
+    box-shadow: 0 6px 32px rgba(0,0,0,.28);
+  }
+
+  /* ── Hero ── */
+  .ms-hero {
+    display: flex; align-items: center; gap: 1.1rem;
+    padding: 1.5rem 1.75rem; margin-bottom: 1.5rem;
+    background: linear-gradient(135deg, rgba(59,130,246,.09), rgba(139,92,246,.07));
+    border: 1px solid rgba(99,102,241,.2); border-radius: 1.25rem;
+  }
+  .ms-hero-avatar {
+    width: 4rem; height: 4rem; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg,#3b82f6,#8b5cf6);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.6rem; font-weight: 900; color: #fff;
+    box-shadow: 0 4px 18px rgba(99,102,241,.4);
+  }
+  .ms-hero-info { flex: 1; min-width: 0; }
+  .ms-hero-info h1 { font-size: 1.15rem; font-weight: 800; margin: 0 0 .2rem; }
+  .ms-hero-info p  { font-size: .8rem; color: var(--muted); margin: 0; }
+
+  /* ── Section label ── */
+  .ms-section-title {
+    font-size: .65rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .09em; color: var(--muted);
+    display: flex; align-items: center; gap: .4rem; margin: 0;
+  }
+  .ms-section-title i { width: .8rem; height: .8rem; }
+
+  /* ── Atendimento card ── */
+  .ms-card {
+    background: rgba(255,255,255,.025);
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: 1rem; overflow: hidden;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .ms-card:hover {
+    border-color: rgba(99,102,241,.32);
+    box-shadow: 0 4px 20px rgba(99,102,241,.1);
+  }
+
+  .ms-card-hdr {
+    display: flex; align-items: center; gap: .85rem;
+    padding: .95rem 1.2rem;
+  }
+  .ms-card-icon {
+    width: 2.4rem; height: 2.4rem; border-radius: .6rem; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .ms-card-icon i { width: 1.05rem; height: 1.05rem; }
+  .ms-card-icon--consulta { background: rgba(59,130,246,.12);  color: #60a5fa; }
+  .ms-card-icon--exame    { background: rgba(16,185,129,.12);   color: #34d399; }
+  .ms-card-icon--pacote   { background: rgba(139,92,246,.12);   color: #a78bfa; }
+
+  .ms-card-meta { flex: 1; min-width: 0; }
+  .ms-card-title {
+    font-size: .93rem; font-weight: 700; margin: 0 0 .18rem;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .ms-card-sub {
+    font-size: .73rem; color: var(--muted);
+    display: flex; align-items: center; gap: .4rem; flex-wrap: wrap;
+  }
+  .ms-card-sub i { width: .68rem; height: .68rem; }
+
+  /* ── Status badges ── */
+  .ms-badge {
+    font-size: .63rem; font-weight: 800; padding: .2rem .55rem;
+    border-radius: 99px; flex-shrink: 0; white-space: nowrap;
+  }
+  .ms-badge--pending    { background:rgba(99,102,241,.12); color:#818cf8; border:1px solid rgba(99,102,241,.22); }
+  .ms-badge--confirmed  { background:rgba(59,130,246,.12); color:#60a5fa; border:1px solid rgba(59,130,246,.22); }
+  .ms-badge--inprogress { background:rgba(251,191,36,.1);  color:#fbbf24; border:1px solid rgba(251,191,36,.22); }
+  .ms-badge--completed  { background:rgba(20,184,166,.12); color:#2dd4bf; border:1px solid rgba(20,184,166,.22); }
+  .ms-badge--finalized  { background:rgba(16,185,129,.12); color:#34d399; border:1px solid rgba(16,185,129,.2);  }
+  .ms-badge--cancelled  { background:rgba(239,68,68,.1);   color:#f87171; border:1px solid rgba(239,68,68,.2);   }
+
+  /* ── Post-care body ── */
+  .ms-card-body {
+    padding: .85rem 1.2rem 1rem;
+    display: flex; flex-direction: column; gap: .7rem;
+    border-top: 1px solid rgba(255,255,255,.05);
+  }
+  .ms-block {
+    background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.055);
+    border-radius: .75rem; padding: .7rem .95rem;
+  }
+  .ms-block-title {
+    font-size: .63rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--muted);
+    display: flex; align-items: center; gap: .3rem; margin-bottom: .45rem;
+  }
+  .ms-block-title i { width: .68rem; height: .68rem; }
+  .ms-block-text {
+    font-size: .87rem; line-height: 1.75; color: var(--fg);
+    white-space: pre-wrap; margin: 0;
+  }
+  .ms-retorno {
+    display: inline-flex; align-items: center; gap: .4rem;
+    font-size: .77rem; font-weight: 700; padding: .28rem .7rem; border-radius: 99px;
+    background: rgba(251,191,36,.1); color: #fbbf24; border: 1px solid rgba(251,191,36,.22);
+  }
+  .ms-retorno i { width: .78rem; height: .78rem; }
+
+  /* ── Empty state ── */
+  .ms-empty {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: .8rem;
+    padding: 4rem 1.5rem; color: var(--muted); text-align: center;
+  }
+  .ms-empty i { width: 3.25rem; height: 3.25rem; opacity: .2; }
+  .ms-empty p { font-size: .9rem; line-height: 1.8; margin: 0; }
+
+  /* ── Ver Instruções button ── */
+  .ms-ver-btn {
+    font-size: .72rem; padding: .25rem .65rem;
+    border-color: rgba(99,102,241,.25); color: #818cf8;
+  }
+  .ms-ver-btn:hover { border-color: rgba(99,102,241,.55); background: rgba(99,102,241,.08); }
+
+  /* ── Info (ⓘ) button ── */
+  .ms-info-btn {
+    background: rgba(59,130,246,.08);
+    border: 1px solid rgba(59,130,246,.22);
+    border-radius: 50%;
+    width: 1.65rem; height: 1.65rem; flex-shrink: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer; color: #60a5fa;
+    transition: background .18s, border-color .18s;
+  }
+  .ms-info-btn:hover { background: rgba(59,130,246,.18); border-color: rgba(59,130,246,.5); }
+  .ms-info-btn i { width: .78rem; height: .78rem; }
+
+  /* ── Clinic modal contact rows ── */
+  .ms-contact-row {
+    display: flex; align-items: center; gap: .5rem;
+    font-size: .88rem; color: var(--fg); padding: .2rem 0;
+  }
+  .ms-contact-row i { width: .82rem; height: .82rem; color: var(--muted); flex-shrink: 0; }
+  .ms-contact-link { color: #60a5fa; text-decoration: none; }
+  .ms-contact-link:hover { text-decoration: underline; }
+  .ms-map-link {
+    display: inline-flex; align-items: center; gap: .35rem;
+    font-size: .78rem; font-weight: 700; margin-top: .55rem;
+    padding: .3rem .75rem; border-radius: 99px;
+    background: rgba(59,130,246,.1); color: #60a5fa;
+    border: 1px solid rgba(59,130,246,.25); text-decoration: none;
+    transition: background .18s;
+  }
+  .ms-map-link:hover { background: rgba(59,130,246,.2); }
+  .ms-map-link i { width: .78rem; height: .78rem; }
+
+  /* ── Modal overlay ── */
+  .ms-modal-overlay {
+    position: fixed; inset: 0; z-index: 300;
+    background: rgba(0,0,0,.65); backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    padding: 1rem;
+    opacity: 0; pointer-events: none;
+    transition: opacity .22s;
+  }
+  .ms-modal-overlay.open { opacity: 1; pointer-events: all; }
+
+  /* ── Modal box ── */
+  .ms-modal {
+    background: rgba(15,20,35,.97);
+    border: 1px solid rgba(99,102,241,.22);
+    border-radius: 1.25rem;
+    box-shadow: 0 12px 60px rgba(0,0,0,.55);
+    width: 100%; max-width: 520px;
+    max-height: 80vh; display: flex; flex-direction: column;
+    transform: translateY(16px); transition: transform .22s;
+  }
+  .ms-modal-overlay.open .ms-modal { transform: translateY(0); }
+
+  .ms-modal-hdr {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 1rem; padding: 1.2rem 1.4rem;
+    border-bottom: 1px solid rgba(255,255,255,.07);
+    flex-shrink: 0;
+  }
+  .ms-modal-title { font-size: 1rem; font-weight: 800; margin: 0 0 .15rem; }
+  .ms-modal-sub   { font-size: .78rem; color: var(--muted); }
+  .ms-modal-close {
+    background: rgba(255,255,255,.06); border: none; cursor: pointer;
+    border-radius: .5rem; padding: .4rem; color: var(--fg);
+    display: flex; align-items: center; flex-shrink: 0;
+  }
+  .ms-modal-close:hover { background: rgba(255,255,255,.12); }
+  .ms-modal-close i { width: 1rem; height: 1rem; }
+
+  .ms-modal-body {
+    overflow-y: auto; padding: 1.2rem 1.4rem;
+    display: flex; flex-direction: column; gap: .75rem;
+  }
+  .ms-modal-empty { color: var(--muted); font-size: .88rem; text-align: center; padding: 1.5rem 0; }
+
+  @media (max-width: 540px) {
+    .ms-hero { padding: 1.1rem 1.2rem; }
+    .ms-hero-avatar { width: 3.2rem; height: 3.2rem; font-size: 1.25rem; }
+    .ms-card-hdr { padding: .8rem 1rem; flex-wrap: wrap; gap: .6rem; }
+    .ms-card-hdr > div:last-child { margin-left: auto; }
+    .ms-modal { max-height: 90vh; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+{% set _status_map = {
+  'pending':     ('Agendado',     'pending'),
+  'confirmed':   ('Confirmado',   'confirmed'),
+  'in_progress': ('Em Andamento', 'inprogress'),
+  'completed':   ('Concluído',    'completed'),
+  'finalized':   ('Finalizado',   'finalized'),
+  'cancelled':   ('Cancelado',    'cancelled')
+} %}
+
+<div class="ms-page">
+
+  <!-- ── Hero ── -->
+  <div class="ms-hero">
+    <div class="ms-hero-avatar">{{ user.name[0] | upper if user.name else '?' }}</div>
+    <div class="ms-hero-info">
+      <h1>Olá, {{ user.name.split()[0] if user.name else 'Usuário' }}!</h1>
+      <p>Central de atendimentos e histórico médico</p>
+    </div>
+    <a href="/perfil" class="btn btn-ghost btn-sm gap-2" style="margin-left:auto;flex-shrink:0;">
+      <i data-lucide="settings"></i> Editar Perfil
+    </a>
+  </div>
+
+  <!-- ── Atendimentos ── -->
+  <div class="ms-glass">
+    <div style="padding:1.25rem 1.6rem .85rem; display:flex; align-items:center; justify-content:space-between; gap:1rem;">
+      <p class="ms-section-title">
+        <i data-lucide="layout-list"></i> Meus Atendimentos
+      </p>
+      {% if historico %}
+      <span style="font-size:.72rem;color:var(--muted);">{{ historico | length }} registro{{ 's' if historico | length != 1 else '' }}</span>
+      {% endif %}
+    </div>
+
+    {% if historico %}
+    <div style="padding:0 1rem 1.25rem; display:flex; flex-direction:column; gap:.65rem;">
+      {% for item in historico %}
+      {% set appt = item.appt %}
+      {% set post = item.post %}
+      {% set status_info = _status_map.get(appt.status, ('Agendado', 'pending')) %}
+      {% set has_post = post and (post.recomendacoes or post.proximos_passos or post.retorno_sugerido) %}
+
+      <div class="ms-card">
+        <div class="ms-card-hdr">
+          {% set svc_cat = appt.service.service_category if appt.service else 'consulta' %}
+          <div class="ms-card-icon ms-card-icon--{{ svc_cat or 'consulta' }}">
+            <i data-lucide="{{ 'flask-conical' if svc_cat == 'exame' else ('package' if svc_cat == 'pacote' else 'stethoscope') }}"></i>
+          </div>
+          <div class="ms-card-meta">
+            <div class="ms-card-title">{{ appt.service.title if appt.service else 'Atendimento' }}</div>
+            <div class="ms-card-sub">
+              {% if appt.date %}
+                <i data-lucide="calendar"></i>
+                {{ appt.date[8:10] }}/{{ appt.date[5:7] }}/{{ appt.date[0:4] }}
+              {% endif %}
+              {% if appt.time_slot %}
+                <i data-lucide="clock"></i>{{ appt.time_slot }}
+              {% endif %}
+              {% if appt.service and appt.service.doctor_name %}
+                <span>·</span><i data-lucide="user"></i>{{ appt.service.doctor_name }}
+              {% endif %}
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:.5rem;flex-shrink:0;">
+            <span class="ms-badge ms-badge--{{ status_info[1] }}">{{ status_info[0] }}</span>
+            {% if item.clinica %}
+            <button class="ms-info-btn" onclick="openClinicModal({{ appt.id }})" title="Detalhes da Clínica">
+              <i data-lucide="info"></i>
+            </button>
+            <script type="application/json" id="clinica-{{ appt.id }}">
+            {{ item.clinica | tojson | safe }}
+            </script>
+            {% endif %}
+            {% if has_post %}
+            <button class="btn btn-ghost btn-sm gap-1 ms-ver-btn" onclick="openMsModal({{ appt.id }})">
+              <i data-lucide="file-text"></i> Ver Instruções
+            </button>
+            <script type="application/json" id="post-{{ appt.id }}">
+            {{ {"recomendacoes": post.recomendacoes or "", "proximos_passos": post.proximos_passos or "", "retorno_sugerido": post.retorno_sugerido, "retorno_meses": post.retorno_meses, "retorno_tipo": post.retorno_tipo or "", "servico": (appt.service.title if appt.service else "Atendimento"), "medico": (appt.service.doctor_name if appt.service else "")} | tojson | safe }}
+            </script>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    {% else %}
+    <div class="ms-empty">
+      <i data-lucide="heart-pulse"></i>
+      <p>Você ainda não possui atendimentos registrados.</p>
+      <a href="/" class="btn btn-primary btn-sm gap-2" style="margin-top:.25rem;">
+        <i data-lucide="search"></i> Explorar Serviços
+      </a>
+    </div>
+    {% endif %}
+
+  </div><!-- /.ms-glass -->
+
+</div><!-- /.ms-page -->
+
+<!-- ══ Instruções Modal ══ -->
+<div class="ms-modal-overlay" id="msModalOverlay" onclick="closeMsModal()">
+  <div class="ms-modal" onclick="event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="msModalTitle">
+    <div class="ms-modal-hdr">
+      <div>
+        <div class="ms-modal-title" id="msModalTitle"></div>
+        <div class="ms-modal-sub" id="msModalSub"></div>
+      </div>
+      <button class="ms-modal-close" onclick="closeMsModal()" aria-label="Fechar">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+    <div class="ms-modal-body" id="msModalBody"></div>
+  </div>
+</div>
+
+<!-- ══ Detalhes da Clínica Modal ══ -->
+<div class="ms-modal-overlay" id="msClinicOverlay" onclick="closeClinicModal()">
+  <div class="ms-modal" onclick="event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="msClinicTitle">
+    <div class="ms-modal-hdr">
+      <div>
+        <div class="ms-modal-title" id="msClinicTitle"></div>
+        <div class="ms-modal-sub">Informações da Clínica</div>
+      </div>
+      <button class="ms-modal-close" onclick="closeClinicModal()" aria-label="Fechar">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+    <div class="ms-modal-body" id="msClinicBody"></div>
+  </div>
+</div>
+
+<script>
+function _esc(str) {
+  return str
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
+
+function openMsModal(apptId) {
+  const raw = document.getElementById('post-' + apptId)?.textContent;
+  if (!raw) return;
+  let d;
+  try { d = JSON.parse(raw); } catch(e) { return; }
+
+  document.getElementById('msModalTitle').textContent = d.servico || 'Instruções';
+  document.getElementById('msModalSub').textContent   = d.medico ? 'Dr. ' + d.medico : '';
+
+  let html = '';
+  if (d.recomendacoes) {
+    html += `<div class="ms-block">
+      <div class="ms-block-title"><i data-lucide="clipboard-list"></i> Recomendações do Médico</div>
+      <p class="ms-block-text">${_esc(d.recomendacoes)}</p></div>`;
+  }
+  if (d.proximos_passos) {
+    html += `<div class="ms-block">
+      <div class="ms-block-title"><i data-lucide="list-checks"></i> Próximos Passos</div>
+      <p class="ms-block-text">${_esc(d.proximos_passos)}</p></div>`;
+  }
+  if (d.retorno_sugerido) {
+    let txt = 'Retorno sugerido';
+    if (d.retorno_meses) txt += ` em ${d.retorno_meses} ${d.retorno_meses == 1 ? 'mês' : 'meses'}`;
+    if (d.retorno_tipo)  txt += ` — ${d.retorno_tipo.charAt(0).toUpperCase() + d.retorno_tipo.slice(1)}`;
+    html += `<div><span class="ms-retorno"><i data-lucide="calendar-clock"></i> ${_esc(txt)}</span></div>`;
+  }
+  if (!html) html = '<p class="ms-modal-empty">Nenhuma instrução registrada.</p>';
+
+  document.getElementById('msModalBody').innerHTML = html;
+  document.getElementById('msModalOverlay').classList.add('open');
+  lucide.createIcons();
+}
+
+function closeMsModal() {
+  document.getElementById('msModalOverlay').classList.remove('open');
+}
+
+function openClinicModal(apptId) {
+  const raw = document.getElementById('clinica-' + apptId)?.textContent;
+  if (!raw) return;
+  let d;
+  try { d = JSON.parse(raw); } catch(e) { return; }
+
+  document.getElementById('msClinicTitle').textContent = d.nome || 'Clínica';
+
+  let html = '';
+  if (d.endereco) {
+    const mapBtn = d.maps_link
+      ? `<a href="${_esc(d.maps_link)}" target="_blank" rel="noopener noreferrer" class="ms-map-link"><i data-lucide="map-pin"></i> Ver no Mapa</a>`
+      : '';
+    html += `<div class="ms-block">
+      <div class="ms-block-title"><i data-lucide="map-pin"></i> Localização</div>
+      <p class="ms-block-text" style="margin-bottom:.45rem">${_esc(d.endereco)}</p>
+      ${mapBtn}
+    </div>`;
+  }
+  if (d.telefone || d.email) {
+    let rows = '';
+    if (d.telefone) rows += `<div class="ms-contact-row"><i data-lucide="phone"></i><span>${_esc(d.telefone)}</span></div>`;
+    if (d.email)    rows += `<div class="ms-contact-row"><i data-lucide="mail"></i><a href="mailto:${_esc(d.email)}" class="ms-contact-link">${_esc(d.email)}</a></div>`;
+    html += `<div class="ms-block">
+      <div class="ms-block-title"><i data-lucide="phone"></i> Contato</div>
+      ${rows}
+    </div>`;
+  }
+  if (!html) html = '<p class="ms-modal-empty">Nenhuma informação disponível.</p>';
+
+  document.getElementById('msClinicBody').innerHTML = html;
+  document.getElementById('msClinicOverlay').classList.add('open');
+  lucide.createIcons();
+}
+
+function closeClinicModal() {
+  document.getElementById('msClinicOverlay').classList.remove('open');
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeMsModal(); closeClinicModal(); }
+});
+</script>
+{% endblock %}
